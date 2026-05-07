@@ -75,9 +75,27 @@ const GlobalStyle = createGlobalStyle`
 
   .react-flow__minimap {
     border: 3px solid #000000 !important;
-    box-shadow: 4px 4px 0px #000000 !important;
     border-radius: 0 !important;
     background: #ffffff !important;
+  }
+
+  .react-flow__attribution {
+    display: none !important;
+  }
+
+  .react-flow__controls {
+    box-shadow: none !important;
+    border: 3px solid #000000;
+  }
+
+  .react-flow__controls-button {
+    border-bottom: 1px solid #eee !important;
+    box-shadow: none !important;
+    background: #ffffff !important;
+
+    &:hover {
+      background: #f0f0f0 !important;
+    }
   }
 `;
 
@@ -164,12 +182,10 @@ const ActionButton = styled.button`
   border: 3px solid #000000;
   background: ${props => props.$active ? '#000000' : '#ffffff'};
   color: ${props => props.$active ? '#ffffff' : '#000000'};
-  box-shadow: ${props => props.$active ? 'none' : '3px 3px 0px #000000'};
   transition: all 0.1s;
 
   &:hover {
     transform: translate(-1px, -1px);
-    box-shadow: ${props => props.$active ? 'none' : '4px 4px 0px #000000'};
   }
 
   &:active {
@@ -287,11 +303,8 @@ const ProductCard = styled.div`
   margin-bottom: 12px;
   cursor: pointer;
   transition: all 0.1s;
-  box-shadow: 4px 4px 0px #000000;
-
   &:hover {
     transform: translate(-2px, -2px);
-    box-shadow: 6px 6px 0px #000000;
   }
 `;
 
@@ -412,7 +425,7 @@ const PromptInput = styled.input`
 `;
 
 const TemplateSelect = styled.select`
-  padding: 16px 20px;
+  padding: 16px 40px 16px 20px;
   border: 3px solid #000000;
   font-family: var(--font-mono);
   font-size: 13px;
@@ -420,9 +433,21 @@ const TemplateSelect = styled.select`
   text-transform: uppercase;
   background: #ffffff;
   cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='4' stroke-linecap='square' stroke-linejoin='inherit'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 16px center;
+  transition: all 0.1s;
 
   &:focus {
     outline: none;
+    background-color: #f8f8f8;
+  }
+
+  &:hover {
+    background-color: #f0f0f0;
+    transform: translate(-1px, -1px);
+    box-shadow: 2px 2px 0px #000000;
   }
 `;
 
@@ -457,12 +482,12 @@ const NodeWrapper = styled.div`
   background: #ffffff;
   border: 3px solid #000000;
   min-width: 180px;
-  box-shadow: ${props => props.$selected ? '6px 6px 0px #000000' : '4px 4px 0px #000000'};
   transition: all 0.1s;
   overflow: hidden;
 
   ${props => props.$selected && `
     transform: translate(-2px, -2px);
+    border-width: 4px;
   `}
 `;
 
@@ -512,11 +537,10 @@ const Toast = styled.div`
   background: ${props => props.$error ? '#fee2e2' : props.$warning ? '#fef3c7' : '#dcfce7'};
   color: ${props => props.$error ? '#ef4444' : props.$warning ? '#92400e' : '#166534'};
   border: 3px solid #000000;
-  box-shadow: 4px 4px 0px #000000;
-  z-index: 1001;
   display: flex;
   align-items: center;
   gap: 12px;
+  z-index: 1001;
 `;
 
 function CustomNode({ data, selected }) {
@@ -538,6 +562,15 @@ function CustomNode({ data, selected }) {
 }
 
 const nodeTypes = { customNode: CustomNode };
+
+const defaultEdgeOptions = {
+  type: 'step',
+  style: { stroke: '#000000', strokeWidth: 3 },
+  labelStyle: { fill: '#000000', fontWeight: 900, fontFamily: 'var(--font-mono)', fontSize: '10px' },
+  labelBgStyle: { fill: '#ffffff', fillOpacity: 1, stroke: '#000000', strokeWidth: 2 },
+  labelBgPadding: [4, 2],
+  labelBgBorderRadius: 0,
+};
 
 function formatDate(dateString) {
   return new Date(dateString).toLocaleDateString(undefined, {
@@ -571,6 +604,9 @@ export default function DiagramPage() {
   const [autoSaveTimer, setAutoSaveTimer] = useState(null);
   const [rfInstance, setRfInstance] = useState(null);
   const [showExportMenu, setShowExportMenu] = useState(false);
+  const [customTechPrompt, setCustomTechPrompt] = useState('');
+  const [generatingTech, setGeneratingTech] = useState(false);
+  const [simulateFlow, setSimulateFlow] = useState(false);
 
   useEffect(() => {
     if (isLoaded && !isSignedIn) {
@@ -607,15 +643,12 @@ export default function DiagramPage() {
         data: { label: node.name, role: node.role, category: node.category, reason: node.reason, products: node.products }
       }));
 
-      const loadedEdges = (data.edges || []).map(edge => ({
-        id: edge.id,
+      const loadedEdges = (data.edges || []).map((edge, idx) => ({
+        id: edge.id || `e_${idx}_${Date.now()}`,
         source: edge.source,
         target: edge.target,
-        label: edge.label,
-        type: 'step',
-        style: { stroke: '#000000', strokeWidth: 3 },
-        labelStyle: { fill: '#000000', fontWeight: 900, fontFamily: 'var(--font-mono)', fontSize: '10px' },
-        labelBgStyle: { fill: '#ffffff', fillOpacity: 1, stroke: '#000000', strokeWidth: 2 }
+        label: edge.label || 'CONNECTION',
+        animated: simulateFlow
       }));
 
       setNodes(loadedNodes);
@@ -696,10 +729,7 @@ export default function DiagramPage() {
         source: edge.source,
         target: edge.target,
         label: edge.label,
-        type: 'step',
-        style: { stroke: '#000000', strokeWidth: 3 },
-        labelStyle: { fill: '#000000', fontWeight: 900, fontFamily: 'var(--font-mono)', fontSize: '10px' },
-        labelBgStyle: { fill: '#ffffff', fillOpacity: 1, stroke: '#000000', strokeWidth: 2 }
+        animated: simulateFlow
       }));
 
       setNodes(newNodes);
@@ -717,6 +747,26 @@ export default function DiagramPage() {
     }
   };
 
+  const handleGenerateTech = async () => {
+    if (!customTechPrompt.trim()) return;
+
+    setGeneratingTech(true);
+    try {
+      const tech = await api.generateTech({ description: customTechPrompt });
+      await api.addToInventory(tech);
+      await loadInventory();
+      setCustomTechPrompt('');
+      setToast({ message: 'TECH_SYNTHESIS: SUCCESS', error: false });
+      setTimeout(() => setToast(null), 2000);
+    } catch (err) {
+      console.error('Tech generation failed:', err);
+      setToast({ message: 'TECH_SYNTHESIS: FAILED', error: true });
+      setTimeout(() => setToast(null), 3000);
+    } finally {
+      setGeneratingTech(false);
+    }
+  };
+
   const handleNodeClick = (event, node) => {
     setSelectedNode(node);
     setLeftSidebarOpen(true);
@@ -727,15 +777,72 @@ export default function DiagramPage() {
     setLeftSidebarOpen(false);
   };
 
-  const onConnect = useCallback((params) => {
+  const onConnect = useCallback(async (params) => {
+    // 1. Create edge with placeholder
+    const edgeId = `e_${Date.now()}`;
+    const sourceNode = nodes.find(n => n.id === params.source);
+    const targetNode = nodes.find(n => n.id === params.target);
+
     setEdges(ed => addEdge({
       ...params,
-      type: 'step',
-      style: { stroke: '#000000', strokeWidth: 3 },
-      labelStyle: { fill: '#000000', fontWeight: 900, fontFamily: 'var(--font-mono)', fontSize: '10px' },
-      labelBgStyle: { fill: '#ffffff', fillOpacity: 1, stroke: '#000000', strokeWidth: 2 }
+      id: edgeId,
+      label: 'INFERRING...',
+      animated: simulateFlow
     }, ed));
-  }, [setEdges]);
+
+    // 2. Infer label via AI
+    try {
+      const result = await api.inferConnection({
+        source: { name: sourceNode.data.label, category: sourceNode.data.category },
+        target: { name: targetNode.data.label, category: targetNode.data.category }
+      });
+      
+      setEdges(eds => eds.map(e => e.id === edgeId ? { ...e, label: result.label } : e));
+    } catch (err) {
+      console.error('Failed to infer connection:', err);
+      setEdges(eds => eds.map(e => e.id === edgeId ? { ...e, label: 'REST' } : e));
+    }
+  }, [setEdges, nodes, simulateFlow]);
+
+
+  const synthesizeProtocols = async () => {
+    const edgesToFix = edges.filter(e => e.label === 'CONNECTION' || e.label === 'INFERRING...' || !e.label);
+    
+    if (edgesToFix.length === 0) {
+      setToast({ message: 'PROTOCOLS_VALIDATED: 100%', error: false });
+      setTimeout(() => setToast(null), 2000);
+      return;
+    }
+
+    setToast({ message: `SYNTHESIZING_${edgesToFix.length}_PROTOCOLS...`, warning: true });
+
+    const updatedEdges = [...edges];
+    
+    for (const edge of edgesToFix) {
+      const sourceNode = nodes.find(n => n.id === edge.source);
+      const targetNode = nodes.find(n => n.id === edge.target);
+
+      if (sourceNode && targetNode) {
+        try {
+          const result = await api.inferConnection({
+            source: { name: sourceNode.data.label, category: sourceNode.data.category },
+            target: { name: targetNode.data.label, category: targetNode.data.category }
+          });
+          
+          const idx = updatedEdges.findIndex(e => e.id === edge.id);
+          if (idx !== -1) {
+            updatedEdges[idx] = { ...updatedEdges[idx], label: result.label };
+          }
+        } catch (err) {
+          console.error('Failed to synthesize protocol for edge:', edge.id, err);
+        }
+      }
+    }
+
+    setEdges(updatedEdges);
+    setToast({ message: 'PROTOCOL_SYNTHESIS: COMPLETE', error: false });
+    setTimeout(() => setToast(null), 2000);
+  };
 
   const handleDragStart = (e, tech) => {
     e.dataTransfer.setData('tech', JSON.stringify(tech));
@@ -785,6 +892,44 @@ export default function DiagramPage() {
   const handleNameBlur = () => {
     saveDiagram(false);
   };
+
+  const layoutNodes = useCallback(() => {
+    const categoryOrder = ['frontend', 'backend', 'database', 'queue', 'auth', 'storage', 'external', 'devops'];
+    const columnWidth = 320;
+    const nodeHeight = 120;
+    const startX = 100;
+    const startY = 100;
+
+    const nodesByCategory = {};
+    nodes.forEach(node => {
+      const cat = node.data.category || 'backend';
+      if (!nodesByCategory[cat]) nodesByCategory[cat] = [];
+      nodesByCategory[cat].push(node);
+    });
+
+    const newNodes = nodes.map(node => {
+      const cat = node.data.category || 'backend';
+      const catIdx = categoryOrder.indexOf(cat);
+      const x = startX + (catIdx !== -1 ? catIdx : categoryOrder.length) * columnWidth;
+      
+      const nodesInCat = nodesByCategory[cat];
+      const nodeIdx = nodesInCat.findIndex(n => n.id === node.id);
+      const y = startY + (nodeIdx * nodeHeight);
+
+      return {
+        ...node,
+        position: { x, y }
+      };
+    });
+
+    setNodes(newNodes);
+    setToast({ message: 'REORG_COMPLETE: 100%', error: false });
+    setTimeout(() => setToast(null), 2000);
+  }, [nodes, setNodes]);
+
+  useEffect(() => {
+    setEdges(eds => eds.map(edge => ({ ...edge, animated: simulateFlow })));
+  }, [simulateFlow, setEdges]);
 
   const exportJSON = () => {
     const data = {
@@ -863,21 +1008,45 @@ export default function DiagramPage() {
             </DiagramNameWrap>
           </HeaderLeft>
           <HeaderCenter>
-            <ActionButton $active={connectMode} onClick={() => { setConnectMode(!connectMode); setConnectSource(null); }}>
-              {connectMode ? 'DISCONNECT_MODE' : 'CONNECT_MODE'}
-            </ActionButton>
-            <ActionButton onClick={deleteSelected} disabled={!selectedNode}>DELETE_UNIT</ActionButton>
-            <ActionButton onClick={() => setLeftSidebarOpen(!leftSidebarOpen)}>
-              {leftSidebarOpen ? 'CLOSE_SPECS' : 'VIEW_SPECS'}
-            </ActionButton>
-            <ActionButton onClick={() => setRightPanelOpen(!rightPanelOpen)}>
-              {rightPanelOpen ? 'CLOSE_MODS' : 'VIEW_MODS'}
-            </ActionButton>
+            <div style={{ display: 'flex', gap: '8px', background: '#000', padding: '4px' }}>
+              <ActionButton 
+                $active={connectMode} 
+                onClick={() => { setConnectMode(!connectMode); setConnectSource(null); }}
+                style={{ background: connectMode ? '#fff' : '#000', color: connectMode ? '#000' : '#fff', border: 'none', height: '32px' }}
+              >
+                CONNECT
+              </ActionButton>
+              <ActionButton 
+                $active={simulateFlow} 
+                onClick={() => setSimulateFlow(!simulateFlow)}
+                style={{ background: simulateFlow ? '#fff' : '#000', color: simulateFlow ? '#000' : '#fff', border: 'none', height: '32px' }}
+              >
+                LIVE_FLOW
+              </ActionButton>
+              <ActionButton 
+                onClick={synthesizeProtocols}
+                style={{ background: '#000', color: '#fff', border: 'none', height: '32px' }}
+              >
+                SYNTH_ALL
+              </ActionButton>
+            </div>
+            
+            <div style={{ display: 'flex', gap: '8px', marginLeft: '16px' }}>
+              {selectedNode && (
+                <>
+                  <ActionButton onClick={() => setLeftSidebarOpen(true)}>SPECS</ActionButton>
+                  <ActionButton onClick={deleteSelected} style={{ borderColor: '#ff4444', color: '#ff4444' }}>DELETE</ActionButton>
+                </>
+              )}
+              <ActionButton onClick={() => setRightPanelOpen(!rightPanelOpen)}>
+                {rightPanelOpen ? 'CLOSE_MODS' : 'VIEW_MODS'}
+              </ActionButton>
+            </div>
           </HeaderCenter>
           <HeaderRight>
             <div style={{ position: 'relative' }}>
               <ActionButton onClick={() => setShowExportMenu(!showExportMenu)}>
-                EXPORT_SYSTEM
+                SYSTEM_MENU {showExportMenu ? '↑' : '↓'}
               </ActionButton>
               {showExportMenu && (
                 <div style={{
@@ -888,43 +1057,42 @@ export default function DiagramPage() {
                   border: '3px solid #000000',
                   boxShadow: '4px 4px 0px #000000',
                   zIndex: 1000,
-                  width: '180px'
+                  width: '200px'
                 }}>
-                  <div 
-                    onClick={exportPNG}
-                    style={{
-                      padding: '12px 16px',
-                      cursor: 'pointer',
-                      fontFamily: 'var(--font-mono)',
-                      fontSize: '12px',
-                      fontWeight: 900,
-                      borderBottom: '2px solid #000000'
-                    }}
-                    onMouseEnter={e => e.target.style.background = '#f0f0f0'}
-                    onMouseLeave={e => e.target.style.background = 'transparent'}
-                  >
-                    DOWNLOAD_PNG
-                  </div>
-                  <div 
-                    onClick={exportJSON}
-                    style={{
-                      padding: '12px 16px',
-                      cursor: 'pointer',
-                      fontFamily: 'var(--font-mono)',
-                      fontSize: '12px',
-                      fontWeight: 900
-                    }}
-                    onMouseEnter={e => e.target.style.background = '#f0f0f0'}
-                    onMouseLeave={e => e.target.style.background = 'transparent'}
-                  >
-                    DOWNLOAD_JSON
-                  </div>
+                  {[
+                    { label: '💾 SAVE_CHANGES', onClick: () => saveDiagram(true) },
+                    { label: '🪄 REPAIR_PROTOCOLS', onClick: synthesizeProtocols },
+                    { divider: true },
+                    { label: '🖼️ EXPORT_PNG', onClick: exportPNG },
+                    { label: '📄 EXPORT_JSON', onClick: exportJSON },
+                    { divider: true },
+                    { label: '🚪 EXIT_SESSION', onClick: () => window.location.href = '/dashboard' }
+                  ].map((item, idx) => item.divider ? (
+                    <div key={idx} style={{ height: '2px', background: '#000' }} />
+                  ) : (
+                    <div 
+                      key={idx}
+                      onClick={() => { item.onClick(); setShowExportMenu(false); }}
+                      style={{
+                        padding: '12px 16px',
+                        cursor: 'pointer',
+                        fontFamily: 'var(--font-mono)',
+                        fontSize: '11px',
+                        fontWeight: 900,
+                        borderBottom: '1px solid #eee',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px'
+                      }}
+                      onMouseEnter={e => e.target.style.background = '#f0f0f0'}
+                      onMouseLeave={e => e.target.style.background = 'transparent'}
+                    >
+                      {item.label}
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
-            <Link href="/dashboard">
-              <ActionButton $active>TERMINATE_SESSION</ActionButton>
-            </Link>
           </HeaderRight>
         </Header>
 
@@ -1001,13 +1169,24 @@ export default function DiagramPage() {
               onPaneClick={handlePaneClick}
               onInit={setRfInstance}
               nodeTypes={nodeTypes}
+              defaultEdgeOptions={defaultEdgeOptions}
               fitView
               snapToGrid
               snapGrid={[20, 20]}
             >
               <Background color="#000" gap={20} size={1} />
               <Background id="1" color="#000" gap={100} size={2} style={{ opacity: 0.1 }} />
-              <Controls showInteractive={false} />
+              <Controls showInteractive={false}>
+                <button 
+                  type="button" 
+                  className="react-flow__controls-button" 
+                  title="rearrange nodes" 
+                  onClick={layoutNodes}
+                  style={{ display: 'grid', placeItems: 'center', fontSize: '14px' }}
+                >
+                  ⚡
+                </button>
+              </Controls>
               <MiniMap 
                 nodeColor={n => categoryColors[n.data?.category] || '#000000'}
                 maskColor="rgba(0, 0, 0, 0.05)"
@@ -1031,13 +1210,37 @@ export default function DiagramPage() {
                   value={searchTerm}
                   onChange={e => setSearchTerm(e.target.value)}
                 />
+
+                <SectionTitle>GENERATE_MODULE</SectionTitle>
+                <div style={{ marginBottom: '32px' }}>
+                  <SearchInput
+                    placeholder="DESCRIBE_CUSTOM_TECH..."
+                    value={customTechPrompt}
+                    onChange={e => setCustomTechPrompt(e.target.value)}
+                    style={{ marginBottom: '12px' }}
+                    onKeyPress={e => e.key === 'Enter' && handleGenerateTech()}
+                  />
+                  <ActionButton 
+                    style={{ width: '100%', fontSize: '11px' }}
+                    onClick={handleGenerateTech}
+                    disabled={generatingTech || !customTechPrompt.trim()}
+                  >
+                    {generatingTech ? 'SYNTHESIZING...' : 'INITIATE_TECH_GEN'}
+                  </ActionButton>
+                </div>
                 
-                {Object.keys(inventory.builtIn).map(category => (
-                  <TechCategory key={category}>
-                    <CategoryLabel>{category}</CategoryLabel>
-                    {inventory.builtIn[category]
-                      .filter(tech => tech.name.toLowerCase().includes(searchTerm.toLowerCase()))
-                      .map((tech, idx) => (
+                {Object.keys(inventory.builtIn).map(category => {
+                  const builtInForCat = inventory.builtIn[category] || [];
+                  const customForCat = (inventory.custom || []).filter(item => item.category === category);
+                  const allItems = [...builtInForCat, ...customForCat]
+                    .filter(tech => tech.name.toLowerCase().includes(searchTerm.toLowerCase()));
+
+                  if (allItems.length === 0) return null;
+
+                  return (
+                    <TechCategory key={category}>
+                      <CategoryLabel>{category}</CategoryLabel>
+                      {allItems.map((tech, idx) => (
                         <TechChip
                           key={idx}
                           $category={category}
@@ -1045,10 +1248,73 @@ export default function DiagramPage() {
                           onDragStart={e => handleDragStart(e, { ...tech, category })}
                         >
                           {tech.name}
+                          {tech.id && (
+                            <span style={{ 
+                              fontSize: '8px', 
+                              background: '#000', 
+                              color: '#fff', 
+                              padding: '2px 4px', 
+                              marginLeft: '8px',
+                              verticalAlign: 'middle'
+                            }}>AI</span>
+                          )}
                         </TechChip>
                       ))}
-                  </TechCategory>
-                ))}
+                    </TechCategory>
+                  );
+                })}
+
+                {/* Handle any custom categories the AI might have invented that aren't in built-in */}
+                {inventory.custom && inventory.custom.some(item => !inventory.builtIn[item.category]) && (
+                  inventory.custom
+                    .filter(item => !inventory.builtIn[item.category])
+                    .reduce((acc, item) => {
+                      if (!acc.includes(item.category)) acc.push(item.category);
+                      return acc;
+                    }, [])
+                    .map(category => (
+                      <TechCategory key={category}>
+                        <CategoryLabel>{category}</CategoryLabel>
+                        {inventory.custom
+                          .filter(item => item.category === category && item.name.toLowerCase().includes(searchTerm.toLowerCase()))
+                          .map((tech, idx) => (
+                            <TechChip
+                              key={idx}
+                              $category={category}
+                              draggable
+                              onDragStart={e => handleDragStart(e, tech)}
+                            >
+                              {tech.name}
+                              <span style={{ 
+                                fontSize: '8px', 
+                                background: '#000', 
+                                color: '#fff', 
+                                padding: '2px 4px', 
+                                marginLeft: '8px',
+                                verticalAlign: 'middle'
+                              }}>AI</span>
+                            </TechChip>
+                          ))}
+                      </TechCategory>
+                    ))
+                )}
+
+                {searchTerm && !Object.values(inventory.builtIn).some(cat => cat.some(t => t.name.toLowerCase().includes(searchTerm.toLowerCase()))) && 
+                 !inventory.custom?.some(t => t.name.toLowerCase().includes(searchTerm.toLowerCase())) && (
+                  <div style={{ textAlign: 'center', padding: '20px', border: '2px dashed #ccc' }}>
+                    <div style={{ fontSize: '10px', fontWeight: 900, color: '#999', marginBottom: '12px' }}>NO_LOCAL_MATCH_FOUND</div>
+                    <ActionButton 
+                      style={{ width: '100%', fontSize: '11px' }}
+                      onClick={() => {
+                        setCustomTechPrompt(searchTerm);
+                        handleGenerateTech();
+                      }}
+                      disabled={generatingTech}
+                    >
+                      {generatingTech ? 'SYNTHESIZING...' : `SYNTHESIZE_${searchTerm.toUpperCase()}`}
+                    </ActionButton>
+                  </div>
+                )}
               </PanelContent>
             )}
           </RightPanel>

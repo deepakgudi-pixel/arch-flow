@@ -22,14 +22,26 @@ router.get('/', optionalAuth, async (req, res) => {
       [userId]
     );
 
-    res.json(result.rows.map(d => ({
-      id: d.id,
-      name: d.name,
-      nodeCount: d.nodes.length,
-      edgeCount: d.edges.length,
-      createdAt: d.created_at,
-      updatedAt: d.updated_at
-    })));
+    res.json({
+      diagrams: result.rows.map(d => ({
+        id: d.id,
+        name: d.name,
+        nodeCount: d.nodes.length,
+        edgeCount: d.edges.length,
+        createdAt: d.created_at,
+        updatedAt: d.updated_at
+      })),
+      stats: {
+        totalNodes: result.rows.reduce((sum, d) => sum + d.nodes.length, 0),
+        totalEdges: result.rows.reduce((sum, d) => sum + d.edges.length, 0),
+        topTech: Object.entries(result.rows.reduce((acc, d) => {
+          d.nodes.forEach(n => {
+            acc[n.name] = (acc[n.name] || 0) + 1;
+          });
+          return acc;
+        }, {})).sort((a, b) => b[1] - a[1]).slice(0, 5)
+      }
+    });
   } catch (err) {
     console.error('Error fetching diagrams:', err);
     res.status(500).json({ error: 'Failed to fetch diagrams' });
@@ -58,10 +70,10 @@ router.post('/', clerkAuth, async (req, res) => {
           { id: 'n6', name: 'S3', category: 'storage', role: 'File storage', icon: 'storage' }
         ],
         edges: [
-          { source: 'n1', target: 'n3', label: 'REST' },
-          { source: 'n3', target: 'n4', label: 'SQL' },
-          { source: 'n3', target: 'n5', label: 'Redis' },
-          { source: 'n3', target: 'n6', label: 'API' }
+          { id: 'e1', source: 'n1', target: 'n3', label: 'REST' },
+          { id: 'e2', source: 'n3', target: 'n4', label: 'SQL' },
+          { id: 'e3', source: 'n3', target: 'n5', label: 'Redis' },
+          { id: 'e4', source: 'n3', target: 'n6', label: 'API' }
         ]
       },
       'ecommerce': {
@@ -74,10 +86,10 @@ router.post('/', clerkAuth, async (req, res) => {
           { id: 'n6', name: 'S3', category: 'storage', role: 'Product images', icon: 'storage' }
         ],
         edges: [
-          { source: 'n1', target: 'n2', label: 'REST' },
-          { source: 'n2', target: 'n3', label: 'SQL' },
-          { source: 'n2', target: 'n5', label: 'API' },
-          { source: 'n2', target: 'n6', label: 'API' }
+          { id: 'e1', source: 'n1', target: 'n2', label: 'REST' },
+          { id: 'e2', source: 'n2', target: 'n3', label: 'SQL' },
+          { id: 'e3', source: 'n2', target: 'n5', label: 'API' },
+          { id: 'e4', source: 'n2', target: 'n6', label: 'API' }
         ]
       },
       'mobile': {
@@ -89,9 +101,9 @@ router.post('/', clerkAuth, async (req, res) => {
           { id: 'n5', name: 'Firebase Auth', category: 'auth', role: 'Authentication', icon: 'shield' }
         ],
         edges: [
-          { source: 'n1', target: 'n2', label: 'SQL' },
-          { source: 'n1', target: 'n3', label: 'Redis' },
-          { source: 'n1', target: 'n4', label: 'API' }
+          { id: 'e1', source: 'n1', target: 'n2', label: 'SQL' },
+          { id: 'e2', source: 'n1', target: 'n3', label: 'Redis' },
+          { id: 'e3', source: 'n1', target: 'n4', label: 'API' }
         ]
       },
       'realtime': {
@@ -103,10 +115,10 @@ router.post('/', clerkAuth, async (req, res) => {
           { id: 'n5', name: 'Socket.io', category: 'backend', role: 'WebSocket server', icon: 'server' }
         ],
         edges: [
-          { source: 'n1', target: 'n2', label: 'REST' },
-          { source: 'n1', target: 'n5', label: 'WebSocket' },
-          { source: 'n2', target: 'n3', label: 'SQL' },
-          { source: 'n5', target: 'n4', label: 'Pub/Sub' }
+          { id: 'e1', source: 'n1', target: 'n2', label: 'REST' },
+          { id: 'e2', source: 'n1', target: 'n5', label: 'WebSocket' },
+          { id: 'e3', source: 'n2', target: 'n3', label: 'SQL' },
+          { id: 'e4', source: 'n5', target: 'n4', label: 'Pub/Sub' }
         ]
       },
       'microservices': {
@@ -120,13 +132,13 @@ router.post('/', clerkAuth, async (req, res) => {
           { id: 'n7', name: 'Kafka', category: 'queue', role: 'Message queue', icon: 'message' }
         ],
         edges: [
-          { source: 'n1', target: 'n2', label: 'REST' },
-          { source: 'n2', target: 'n3', label: 'gRPC' },
-          { source: 'n2', target: 'n4', label: 'gRPC' },
-          { source: 'n2', target: 'n5', label: 'gRPC' },
-          { source: 'n3', target: 'n6', label: 'SQL' },
-          { source: 'n4', target: 'n7', label: 'Kafka' },
-          { source: 'n5', target: 'n7', label: 'Kafka' }
+          { id: 'e1', source: 'n1', target: 'n2', label: 'REST' },
+          { id: 'e2', source: 'n2', target: 'n3', label: 'gRPC' },
+          { id: 'e3', source: 'n2', target: 'n4', label: 'gRPC' },
+          { id: 'e4', source: 'n2', target: 'n5', label: 'gRPC' },
+          { id: 'e5', source: 'n3', target: 'n6', label: 'SQL' },
+          { id: 'e6', source: 'n4', target: 'n7', label: 'Kafka' },
+          { id: 'e7', source: 'n5', target: 'n7', label: 'Kafka' }
         ]
       }
     };

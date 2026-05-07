@@ -8,7 +8,7 @@ const OPENROUTER_BASE = 'https://openrouter.ai/api/v1';
 
 const FALLBACK_FREE_MODEL = process.env.OPENROUTER_FALLBACK_MODEL || 'openrouter/free';
 const DIAGRAM_MODEL = process.env.OPENROUTER_DIAGRAM_MODEL || 'deepseek/deepseek-r1:free';
-const TECH_MODEL = process.env.OPENROUTER_TECH_MODEL || 'deepseek/deepseek-v3:free';
+const TECH_MODEL = process.env.OPENROUTER_TECH_MODEL || 'deepseek/deepseek-r1:free';
 
 async function sendOpenRouterRequest(messages, model) {
   const response = await fetch(`${OPENROUTER_BASE}/chat/completions`, {
@@ -349,6 +349,50 @@ Rules:
   } catch (err) {
     console.error('Error generating tech:', err);
     res.status(500).json({ error: 'Failed to generate tech block: ' + err.message });
+  }
+});
+
+router.post('/infer-connection', optionalAuth, async (req, res) => {
+  try {
+    const { source, target } = req.body;
+
+    const systemPrompt = `You are a system architecture expert. Identify the most appropriate connection protocol/label between two technologies.
+    
+    Return a JSON object with this exact structure:
+    { "label": "PROTOCOL_NAME" }
+    
+    Rules:
+    - Use common industry terms like: REST, SQL, gRPC, WebSocket, Pub/Sub, Kafka, API, Redis, SSH, AMQP, etc.
+    - Keep it short (1-2 words, uppercase).
+    - If unsure, use "REST" or "API".
+    
+    Example:
+    Source: Next.js (frontend), Target: Express (backend) -> {"label": "REST"}
+    Source: Express (backend), Target: PostgreSQL (database) -> {"label": "SQL"}
+    Source: Socket.io (backend), Target: Redis (queue) -> {"label": "Pub/Sub"}`;
+
+    const userMessage = `Infer connection between:
+    Source: ${source.name} (${source.category})
+    Target: ${target.name} (${target.category})`;
+
+    const { content: responseText } = await callOpenRouter(
+      [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userMessage }
+      ],
+      TECH_MODEL
+    );
+
+    let jsonMatch = responseText.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      return res.json({ label: 'REST' });
+    }
+
+    const parsed = JSON.parse(jsonMatch[0]);
+    res.json({ label: parsed.label || 'REST' });
+  } catch (err) {
+    console.error('Error inferring connection:', err);
+    res.json({ label: 'REST' }); // Fallback on error
   }
 });
 

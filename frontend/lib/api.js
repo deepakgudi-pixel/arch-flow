@@ -99,6 +99,7 @@ export const api = {
 
   generateDiagram: (data) => fetchAPI('/ai/generate-diagram', { method: 'POST', body: JSON.stringify(data) }),
   generateTech: (data) => fetchAPI('/ai/generate-tech', { method: 'POST', body: JSON.stringify(data) }),
+  inferConnection: (data) => fetchAPI('/ai/infer-connection', { method: 'POST', body: JSON.stringify(data) }),
 
   syncUser: () => fetchAPI('/users/sync', { method: 'POST' })
 };

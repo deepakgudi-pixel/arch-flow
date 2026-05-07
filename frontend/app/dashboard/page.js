@@ -107,11 +107,12 @@ const StatCard = styled(Card)`
 `;
 
 const StatValue = styled.div`
-  font-size: 2.5rem;
+  font-family: var(--font-mono);
+  font-size: 3rem;
   line-height: 1;
   font-weight: 900;
   color: var(--color-ink);
-  letter-spacing: -0.04em;
+  letter-spacing: -0.06em;
   margin: 12px 0;
 `;
 
@@ -195,6 +196,7 @@ export default function DashboardPage() {
   const [showOnlyTemplates, setShowOnlyTemplates] = useState(false);
   const [toast, setToast] = useState(null);
   const [creating, setCreating] = useState(false);
+  const [stats, setStats] = useState({ totalNodes: 0, totalEdges: 0, topTech: [] });
 
   useEffect(() => {
     if (isLoaded && !isSignedIn) {
@@ -246,7 +248,8 @@ export default function DashboardPage() {
   const loadDiagrams = async () => {
     try {
       const data = await api.getDiagrams();
-      setDiagrams(data);
+      setDiagrams(data.diagrams);
+      setStats(data.stats);
     } catch (error) {
       console.error('Failed to load diagrams:', error);
       setToast({ message: 'We could not load your diagrams.', tone: 'error' });
@@ -340,25 +343,32 @@ export default function DashboardPage() {
             </OverviewText>
             <ActionRow>
               <Button $variant="primary" onClick={() => openCreateModal('blank')}>Create Scratch</Button>
-              <Button $variant="secondary" onClick={() => openCreateModal('saas')}>Templates</Button>
+              <Button $variant="secondary" onClick={() => openCreateModal('saas')}>Browse Templates</Button>
             </ActionRow>
           </OverviewCopy>
           <StatsGrid>
             <StatCard>
-              <CardEyebrow>DIAGRAMS</CardEyebrow>
+              <CardEyebrow>ACTIVE_UNITS</CardEyebrow>
               <StatValue>{diagrams.length}</StatValue>
             </StatCard>
             <StatCard>
-              <CardEyebrow>NODES</CardEyebrow>
-              <StatValue>{totalNodes}</StatValue>
+              <CardEyebrow>TOTAL_NODES</CardEyebrow>
+              <StatValue>{stats.totalNodes}</StatValue>
             </StatCard>
             <StatCard>
-              <CardEyebrow>EDGES</CardEyebrow>
-              <StatValue>{totalConnections}</StatValue>
+              <CardEyebrow>CONNECTIONS</CardEyebrow>
+              <StatValue>{stats.totalEdges}</StatValue>
             </StatCard>
-            <StatCard>
-              <CardEyebrow>READY</CardEyebrow>
-              <StatValue>{templateOptions.length}</StatValue>
+            <StatCard style={{ background: '#000', color: '#fff' }}>
+              <CardEyebrow style={{ color: '#999' }}>TOP_TECH_STACK</CardEyebrow>
+              <div style={{ marginTop: '12px' }}>
+                {stats.topTech.length > 0 ? stats.topTech.map(([name, count]) => (
+                  <div key={name} style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', marginBottom: '4px', display: 'flex', justifyContent: 'space-between' }}>
+                    <span>{name.toUpperCase()}</span>
+                    <span style={{ color: '#00ff00' }}>x{count}</span>
+                  </div>
+                )) : <div style={{ fontSize: '10px', color: '#666' }}>NO_DATA_SYNCED</div>}
+              </div>
             </StatCard>
           </StatsGrid>
         </Overview>
@@ -399,16 +409,22 @@ export default function DashboardPage() {
                   key={diagram.id}
                   $interactive
                   onClick={() => router.push(`/diagram/${diagram.id}`)}
+                  style={{
+                    position: 'relative',
+                    overflow: 'hidden',
+                    background: `linear-gradient(rgba(255,255,255,0.9), rgba(255,255,255,0.9)), 
+                                url("data:image/svg+xml,%3Csvg width='20' height='20' viewBox='0 0 20 20' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 0h1v1H0V0zm10 10h1v1h-1v-1z' fill='%23000' fill-opacity='0.05'/%3E%3C/svg%3E")`
+                  }}
                 >
-                  <CardHeader>
+                  <CardHeader style={{ position: 'relative', zIndex: 1 }}>
                     <CardEyebrow>LAST_MOD: {formatDate(diagram.updatedAt)}</CardEyebrow>
                     <CardTitle $size="1.4rem">{diagram.name}</CardTitle>
                   </CardHeader>
-                  <CardMeta>
+                  <CardMeta style={{ position: 'relative', zIndex: 1 }}>
                     <span>{diagram.nodeCount || 0} NODES</span>
                     <span>{diagram.edgeCount || 0} EDGES</span>
                   </CardMeta>
-                  <div style={{ marginTop: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ marginTop: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'relative', zIndex: 1 }}>
                     <Button $variant="accent" $size="sm">OPEN_WORKSPACE</Button>
                     <Button $variant="ghost" $size="sm" onClick={event => deleteDiagram(diagram.id, event)}>DELETE</Button>
                   </div>
