@@ -6,8 +6,7 @@ import styled from 'styled-components';
 const Overlay = styled.div`
   position: fixed;
   inset: 0;
-  background: rgba(11, 19, 32, 0.56);
-  backdrop-filter: blur(14px);
+  background: rgba(0, 0, 0, 0.4);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -16,26 +15,31 @@ const Overlay = styled.div`
 `;
 
 const Dialog = styled.div`
-  width: min(760px, 100%);
+  width: min(600px, 100%);
   max-height: 90vh;
   overflow: auto;
-  background: rgba(255, 255, 255, 0.97);
-  border: 1px solid rgba(215, 225, 234, 0.8);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-lg);
-  padding: 28px;
+  background: #ffffff;
+  border: 3px solid #000000;
+  box-shadow: 8px 8px 0px #000000;
+  padding: 40px;
+  border-radius: 0;
 `;
 
 export const ModalHeader = styled.div`
   display: grid;
-  gap: 8px;
-  margin-bottom: 22px;
+  gap: 12px;
+  margin-bottom: 32px;
+  border-bottom: 2px solid #eee;
+  padding-bottom: 24px;
 `;
 
 export const ModalTitle = styled.h2`
-  font-size: 1.55rem;
-  font-weight: 800;
-  color: var(--color-ink);
+  font-size: 1.8rem;
+  font-weight: 900;
+  color: #000;
+  text-transform: uppercase;
+  font-family: var(--font-mono);
+  line-height: 1;
 `;
 
 export const ModalText = styled.p`

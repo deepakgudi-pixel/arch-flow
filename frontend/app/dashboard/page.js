@@ -155,42 +155,65 @@ const TemplateGrid = styled.div`
 `;
 
 const JoinTerminal = styled(Card)`
-  padding: 32px;
-  background: #000;
-  color: #fff;
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 32px;
+  padding: 16px 24px;
+  background: #fff;
+  display: flex;
   align-items: center;
-  border-radius: 0;
+  gap: 20px;
+  margin-top: -16px;
+  position: relative;
+  z-index: 5;
 
   @media (max-width: 768px) {
-    grid-template-columns: 1fr;
-    gap: 16px;
+    flex-direction: column;
+    align-items: stretch;
+  }
+`;
+
+const TerminalPrompt = styled.div`
+  font-family: var(--font-mono);
+  font-weight: 900;
+  font-size: 1.2rem;
+  color: #000;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  &::after {
+    content: '_';
+    animation: blink 1s step-end infinite;
+  }
+
+  @keyframes blink {
+    50% { opacity: 0; }
   }
 `;
 
 const TerminalInput = styled.input`
   background: transparent;
   border: none;
-  border-bottom: 2px solid #333;
-  color: #00ff41;
+  border-bottom: 2px solid #eee;
+  color: #000;
   font-family: var(--font-mono);
-  font-size: 1.5rem;
+  font-size: 1.1rem;
   font-weight: 900;
-  letter-spacing: 0.5em;
+  letter-spacing: 0.3em;
   text-transform: uppercase;
-  padding: 8px 0;
-  width: 100%;
+  padding: 4px 0;
+  flex: 1;
   outline: none;
+  transition: all 0.2s ease;
 
   &:focus {
-    border-bottom-color: #00ff41;
+    border-bottom-color: #000;
+    letter-spacing: 0.4em;
   }
 
   &::placeholder {
-    color: #333;
+    color: #ccc;
     letter-spacing: normal;
+    font-size: 0.9rem;
+    font-weight: 500;
   }
 `;
 
@@ -242,6 +265,8 @@ function DashboardContent() {
   const [joining, setJoining] = useState(false);
   const [showJoinModal, setShowJoinModal] = useState(false);
   const [joinCode, setJoinCode] = useState('');
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [diagramToDelete, setDiagramToDelete] = useState(null);
 
   useEffect(() => {
     if (isLoaded && !isSignedIn) {
@@ -361,19 +386,23 @@ function DashboardContent() {
   };
 
   const deleteDiagram = async (id, event) => {
-    event.stopPropagation();
+    if (event) event.stopPropagation();
+    setDiagramToDelete(id);
+    setShowDeleteModal(true);
+  };
 
-    if (!confirm('Delete this diagram?')) {
-      return;
-    }
-
+  const confirmDelete = async () => {
+    if (!diagramToDelete) return;
+    
     try {
-      await api.deleteDiagram(id);
-      setDiagrams(current => current.filter(diagram => diagram.id !== id));
-      setToast({ message: 'Diagram deleted.', tone: 'success' });
-    } catch (error) {
-      console.error('Failed to delete diagram:', error);
-      setToast({ message: 'Delete failed. Please retry.', tone: 'error' });
+      await api.deleteDiagram(diagramToDelete);
+      setDiagrams(diagrams.filter(d => d.id !== diagramToDelete));
+      setToast({ message: 'SYSTEM_DELETED_SUCCESSFULLY', tone: 'success' });
+    } catch (err) {
+      setToast({ message: 'DELETION_FAILED', tone: 'error' });
+    } finally {
+      setShowDeleteModal(false);
+      setDiagramToDelete(null);
     }
   };
 
@@ -389,9 +418,6 @@ function DashboardContent() {
       ]}
       actions={
         <>
-          <Link href="/settings">
-            <Button $variant="secondary">Preferences</Button>
-          </Link>
           <SignOutButton>
             <Button $variant="ghost">Sign out</Button>
           </SignOutButton>
@@ -447,10 +473,9 @@ function DashboardContent() {
           </StatsGrid>
         </Overview>
 
-        <JoinTerminal>
-          <div>
-            <CardEyebrow style={{ color: '#00ff41' }}>[SECURE_ACCESS_TERMINAL]</CardEyebrow>
-            <div style={{ height: '8px' }} />
+        <JoinTerminal $elevated>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flex: 1 }}>
+            <TerminalPrompt>CONNECT_TO_WORKFLOW</TerminalPrompt>
             <TerminalInput 
               placeholder="ENTER_COLLABORATION_CODE"
               value={joinCode}
@@ -461,16 +486,11 @@ function DashboardContent() {
           <Button 
             onClick={submitJoin} 
             disabled={joining || !joinCode}
-            style={{ 
-              background: '#00ff41', 
-              color: '#000', 
-              border: 'none', 
-              height: '54px',
-              padding: '0 32px',
-              fontWeight: 900
-            }}
+            $variant="primary"
+            $size="sm"
+            style={{ height: '40px', padding: '0 24px' }}
           >
-            {joining ? 'SYNCHRONIZING...' : 'ESTABLISH_CONNECTION'}
+            {joining ? 'SYNCING...' : 'ESTABLISH_CONNECTION'}
           </Button>
         </JoinTerminal>
 
@@ -540,6 +560,51 @@ function DashboardContent() {
           )}
         </section>
       </Stack>
+
+      <Modal open={showDeleteModal} onClose={() => { setShowDeleteModal(false); setDiagramToDelete(null); }}>
+        <ModalHeader>
+          <ModalTitle style={{ color: '#ff4444' }}>[WARNING] DESTRUCTIVE_ACTION</ModalTitle>
+          <ModalText>You are about to permanently purge this system architecture from the mainframe.</ModalText>
+        </ModalHeader>
+
+        <div style={{ 
+          padding: '24px', 
+          background: '#fff5f5', 
+          border: '2px solid #ff4444',
+          margin: '24px 0',
+          position: 'relative',
+          overflow: 'hidden'
+        }}>
+          <div style={{ 
+            fontSize: '14px', 
+            color: '#ff4444', 
+            fontFamily: 'var(--font-mono)',
+            fontWeight: 'bold',
+            wordBreak: 'break-word',
+            lineHeight: '1.4'
+          }}>
+            THIS_ACTION_CANNOT_BE_REVERSED.
+            <br />
+            ALL_NODES_AND_PROTOCOLS_WILL_BE_LOST.
+          </div>
+        </div>
+
+        <ModalFooter style={{ justifyContent: 'stretch' }}>
+          <Button $variant="secondary" onClick={() => setShowDeleteModal(false)} style={{ flex: 1 }}>CANCEL</Button>
+          <Button 
+            onClick={confirmDelete}
+            style={{ 
+              flex: 1,
+              background: '#ff4444', 
+              color: '#fff', 
+              border: '3px solid #000',
+              boxShadow: '4px 4px 0px #000'
+            }}
+          >
+            CONFIRM_PURGE
+          </Button>
+        </ModalFooter>
+      </Modal>
 
       <Modal open={showModal} onClose={() => { setShowModal(false); resetCreateState(); }}>
         <ModalHeader>
