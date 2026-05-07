@@ -1,8 +1,7 @@
-![Archflow Banner](file:///Users/deepak/.gemini/antigravity/brain/e74b4819-9eee-4bd7-a3d8-a5103c499123/archflow_banner_1778131157150.png)
 
 # 🌌 Archflow
 
-**The Ultimate Neo-Brutalist System Design Sandbox.**
+** System Design Sandbox.**
 
 Archflow is a high-fidelity visual canvas designed for architects and developers to blueprint, simulate, and generate complex system architectures with the power of AI. Built with a focus on aesthetics and developer experience, it transforms technical planning into a creative process.
 
