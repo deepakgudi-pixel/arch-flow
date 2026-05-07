@@ -451,24 +451,27 @@ export default function DashboardPage() {
           />
         </Field>
 
-        <div style={{ height: '32px' }} />
-
-        <Field>
-          <Label>TEMPLATE_SELECT</Label>
-          <TemplateGrid>
-            {templateOptions.map(template => (
-              <TemplateCard
-                key={template.id}
-                type="button"
-                $active={newTemplate === template.id}
-                onClick={() => setNewTemplate(template.id)}
-              >
-                <Badge $tone="neutral">{template.eyebrow}</Badge>
-                <TemplateName>{template.name}</TemplateName>
-              </TemplateCard>
-            ))}
-          </TemplateGrid>
-        </Field>
+        {newTemplate !== 'blank' && (
+          <>
+            <div style={{ height: '32px' }} />
+            <Field>
+              <Label>TEMPLATE_SELECT</Label>
+              <TemplateGrid>
+                {templateOptions.map(template => (
+                  <TemplateCard
+                    key={template.id}
+                    type="button"
+                    $active={newTemplate === template.id}
+                    onClick={() => setNewTemplate(template.id)}
+                  >
+                    <Badge $tone="neutral">{template.eyebrow}</Badge>
+                    <TemplateName>{template.name}</TemplateName>
+                  </TemplateCard>
+                ))}
+              </TemplateGrid>
+            </Field>
+          </>
+        )}
 
         <ModalFooter>
           <Button $variant="ghost" onClick={() => { setShowModal(false); resetCreateState(); }}>ABORT</Button>
