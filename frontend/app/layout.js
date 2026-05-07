@@ -8,6 +8,13 @@ export const metadata = {
   description: 'AI-powered system design tool for developers'
 };
 
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+};
+
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
