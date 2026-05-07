@@ -1,40 +1,50 @@
 
-# 🌌 Archflow
+# 🌌 Archflow: The Industrial System Design Sandbox
 
-** System Design Sandbox.**
-
-Archflow is a high-fidelity visual canvas designed for architects and developers to blueprint, simulate, and generate complex system architectures with the power of AI. Built with a focus on aesthetics and developer experience, it transforms technical planning into a creative process.
+**Archflow** is a high-fidelity, industrial-grade visual canvas designed for architects and developers to blueprint, simulate, and generate complex system architectures. Built with a bold **Neo-Brutalist** aesthetic and powered by state-of-the-art AI, it transforms technical planning into a high-performance creative process.
 
 ---
 
 ## ✨ Key Features
 
-- 🎨 **Neo-Brutalist UI**: A bold, high-contrast interface designed for the modern developer.
-- ⚡ **Visual Canvas**: Drag-and-drop node-based editor powered by **React Flow**.
-- 🤖 **AI Generation**: Generate entire system architectures from simple prompts using **OpenRouter (DeepSeek)**.
-- 📦 **Tech Inventory**: A pre-built library of cloud components, databases, and microservices.
-- 📋 **Templates**: Start instantly with SaaS, E-commerce, Realtime, or Microservices blueprints.
-- 🔐 **Secure Auth**: Enterprise-grade authentication powered by **Clerk**.
-- 💾 **Persistence**: Real-time auto-save to **Neon PostgreSQL**.
-- 📤 **Export**: Download your designs as high-resolution PNGs or raw JSON data.
+### 🛠️ Industrial Workspace
+- **Neo-Brutalist UI**: A high-contrast, production-focused interface designed for clarity and speed.
+- **Visual Canvas**: Drag-and-drop node editor powered by **React Flow** with specialized industrial node types.
+- **System Snapshots**: Download high-resolution PNGs or raw JSON blueprints for documentation.
+
+### 🤖 AI-Driven Synthesis
+- **DeepSeek-R1 Architecture**: Generate complete system designs from natural language prompts.
+- **Mobile-First Intelligence**: Native support for Android (Kotlin), iOS (Swift), and cross-platform (Flutter/React Native) architectures.
+- **Technical Sourcing**: Automated technical module generation with deep-dives into specific product stacks.
+
+### 👥 Collaborative Blueprinting
+- **Invite Terminal**: Generate secure invite codes to bring collaborators into your workspace.
+- **Real-time Sync**: Collaborative editing with persistence powered by **Neon PostgreSQL**.
+- **Community Inventory**: Automated discovery and registration of new technical modules to a shared global registry.
+
+### 📦 Production Templates
+- **SaaS Stack**: Next.js, Clerk, Express, PostgreSQL, Redis.
+- **Mobile Native**: FastAPI, PostgreSQL, Firebase Auth, S3.
+- **Microservices**: API Gateway, gRPC services, Kafka, PostgreSQL.
+- **Real-time Engine**: Socket.io, Redis Pub/Sub, Express.
 
 ---
 
 ## 🛠️ Tech Stack
 
-### Frontend
+### Frontend (Industrial Component Architecture)
 - **Framework**: [Next.js 14](https://nextjs.org/) (App Router)
-- **Styling**: [Styled Components](https://styled-components.com/) & [Vanilla CSS](https://developer.mozilla.org/en-US/docs/Web/CSS)
+- **State & Logic**: Component-driven architecture (Header, Sidebar, Inventory, PromptBar)
+- **Styling**: [Styled Components](https://styled-components.com/) with Neo-Brutalist tokens
 - **Animations**: [Framer Motion](https://www.framer.com/motion/)
-- **Icons**: [Lucide React](https://lucide.dev/)
 - **Diagramming**: [React Flow](https://reactflow.dev/)
 
-### Backend
-- **Runtime**: [Node.js](https://nodejs.org/)
-- **Framework**: [Express.js](https://expressjs.com/)
-- **Database**: [Neon](https://neon.tech/) (PostgreSQL)
-- **Auth**: [Clerk](https://clerk.com/)
-- **AI Engine**: [OpenRouter](https://openrouter.ai/)
+### Backend (Robust API Infrastructure)
+- **Runtime**: [Node.js](https://nodejs.org/) / [Express.js](https://expressjs.com/)
+- **Validation**: Schema-based input hardening for all write operations
+- **Database**: [Neon](https://neon.tech/) (Serverless PostgreSQL)
+- **Auth**: [Clerk](https://clerk.com/) Enterprise-grade authentication
+- **AI Engine**: [OpenRouter](https://openrouter.ai/) (DeepSeek-R1 / Free Fallbacks)
 
 ---
 
@@ -42,25 +52,25 @@ Archflow is a high-fidelity visual canvas designed for architects and developers
 
 ### Prerequisites
 - Node.js 18+
-- Accounts for Neon DB, Clerk, and OpenRouter.
+- Accounts: Neon DB, Clerk, OpenRouter
 
 ### Installation
 
-1. **Clone the repository**:
+1. **Clone & Enter**:
    ```bash
    git clone https://github.com/your-username/archflow.git
    cd archflow
    ```
 
-2. **Environment Setup**:
-   Create a `.env` in the `backend` folder and a `.env.local` in the `frontend` folder using the templates below:
+2. **Industrial Environment Setup**:
+   Configure your secrets in both layers:
 
    **Backend (`backend/.env`)**
    ```env
    PORT=4000
    NEON_DB_URL=postgresql://user:password@host.neon.tech/archflow?sslmode=require
    CLERK_SECRET_KEY=sk_test_xxx
-   CLERK_JWT_KEY=your_clerk_jwt_public_key
+   CLERK_JWT_KEY=your_clerk_jwt_public_key # Optional: For faster token verification
    OPENROUTER_API_KEY=sk-or-v1-xxx
    ```
 
@@ -70,68 +80,54 @@ Archflow is a high-fidelity visual canvas designed for architects and developers
    NEXT_PUBLIC_API_URL=http://localhost:4000/api
    ```
 
-3. **Database Setup**:
-   1. Create a [Neon](https://neon.tech/) database.
-   2. Execute the schema found in `backend/src/db/schema.sql` against your database.
+3. **Database Initialization**:
+   Execute the schema found in `backend/src/db/schema.sql` against your Neon PostgreSQL instance to set up the industrial registry.
 
-4. **Install Dependencies**:
+4. **Dependency Injection**:
    ```bash
-   # Backend
+   # Build Backend
    cd backend && npm install
    
-   # Frontend
+   # Build Frontend
    cd ../frontend && npm install
    ```
 
-5. **Run Locally**:
+4. **Boot Sequence**:
    ```bash
-   # Terminal 1 (Backend)
+   # Terminal 1: API Layer
    cd backend && npm run dev
    
-   # Terminal 2 (Frontend)
+   # Terminal 2: UI Layer
    cd frontend && npm run dev
    ```
 
 ---
 
-## ⚙️ Service Configuration
-
-### Clerk Authentication
-1. Get your keys from the [Clerk Dashboard](https://dashboard.clerk.com/).
-2. Configure your redirect URLs to `http://localhost:3000/dashboard`.
-3. (Optional) Copy the JWT public key into `CLERK_JWT_KEY` for faster verification.
-
-### OpenRouter (AI Engine)
-1. Sign up at [OpenRouter](https://openrouter.ai/).
-2. Generate an API key.
-3. DeepSeek models are recommended for free, high-quality generation.
-
-Open [http://localhost:3000](http://localhost:3000) to start designing!
-
----
-
-## 📂 Project Structure
+## 📂 Project Architecture
 
 ```text
 archflow/
-├── frontend/          # Next.js Application
-│   ├── app/           # Routes and Pages
-│   ├── components/    # Reusable UI Components
-│   ├── lib/           # Logic, API Clients, Registry
-│   └── styles/        # Global Styles
-└── backend/           # Express.js API
+├── frontend/                # Next.js UI Layer
+│   ├── app/                 # App Router & Orchestration
+│   ├── components/
+│   │   ├── diagram/         # Extracted Editor Modules (Header, Sidebar, Prompt)
+│   │   └── ui/              # Shared Industrial UI Tokens
+│   └── lib/                 # Registry & API Clients
+└── backend/                 # Express API Layer
     ├── src/
-    │   ├── db/        # Schema and DB Connection
-    │   ├── routes/    # API Endpoints
-    │   └── middleware/# Auth & Utilities
+    │   ├── db/              # Schema & Pool Management
+    │   ├── routes/          # AI, Diagrams, Inventory, Collaborators
+    │   └── middleware/      # Hardened Validation & Auth
 ```
 
 ---
 
 ## 📄 License
 
-This project is licensed under the MIT License.
+MIT License - Blueprint the future, responsibly.
 
 ---
+
+Open [http://localhost:3000](http://localhost:3000) to start your next architectural masterwork.
 
 
