@@ -27,8 +27,16 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-await initializeDatabase();
+// Export for Vercel
+export default app;
 
-app.listen(PORT, () => {
-  console.log(`Archflow API running on http://localhost:${PORT}`);
+// Call DB initialization
+initializeDatabase().then(() => {
+  if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
+    app.listen(PORT, () => {
+      console.log(`Archflow API running on http://localhost:${PORT}`);
+    });
+  }
+}).catch(err => {
+  console.error('Failed to initialize DB:', err);
 });
