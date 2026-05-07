@@ -2,6 +2,7 @@ import express from 'express';
 import pool from '../db/pool.js';
 import { clerkAuth, optionalAuth } from '../middleware/clerkAuth.js';
 import { ensureUserExists } from '../services/userSync.js';
+import { validate } from '../middleware/validate.js';
 
 const router = express.Router();
 
@@ -54,7 +55,10 @@ router.get('/', optionalAuth, async (req, res) => {
   }
 });
 
-router.post('/', clerkAuth, async (req, res) => {
+router.post('/', clerkAuth, validate({
+  name: { type: 'string', maxLength: 200 },
+  template: { type: 'string', enum: ['saas', 'ecommerce', 'mobile', 'realtime', 'microservices'] }
+}), async (req, res) => {
   try {
     const { id: userId } = req.user;
     const { name, template } = req.body;
@@ -197,7 +201,11 @@ router.get('/:id', optionalAuth, async (req, res) => {
   }
 });
 
-router.put('/:id', clerkAuth, async (req, res) => {
+router.put('/:id', clerkAuth, validate({
+  name: { type: 'string', maxLength: 200 },
+  nodes: { type: 'array' },
+  edges: { type: 'array' }
+}), async (req, res) => {
   try {
     const { id } = req.params;
     const { name, nodes, edges } = req.body;

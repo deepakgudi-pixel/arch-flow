@@ -2,6 +2,7 @@ import express from 'express';
 import pool from '../db/pool.js';
 import { clerkAuth } from '../middleware/clerkAuth.js';
 import { ensureUserExists } from '../services/userSync.js';
+import { validate } from '../middleware/validate.js';
 
 const router = express.Router();
 
@@ -30,7 +31,12 @@ router.get('/', clerkAuth, async (req, res) => {
   }
 });
 
-router.put('/', clerkAuth, async (req, res) => {
+router.put('/', clerkAuth, validate({
+  connection_mode: { type: 'string', enum: ['guided', 'free'] },
+  default_template: { type: 'string', maxLength: 50 },
+  autosave_interval: { type: 'number', min: 5, max: 300 },
+  theme: { type: 'string', enum: ['light', 'dark'] }
+}), async (req, res) => {
   try {
     const { id: userId } = req.user;
     const { connection_mode, default_template, autosave_interval, theme } = req.body;

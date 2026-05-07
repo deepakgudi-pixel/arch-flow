@@ -2,6 +2,7 @@ import express from 'express';
 import pool from '../db/pool.js';
 import { clerkAuth, optionalAuth } from '../middleware/clerkAuth.js';
 import { ensureUserExists } from '../services/userSync.js';
+import { validate } from '../middleware/validate.js';
 
 const router = express.Router();
 
@@ -106,7 +107,13 @@ router.get('/', optionalAuth, async (req, res) => {
   }
 });
 
-router.post('/', clerkAuth, async (req, res) => {
+router.post('/', clerkAuth, validate({
+  name: { required: true, type: 'string', maxLength: 100 },
+  category: { required: true, type: 'string', maxLength: 50 },
+  description: { type: 'string', maxLength: 500 },
+  icon: { type: 'string', maxLength: 50 },
+  products: { type: 'array' }
+}), async (req, res) => {
   try {
     const { id: userId } = req.user;
     const { name, category, description, products, icon } = req.body;

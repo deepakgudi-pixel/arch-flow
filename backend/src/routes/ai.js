@@ -1,5 +1,6 @@
 import express from 'express';
 import { clerkAuth, optionalAuth } from '../middleware/clerkAuth.js';
+import { validate } from '../middleware/validate.js';
 
 const router = express.Router();
 
@@ -224,7 +225,10 @@ function generateEdgesFromDiagram(nodes, edges, positionedNodes) {
   });
 }
 
-router.post('/generate-diagram', optionalAuth, async (req, res) => {
+router.post('/generate-diagram', optionalAuth, validate({
+  description: { required: true, type: 'string', maxLength: 2000 },
+  template: { type: 'string', maxLength: 50 }
+}), async (req, res) => {
   try {
     const { description, template } = req.body;
 
@@ -296,7 +300,9 @@ Example for a SaaS app:
   }
 });
 
-router.post('/generate-tech', clerkAuth, async (req, res) => {
+router.post('/generate-tech', clerkAuth, validate({
+  description: { required: true, type: 'string', maxLength: 500 }
+}), async (req, res) => {
   try {
     const { description } = req.body;
 
@@ -352,7 +358,10 @@ Rules:
   }
 });
 
-router.post('/infer-connection', optionalAuth, async (req, res) => {
+router.post('/infer-connection', optionalAuth, validate({
+  source: { required: true, type: 'object' },
+  target: { required: true, type: 'object' }
+}), async (req, res) => {
   try {
     const { source, target } = req.body;
 
