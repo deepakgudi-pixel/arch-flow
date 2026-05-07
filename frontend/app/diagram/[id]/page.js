@@ -15,9 +15,12 @@ import ReactFlow, {
   useNodesState,
   useEdgesState,
   Handle,
-  Position
+  Position,
+  getRectOfNodes,
+  getTransformForBounds
 } from 'reactflow';
 import 'reactflow/dist/style.css';
+import { toPng } from 'html-to-image';
 import api, { setToken } from '@/lib/api';
 import { categoryColors } from '@/lib/theme';
 import { Badge } from '@/components/ui/Badge';
@@ -566,6 +569,8 @@ export default function DiagramPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [toast, setToast] = useState(null);
   const [autoSaveTimer, setAutoSaveTimer] = useState(null);
+  const [rfInstance, setRfInstance] = useState(null);
+  const [showExportMenu, setShowExportMenu] = useState(false);
 
   useEffect(() => {
     if (isLoaded && !isSignedIn) {
@@ -781,6 +786,61 @@ export default function DiagramPage() {
     saveDiagram(false);
   };
 
+  const exportJSON = () => {
+    const data = {
+      name: diagramName,
+      nodes,
+      edges,
+      exportedAt: new Date().toISOString()
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `archflow_${diagramName.toLowerCase().replace(/\s+/g, '_')}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+    setShowExportMenu(false);
+    
+    setToast({ message: 'EXPORT_JSON: SUCCESS', error: false });
+    setTimeout(() => setToast(null), 2000);
+  };
+
+  const exportPNG = async () => {
+    if (!rfInstance) return;
+
+    setToast({ message: 'GENERATING_IMAGE...', warning: true });
+    
+    try {
+      const nodesBounds = getRectOfNodes(nodes);
+      const transform = getTransformForBounds(nodesBounds, 1200, 800, 0.5, 2);
+
+      const dataUrl = await toPng(document.querySelector('.react-flow__viewport'), {
+        backgroundColor: '#ffffff',
+        width: 1200,
+        height: 800,
+        style: {
+          width: 1200,
+          height: 800,
+          transform: `translate(${transform[0]}px, ${transform[1]}px) scale(${transform[2]})`,
+        },
+      });
+
+      const link = document.createElement('a');
+      link.download = `archflow_${diagramName.toLowerCase().replace(/\s+/g, '_')}.png`;
+      link.href = dataUrl;
+      link.click();
+      
+      setShowExportMenu(false);
+      setToast({ message: 'EXPORT_PNG: SUCCESS', error: false });
+      setTimeout(() => setToast(null), 2000);
+    } catch (err) {
+      console.error('PNG Export failed:', err);
+      setToast({ message: 'EXPORT_FAILED: IMAGE_RENDER_ERROR', error: true });
+      setTimeout(() => setToast(null), 3000);
+    }
+  };
+
   if (!isLoaded || !isSignedIn) {
     return null;
   }
@@ -815,6 +875,53 @@ export default function DiagramPage() {
             </ActionButton>
           </HeaderCenter>
           <HeaderRight>
+            <div style={{ position: 'relative' }}>
+              <ActionButton onClick={() => setShowExportMenu(!showExportMenu)}>
+                EXPORT_SYSTEM
+              </ActionButton>
+              {showExportMenu && (
+                <div style={{
+                  position: 'absolute',
+                  top: 'calc(100% + 12px)',
+                  right: 0,
+                  background: '#ffffff',
+                  border: '3px solid #000000',
+                  boxShadow: '4px 4px 0px #000000',
+                  zIndex: 1000,
+                  width: '180px'
+                }}>
+                  <div 
+                    onClick={exportPNG}
+                    style={{
+                      padding: '12px 16px',
+                      cursor: 'pointer',
+                      fontFamily: 'var(--font-mono)',
+                      fontSize: '12px',
+                      fontWeight: 900,
+                      borderBottom: '2px solid #000000'
+                    }}
+                    onMouseEnter={e => e.target.style.background = '#f0f0f0'}
+                    onMouseLeave={e => e.target.style.background = 'transparent'}
+                  >
+                    DOWNLOAD_PNG
+                  </div>
+                  <div 
+                    onClick={exportJSON}
+                    style={{
+                      padding: '12px 16px',
+                      cursor: 'pointer',
+                      fontFamily: 'var(--font-mono)',
+                      fontSize: '12px',
+                      fontWeight: 900
+                    }}
+                    onMouseEnter={e => e.target.style.background = '#f0f0f0'}
+                    onMouseLeave={e => e.target.style.background = 'transparent'}
+                  >
+                    DOWNLOAD_JSON
+                  </div>
+                </div>
+              )}
+            </div>
             <Link href="/dashboard">
               <ActionButton $active>TERMINATE_SESSION</ActionButton>
             </Link>
@@ -892,6 +999,7 @@ export default function DiagramPage() {
               onConnect={onConnect}
               onNodeClick={handleNodeClick}
               onPaneClick={handlePaneClick}
+              onInit={setRfInstance}
               nodeTypes={nodeTypes}
               fitView
               snapToGrid
