@@ -24,6 +24,10 @@ import { toPng } from 'html-to-image';
 import api, { setToken } from '@/lib/api';
 import { categoryColors } from '@/lib/theme';
 import { Badge } from '@/components/ui/Badge';
+import { Button } from '@/components/ui/Button';
+import { Field, Input, Label } from '@/components/ui/Input';
+import Modal, { ModalFooter, ModalHeader, ModalTitle, ModalText } from '@/components/ui/Modal';
+import { Share2, Trash2, Layout, Activity, Save, Image, FileJson, LogOut, Wand2, Info, Share } from 'lucide-react';
 
 const GlobalStyle = createGlobalStyle`
   * {
@@ -601,6 +605,10 @@ export default function DiagramPage() {
   const [inventory, setInventory] = useState({ builtIn: {}, community: [] });
   const [searchTerm, setSearchTerm] = useState('');
   const [toast, setToast] = useState(null);
+  const [showInviteModal, setShowInviteModal] = useState(false);
+  const [inviteCode, setInviteCode] = useState('');
+  const [isCopying, setIsCopying] = useState(false);
+  const [collaborators, setCollaborators] = useState([]);
   const [autoSaveTimer, setAutoSaveTimer] = useState(null);
   const [rfInstance, setRfInstance] = useState(null);
   const [showExportMenu, setShowExportMenu] = useState(false);
@@ -846,7 +854,42 @@ export default function DiagramPage() {
     setToast({ message: 'PROTOCOL_SYNTHESIS: COMPLETE', error: false });
     setTimeout(() => setToast(null), 2000);
   };
+  const fetchInviteCode = async () => {
+    try {
+      const data = await api.getInviteCode(params.id);
+      setInviteCode(data.inviteCode);
+      
+      // Also fetch collaborators
+      const colabs = await api.getCollaborators(params.id);
+      setCollaborators(colabs);
+    } catch (err) {
+      console.error('Failed to load collaboration data:', err);
+    }
+  };
 
+  const handleRemoveCollaborator = async (userId) => {
+    try {
+      await api.removeCollaborator(params.id, userId);
+      setCollaborators(collaborators.filter(c => c.id !== userId));
+      setToast({ message: 'COLLABORATOR_REMOVED', error: false });
+    } catch (err) {
+      setToast({ message: 'REMOVE_FAILED', error: true });
+    }
+  };
+
+  useEffect(() => {
+    if (showInviteModal && !inviteCode) {
+      fetchInviteCode();
+    }
+  }, [showInviteModal]);
+
+  const copyInvite = () => {
+    navigator.clipboard.writeText(inviteCode);
+    setIsCopying(true);
+    setTimeout(() => {
+      setIsCopying(false);
+    }, 2000);
+  };
   const handleDragStart = (e, tech) => {
     e.dataTransfer.setData('tech', JSON.stringify(tech));
     e.dataTransfer.effectAllowed = 'move';
@@ -1064,6 +1107,7 @@ export default function DiagramPage() {
                 }}>
                   {[
                     { label: '💾 SAVE_CHANGES', onClick: () => saveDiagram(true) },
+                    { label: '🤝 INVITE_COLLABORATOR', onClick: () => setShowInviteModal(true) },
                     { label: '🪄 REPAIR_PROTOCOLS', onClick: synthesizeProtocols },
                     { divider: true },
                     { label: '🖼️ EXPORT_PNG', onClick: exportPNG },
@@ -1372,6 +1416,60 @@ export default function DiagramPage() {
           </ActionButton>
         </BottomBar>
       </Container>
+
+      <Modal open={showInviteModal} onClose={() => setShowInviteModal(false)}>
+        <ModalHeader>
+          <ModalTitle>COLLABORATE_ACCESS</ModalTitle>
+          <ModalText>Invite others to synthesize and edit this system architecture with you.</ModalText>
+        </ModalHeader>
+        <div style={{ padding: '24px 0' }}>
+          <Label>INVITE_CODE</Label>
+          <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+            <Input 
+              readOnly 
+              value={inviteCode || 'GENERATING...'} 
+              style={{ flex: 1, fontSize: '18px', textAlign: 'center', letterSpacing: '4px', fontWeight: 900 }}
+            />
+            <Button $variant="primary" onClick={copyInvite} disabled={!inviteCode}>
+              {isCopying ? 'COPIED' : 'COPY'}
+            </Button>
+          </div>
+          <p style={{ marginTop: '16px', fontSize: '11px', color: '#666', fontFamily: 'var(--font-mono)', lineHeight: '1.4' }}>
+            SHARE_THIS_CODE_WITH_COLLABORATORS. THEY CAN USE THE "JOIN_SYSTEM" BUTTON ON THEIR DASHBOARD.
+          </p>
+
+          {collaborators.length > 0 && (
+            <div style={{ marginTop: '24px' }}>
+              <Label>ACTIVE_COLLABORATORS ({collaborators.length})</Label>
+              <div style={{ marginTop: '8px', display: 'grid', gap: '8px' }}>
+                {collaborators.map(colab => (
+                  <div key={colab.id} style={{ 
+                    display: 'flex', 
+                    justifyContent: 'space-between', 
+                    alignItems: 'center', 
+                    padding: '8px 12px',
+                    background: '#f8f8f8',
+                    border: '1px solid #ddd',
+                    fontSize: '12px'
+                  }}>
+                    <span style={{ fontFamily: 'var(--font-mono)' }}>{colab.email}</span>
+                    <button 
+                      onClick={() => handleRemoveCollaborator(colab.id)}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', opacity: 0.6 }}
+                      title="REMOVE_ACCESS"
+                    >
+                      <Trash2 size={14} color="#ff4444" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+        <ModalFooter>
+          <Button $variant="secondary" onClick={() => setShowInviteModal(false)}>CLOSE</Button>
+        </ModalFooter>
+      </Modal>
 
       {toast && (
         <Toast $error={toast.error} $warning={toast.warning}>

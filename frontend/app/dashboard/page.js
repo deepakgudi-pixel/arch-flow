@@ -2,9 +2,10 @@
 
 import styled from 'styled-components';
 import { useUser, SignOutButton } from '@clerk/nextjs';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, Suspense } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { Plus, Layout, Folder, Settings, Search, Trash2, ArrowRight, User, Users } from 'lucide-react';
 import api from '@/lib/api';
 import AppShell from '@/components/layout/AppShell';
 import PageHeader from '@/components/layout/PageHeader';
@@ -153,6 +154,46 @@ const TemplateGrid = styled.div`
   }
 `;
 
+const JoinTerminal = styled(Card)`
+  padding: 32px;
+  background: #000;
+  color: #fff;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 32px;
+  align-items: center;
+  border-radius: 0;
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+`;
+
+const TerminalInput = styled.input`
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid #333;
+  color: #00ff41;
+  font-family: var(--font-mono);
+  font-size: 1.5rem;
+  font-weight: 900;
+  letter-spacing: 0.5em;
+  text-transform: uppercase;
+  padding: 8px 0;
+  width: 100%;
+  outline: none;
+
+  &:focus {
+    border-bottom-color: #00ff41;
+  }
+
+  &::placeholder {
+    color: #333;
+    letter-spacing: normal;
+  }
+`;
+
 const TemplateCard = styled.button`
   text-align: left;
   width: 100%;
@@ -184,7 +225,7 @@ function formatDate(dateString) {
   });
 }
 
-export default function DashboardPage() {
+function DashboardContent() {
   const { isSignedIn, user, isLoaded } = useUser();
   const router = useRouter();
   const [diagrams, setDiagrams] = useState([]);
@@ -197,6 +238,10 @@ export default function DashboardPage() {
   const [toast, setToast] = useState(null);
   const [creating, setCreating] = useState(false);
   const [stats, setStats] = useState({ totalNodes: 0, totalEdges: 0, topTech: [] });
+  const searchParams = useSearchParams();
+  const [joining, setJoining] = useState(false);
+  const [showJoinModal, setShowJoinModal] = useState(false);
+  const [joinCode, setJoinCode] = useState('');
 
   useEffect(() => {
     if (isLoaded && !isSignedIn) {
@@ -262,8 +307,37 @@ export default function DashboardPage() {
     if (template) {
       setNewTemplate(template);
     }
-
     setShowModal(true);
+  };
+
+  useEffect(() => {
+    const joinCode = searchParams.get('join');
+    if (joinCode && isLoaded && isSignedIn) {
+      handleJoin(joinCode);
+    }
+  }, [searchParams, isLoaded, isSignedIn]);
+
+  const handleJoin = async (code) => {
+    setJoining(true);
+    try {
+      const res = await api.joinDiagram(code);
+      setToast({ message: 'JOINED_SUCCESSFULLY', tone: 'success' });
+      router.push(`/diagram/${res.id}`);
+    } catch (err) {
+      setToast({ message: 'INVALID_OR_EXPIRED_INVITE', tone: 'error' });
+    } finally {
+      setJoining(false);
+    }
+  };
+
+  const openJoinModal = () => {
+    setShowJoinModal(true);
+  };
+
+  const submitJoin = () => {
+    if (joinCode.trim()) {
+      handleJoin(joinCode.trim());
+    }
   };
 
   const createDiagram = async () => {
@@ -373,6 +447,33 @@ export default function DashboardPage() {
           </StatsGrid>
         </Overview>
 
+        <JoinTerminal>
+          <div>
+            <CardEyebrow style={{ color: '#00ff41' }}>[SECURE_ACCESS_TERMINAL]</CardEyebrow>
+            <div style={{ height: '8px' }} />
+            <TerminalInput 
+              placeholder="ENTER_COLLABORATION_CODE"
+              value={joinCode}
+              onChange={e => setJoinCode(e.target.value.toUpperCase())}
+              onKeyDown={e => e.key === 'Enter' && submitJoin()}
+            />
+          </div>
+          <Button 
+            onClick={submitJoin} 
+            disabled={joining || !joinCode}
+            style={{ 
+              background: '#00ff41', 
+              color: '#000', 
+              border: 'none', 
+              height: '54px',
+              padding: '0 32px',
+              fontWeight: 900
+            }}
+          >
+            {joining ? 'SYNCHRONIZING...' : 'ESTABLISH_CONNECTION'}
+          </Button>
+        </JoinTerminal>
+
         <section>
           <Toolbar>
             <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
@@ -417,7 +518,12 @@ export default function DashboardPage() {
                   }}
                 >
                   <CardHeader style={{ position: 'relative', zIndex: 1 }}>
-                    <CardEyebrow>LAST_MOD: {formatDate(diagram.updatedAt)}</CardEyebrow>
+                    <CardEyebrow>
+                      LAST_MOD: {formatDate(diagram.updatedAt)} 
+                      <span style={{ marginLeft: '8px', color: diagram.isOwner ? '#00c853' : '#2979ff' }}>
+                        {diagram.isOwner ? '[OWNER]' : '[COLLABORATOR]'}
+                      </span>
+                    </CardEyebrow>
                     <CardTitle $size="1.4rem">{diagram.name}</CardTitle>
                   </CardHeader>
                   <CardMeta style={{ position: 'relative', zIndex: 1 }}>
@@ -483,5 +589,13 @@ export default function DashboardPage() {
 
       {toast ? <Toast $tone={toast.tone}>{toast.message}</Toast> : null}
     </AppShell>
+  );
+}
+
+export default function DashboardPage() {
+  return (
+    <Suspense fallback={null}>
+      <DashboardContent />
+    </Suspense>
   );
 }

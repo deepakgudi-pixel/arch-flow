@@ -13,11 +13,20 @@ CREATE TABLE IF NOT EXISTS diagrams (
   name VARCHAR(255) NOT NULL DEFAULT 'Untitled diagram',
   nodes JSONB NOT NULL DEFAULT '[]',
   edges JSONB NOT NULL DEFAULT '[]',
+  invite_code VARCHAR(50) UNIQUE,
   created_at TIMESTAMP DEFAULT NOW(),
   updated_at TIMESTAMP DEFAULT NOW()
 );
 
 CREATE INDEX IF NOT EXISTS idx_diagrams_user_id ON diagrams(user_id);
+CREATE INDEX IF NOT EXISTS idx_diagrams_invite_code ON diagrams(invite_code);
+
+CREATE TABLE IF NOT EXISTS diagram_collaborators (
+  diagram_id VARCHAR(50) NOT NULL REFERENCES diagrams(id) ON DELETE CASCADE,
+  user_id VARCHAR(255) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  joined_at TIMESTAMP DEFAULT NOW(),
+  PRIMARY KEY (diagram_id, user_id)
+);
 
 CREATE TABLE IF NOT EXISTS user_inventory (
   id VARCHAR(50) PRIMARY KEY,

@@ -14,11 +14,16 @@ router.get('/', optionalAuth, async (req, res) => {
     if (!req.user) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
-
-    const { id: userId } = req.user;
+    const userId = req.user.id;
 
     const result = await pool.query(
-      'SELECT id, name, nodes, edges, created_at, updated_at FROM diagrams WHERE user_id = $1 ORDER BY updated_at DESC',
+      `SELECT d.id, d.name, d.nodes, d.edges, d.created_at, d.updated_at, 
+              (d.user_id = $1) as is_owner
+       FROM diagrams d
+       LEFT JOIN diagram_collaborators dc ON d.id = dc.diagram_id
+       WHERE d.user_id = $1 OR dc.user_id = $1
+       GROUP BY d.id
+       ORDER BY d.updated_at DESC`,
       [userId]
     );
 
@@ -29,7 +34,8 @@ router.get('/', optionalAuth, async (req, res) => {
         nodeCount: d.nodes.length,
         edgeCount: d.edges.length,
         createdAt: d.created_at,
-        updatedAt: d.updated_at
+        updatedAt: d.updated_at,
+        isOwner: d.is_owner
       })),
       stats: {
         totalNodes: result.rows.reduce((sum, d) => sum + d.nodes.length, 0),
@@ -163,21 +169,28 @@ router.post('/', clerkAuth, async (req, res) => {
 router.get('/:id', optionalAuth, async (req, res) => {
   try {
     const { id } = req.params;
+    const userId = req.user?.id;
 
     const result = await pool.query(
-      'SELECT * FROM diagrams WHERE id = $1',
-      [id]
+      `SELECT d.*, 
+              (d.user_id = $2) as is_owner,
+              EXISTS(SELECT 1 FROM diagram_collaborators WHERE diagram_id = d.id AND user_id = $2) as is_collaborator
+       FROM diagrams d WHERE d.id = $1`,
+      [id, userId || 'anonymous']
     );
 
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Diagram not found' });
     }
 
-    if (req.user && result.rows[0].user_id !== req.user.id) {
+    const diagram = result.rows[0];
+
+    // If diagram exists but user is not owner/collaborator, denied
+    if (!diagram.is_owner && !diagram.is_collaborator) {
       return res.status(403).json({ error: 'Access denied' });
     }
 
-    res.json(result.rows[0]);
+    res.json(diagram);
   } catch (err) {
     console.error('Error fetching diagram:', err);
     res.status(500).json({ error: 'Failed to fetch diagram' });
@@ -191,12 +204,13 @@ router.put('/:id', clerkAuth, async (req, res) => {
     const { id: userId } = req.user;
 
     const existing = await pool.query(
-      'SELECT id FROM diagrams WHERE id = $1 AND user_id = $2',
+      `SELECT user_id FROM diagrams d 
+       WHERE d.id = $1 AND (d.user_id = $2 OR EXISTS(SELECT 1 FROM diagram_collaborators WHERE diagram_id = $1 AND user_id = $2))`,
       [id, userId]
     );
 
     if (existing.rows.length === 0) {
-      return res.status(404).json({ error: 'Diagram not found' });
+      return res.status(403).json({ error: 'Permission denied' });
     }
 
     await pool.query(
@@ -231,6 +245,95 @@ router.delete('/:id', clerkAuth, async (req, res) => {
   } catch (err) {
     console.error('Error deleting diagram:', err);
     res.status(500).json({ error: 'Failed to delete diagram' });
+  }
+});
+
+// Generate/Get Invite Code
+router.post('/:id/invite', clerkAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { id: userId } = req.user;
+
+    // Only owner can manage invites
+    const result = await pool.query('SELECT invite_code FROM diagrams WHERE id = $1 AND user_id = $2', [id, userId]);
+    if (result.rows.length === 0) return res.status(403).json({ error: 'Only owner can manage invites' });
+
+    let code = result.rows[0].invite_code;
+    if (!code) {
+      code = Math.random().toString(36).substring(2, 10).toUpperCase();
+      await pool.query('UPDATE diagrams SET invite_code = $1 WHERE id = $2', [code, id]);
+    }
+
+    res.json({ inviteCode: code });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to manage invite' });
+  }
+});
+
+// Join via Invite Code
+router.post('/join/:code', clerkAuth, async (req, res) => {
+  try {
+    const { code } = req.params;
+    const { id: userId } = req.user;
+
+    await ensureUserExists(req.user);
+
+    const result = await pool.query('SELECT id, user_id FROM diagrams WHERE invite_code = $1', [code]);
+    if (result.rows.length === 0) return res.status(404).json({ error: 'Invalid invite code' });
+
+    const diagram = result.rows[0];
+    if (diagram.user_id === userId) return res.json({ id: diagram.id, message: 'Owner already' });
+
+    await pool.query(
+      'INSERT INTO diagram_collaborators (diagram_id, user_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
+      [diagram.id, userId]
+    );
+
+    res.json({ id: diagram.id, success: true });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to join diagram' });
+  }
+});
+
+// List Collaborators
+router.get('/:id/collaborators', clerkAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { id: userId } = req.user;
+
+    // Check if owner
+    const check = await pool.query('SELECT id FROM diagrams WHERE id = $1 AND user_id = $2', [id, userId]);
+    if (check.rows.length === 0) return res.status(403).json({ error: 'Only owner can see collaborator list' });
+
+    const result = await pool.query(
+      `SELECT u.id, u.email, dc.joined_at 
+       FROM diagram_collaborators dc
+       JOIN users u ON dc.user_id = u.id
+       WHERE dc.diagram_id = $1`,
+      [id]
+    );
+
+    res.json(result.rows);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch collaborators' });
+  }
+});
+
+// Remove Collaborator
+router.delete('/:id/collaborators/:targetUserId', clerkAuth, async (req, res) => {
+  try {
+    const { id, targetUserId } = req.params;
+    const { id: userId } = req.user;
+
+    // Only owner can remove
+    const check = await pool.query('SELECT id FROM diagrams WHERE id = $1 AND user_id = $2', [id, userId]);
+    if (check.rows.length === 0) return res.status(403).json({ error: 'Only owner can remove collaborators' });
+
+    await pool.query('DELETE FROM diagram_collaborators WHERE diagram_id = $1 AND user_id = $2', [id, targetUserId]);
+
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to remove collaborator' });
   }
 });
 

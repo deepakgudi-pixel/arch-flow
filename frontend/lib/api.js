@@ -101,6 +101,11 @@ export const api = {
   generateTech: (data) => fetchAPI('/ai/generate-tech', { method: 'POST', body: JSON.stringify(data) }),
   inferConnection: (data) => fetchAPI('/ai/infer-connection', { method: 'POST', body: JSON.stringify(data) }),
 
+  getInviteCode: (id) => fetchAPI(`/diagrams/${id}/invite`, { method: 'POST' }),
+  joinDiagram: (code) => fetchAPI(`/diagrams/join/${code}`, { method: 'POST' }),
+  getCollaborators: (id) => fetchAPI(`/diagrams/${id}/collaborators`),
+  removeCollaborator: (id, userId) => fetchAPI(`/diagrams/${id}/collaborators/${userId}`, { method: 'DELETE' }),
+
   syncUser: () => fetchAPI('/users/sync', { method: 'POST' })
 };
 
