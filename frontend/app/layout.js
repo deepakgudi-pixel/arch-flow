@@ -1,6 +1,7 @@
 import StyledComponentsRegistry from '@/lib/registry';
 import ClerkAuthProvider from '@/app/_clerk/ClerkProvider';
 import GlobalStyles from '@/components/layout/GlobalStyles';
+import MobileGate from '@/components/layout/MobileGate';
 
 export const metadata = {
   title: 'Archflow - System Design Sandbox',
@@ -18,6 +19,7 @@ export default function RootLayout({ children }) {
       <body>
         <StyledComponentsRegistry>
           <GlobalStyles />
+          <MobileGate />
           <ClerkAuthProvider>
             {children}
           </ClerkAuthProvider>
