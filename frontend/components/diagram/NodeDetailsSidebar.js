@@ -57,6 +57,7 @@ export default function NodeDetailsSidebar({
               <SectionTitle>FUNCTION_SPEC</SectionTitle>
               <Description>
                 {selectedNode.data.category === 'database' && `${selectedNode.data.label} handles persistence operations and state management for the identified domain.`}
+                {selectedNode.data.category === 'mobile' && `${selectedNode.data.label} serves as the native entry point for Android and iOS users, providing high-precision mobile interfaces.`}
                 {selectedNode.data.category === 'frontend' && `${selectedNode.data.label} provides the primary interaction layer and state orchestration for end-users.`}
                 {selectedNode.data.category === 'backend' && `${selectedNode.data.label} executes core business logic and exposes secure operational endpoints.`}
                 {selectedNode.data.category === 'auth' && `${selectedNode.data.label} manages identity verification and permission lifecycle.`}

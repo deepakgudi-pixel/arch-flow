@@ -1,6 +1,8 @@
 import express from 'express';
+import pool from '../db/pool.js';
 import { clerkAuth, optionalAuth } from '../middleware/clerkAuth.js';
 import { validate } from '../middleware/validate.js';
+import { builtInTech } from '../lib/tech.js';
 
 const router = express.Router();
 
@@ -132,6 +134,9 @@ function categorizeTech(techName) {
   if (name.includes('react') || name.includes('vue') || name.includes('next') || name.includes('angular') || name.includes('svelte') || name.includes('astro') || name.includes('nuxt') || name.includes('frontend') || name.includes('ui')) {
     return 'frontend';
   }
+  if (name.includes('android') || name.includes('ios') || name.includes('flutter') || name.includes('react native') || name.includes('swift') || name.includes('kotlin') || name.includes('mobile') || name.includes('expo') || name.includes('ionic')) {
+    return 'mobile';
+  }
   if (name.includes('express') || name.includes('api') || name.includes('server') || name.includes('fastapi') || name.includes('nest') || name.includes('django') || name.includes('graphql') || name.includes('trpc')) {
     return 'backend';
   }
@@ -157,8 +162,65 @@ function categorizeTech(techName) {
   return 'backend';
 }
 
+import { ensureUserExists } from '../services/userSync.js';
+
+async function autoRegisterTech(user, nodes) {
+  const userId = user.id;
+  await ensureUserExists(user);
+
+  const allBuiltInNames = Object.values(builtInTech)
+    .flat()
+    .map(t => t.name.toLowerCase());
+
+  console.log(`Starting auto-registration for user ${userId} with ${nodes.length} nodes`);
+
+  for (const node of nodes) {
+    const nodeName = node.name.trim();
+    if (!nodeName) continue;
+
+    const lowerName = nodeName.toLowerCase();
+
+    // Skip if built-in
+    if (allBuiltInNames.includes(lowerName)) {
+      console.log(`Skipping built-in tech: ${nodeName}`);
+      continue;
+    }
+
+    try {
+      // Check if already in community inventory
+      const existing = await pool.query(
+        'SELECT id FROM user_inventory WHERE LOWER(name) = $1',
+        [lowerName]
+      );
+
+      if (existing.rows.length === 0) {
+        // Register it!
+        const id = 'inv_auto_' + Math.random().toString(36).substring(2, 10);
+        await pool.query(
+          `INSERT INTO user_inventory (id, user_id, name, category, description, products, icon) 
+           VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+          [
+            id, 
+            userId, 
+            nodeName, 
+            node.category || 'backend', 
+            node.role || `Automated technical module for ${nodeName}`,
+            JSON.stringify(node.products || []),
+            node.icon || 'tech'
+          ]
+        );
+        console.log(`Successfully auto-registered new community tech: ${nodeName}`);
+      } else {
+        console.log(`Tech already exists in community: ${nodeName}`);
+      }
+    } catch (err) {
+      console.error(`Failed to auto-register tech ${nodeName}:`, err);
+    }
+  }
+}
+
 function generateNodesFromDiagram(nodes) {
-  const categoryOrder = ['frontend', 'backend', 'database', 'queue', 'auth', 'storage', 'external', 'devops'];
+  const categoryOrder = ['mobile', 'frontend', 'backend', 'database', 'queue', 'auth', 'storage', 'external', 'devops'];
   const categoryColumns = {};
   const columnWidth = 300;
   const nodeHeight = 80;
@@ -209,7 +271,7 @@ function generateEdgesFromDiagram(nodes, edges, positionedNodes) {
     nodeNameToId[node.name.toLowerCase()] = node.id;
   });
 
-  const categoryOrder = ['frontend', 'backend', 'database', 'queue', 'auth', 'storage', 'external', 'devops'];
+  const categoryOrder = ['mobile', 'frontend', 'backend', 'database', 'queue', 'auth', 'storage', 'external', 'devops'];
 
   return edges.map((edge, idx) => {
     const sourceId = nodeNameToId[edge.source.toLowerCase()] || `n${idx + 1}`;
@@ -232,37 +294,43 @@ router.post('/generate-diagram', optionalAuth, validate({
   try {
     const { description, template } = req.body;
 
-    const systemPrompt = `You are a system design expert. Generate a system architecture diagram based on the user's description.
+    const systemPrompt = `You are a Senior Principal Infrastructure Architect at a global scale-up. Your task is to synthesize a high-fidelity system architecture diagram based on the user's operational requirements.
 
-Return a JSON object with this exact structure:
+DIESIGN_PHILOSOPHY:
+- MODULARITY: Decouple services using appropriate patterns (queues for async, caches for read-heavy loads).
+- DATA_INTEGRITY: Define clear data flow directions and protocols.
+- PRODUCTION_READY: Use industry-standard components (e.g., PostgreSQL for relational, Redis for caching, Kafka for streaming).
+
+JSON_STRUCTURE_SPECIFICATION:
 {
   "nodes": [
     {
-      "name": "TechName",
-      "category": "frontend|backend|database|queue|auth|storage|external|devops",
-      "role": "Short role description",
-      "reason": "Why this tech was chosen"
+      "name": "TECH_NAME_UPPERCASE",
+      "category": "mobile|frontend|backend|database|queue|auth|storage|external|devops",
+      "role": "Concise technical role (e.g., PRIMARY_API_GATEWAY)",
+      "reason": "Technical justification for selecting this technology"
     }
   ],
   "edges": [
     {
-      "source": "TechName1",
-      "target": "TechName2",
-      "label": "REST|WebSocket|SQL|gRPC|API|Kafka"
+      "source": "TECH_NAME_UPPERCASE",
+      "target": "TECH_NAME_UPPERCASE",
+      "label": "PROTOCOL (e.g., gRPC, REST, SQL, KAFKA, WEBSOCKET, API)"
     }
   ]
 }
 
-Rules:
-- Category must be one of: frontend, backend, database, queue, auth, storage, external, devops
-- Each node needs a clear role and reason
-- Edges should show data flow with appropriate protocols
-- Include at least one frontend, backend, and database for most apps
-- Add queues for async processing, auth for user management, storage for files
-- Keep it practical - 5-12 nodes for most apps
+STRICT_CONSTRAINTS:
+1. Names must be uppercase and punchy (e.g., CLOUD_FLARE instead of Cloudflare).
+2. Category must be strictly one of: mobile, frontend, backend, database, queue, auth, storage, external, devops.
+3. Every system must have a logical entry point (frontend or mobile) and persistence layer (database).
+4. Edges must follow logical data flow (e.g., Frontend -> Backend -> DB).
+5. Output ONLY the JSON object. No preamble or postscript.
 
-Example for a SaaS app:
-{"nodes": [{"name": "Next.js", "category": "frontend", "role": "Web UI", "reason": "Best for SSR and developer experience"}, {"name": "Express", "category": "backend", "role": "API Server", "reason": "Flexible and widely used"}, {"name": "PostgreSQL", "category": "database", "role": "Primary DB", "reason": "Reliable relational storage"}], "edges": [{"source": "Next.js", "target": "Express", "label": "REST"}, {"source": "Express", "target": "PostgreSQL", "label": "SQL"}]}`;
+ARCH_PATTERN_ADVICE:
+- For high-scale SaaS: Use Load Balancers (devops), Caching (database), and Queues.
+- For Real-time: Use WebSockets and Pub/Sub.
+- For AI/ML: Use specialized storage and async workers.`;
 
     const userMessage = template
       ? `Create a system design for a ${template} application. ${description}`
@@ -290,6 +358,16 @@ Example for a SaaS app:
       positionedNodes
     );
 
+    // Auto-register new tech to community inventory if user is logged in
+    if (req.user) {
+      try {
+        await autoRegisterTech(req.user, positionedNodes);
+      } catch (regErr) {
+        console.error('Tech auto-registration failed:', regErr);
+        // Don't fail the whole request if auto-registration fails
+      }
+    }
+
     res.json({
       nodes: positionedNodes,
       edges
@@ -306,27 +384,28 @@ router.post('/generate-tech', clerkAuth, validate({
   try {
     const { description } = req.body;
 
-    const systemPrompt = `You are a technology expert. Generate a detailed tech block based on the user's description.
+    const systemPrompt = `You are a Technical Sourcing Specialist. Generate a production-grade technology module based on the user's specification.
 
-Return a JSON object with this exact structure:
+OUTPUT_SPECIFICATION (JSON):
 {
-  "name": "TechName",
-  "category": "frontend|backend|database|queue|auth|storage|external|devops",
-  "description": "2-3 sentence description of what this technology does",
+  "name": "TECH_NAME_UPPERCASE",
+  "category": "mobile|frontend|backend|database|queue|auth|storage|external|devops",
+  "description": "Professional 2-3 sentence technical overview of the technology's primary function and ecosystem position.",
   "products": [
     {
-      "name": "ProductName",
-      "description": "Brief description of the product",
-      "url": "https://example.com"
+      "name": "Product or Cloud Service Name",
+      "description": "High-fidelity description of why this product is a market leader",
+      "url": "Valid documentation or marketing URL"
     }
   ],
   "icon": "tech"
 }
 
-Rules:
-- Category must be one of: frontend, backend, database, queue, auth, storage, external, devops
-- Include 1-3 relevant products with real URLs
-- Description should be clear and helpful`;
+OPERATIONAL_RULES:
+1. Name must be UPPERCASE (e.g., POSTGRESQL, DOCKER).
+2. Category must be strictly: mobile, frontend, backend, database, queue, auth, storage, external, or devops.
+3. Provide 2-3 high-quality product recommendations with valid URLs.
+4. Maintain an industrial, precise, and professional tone.`;
 
     const { content: responseText } = await callOpenRouter(
       [
@@ -365,20 +444,23 @@ router.post('/infer-connection', optionalAuth, validate({
   try {
     const { source, target } = req.body;
 
-    const systemPrompt = `You are a system architecture expert. Identify the most appropriate connection protocol/label between two technologies.
+    const systemPrompt = `You are a Network Protocol Engineer. Analyze the connection between two infrastructure components and identify the most technically accurate protocol.
     
-    Return a JSON object with this exact structure:
+    RESPONSE_FORMAT (JSON):
     { "label": "PROTOCOL_NAME" }
     
-    Rules:
-    - Use common industry terms like: REST, SQL, gRPC, WebSocket, Pub/Sub, Kafka, API, Redis, SSH, AMQP, etc.
-    - Keep it short (1-2 words, uppercase).
-    - If unsure, use "REST" or "API".
+    PROTOCOL_SELECTION_GUIDE:
+    - Frontend -> Backend: REST, GRAPHQL, WEBSOCKET, RPC.
+    - Backend -> Database: SQL, REDIS, MONGO, ORM.
+    - Backend -> Queue: AMQP, KAFKA, PUB/SUB.
+    - Backend -> Auth: OIDC, JWT, SAML, API.
+    - Backend -> Storage: S3, BLOB, BUCKET.
+    - Backend -> Backend: gRPC, REST, TRPC.
     
-    Example:
-    Source: Next.js (frontend), Target: Express (backend) -> {"label": "REST"}
-    Source: Express (backend), Target: PostgreSQL (database) -> {"label": "SQL"}
-    Source: Socket.io (backend), Target: Redis (queue) -> {"label": "Pub/Sub"}`;
+    CONSTRAINTS:
+    - Use technical, uppercase labels (e.g., gRPC, KAFKA, OIDC).
+    - Max 2 words per label.
+    - Output ONLY JSON.`;
 
     const userMessage = `Infer connection between:
     Source: ${source.name} (${source.category})

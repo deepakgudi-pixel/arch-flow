@@ -57,7 +57,7 @@ router.get('/', optionalAuth, async (req, res) => {
 
 router.post('/', clerkAuth, validate({
   name: { type: 'string', maxLength: 200 },
-  template: { type: 'string', enum: ['saas', 'ecommerce', 'mobile', 'realtime', 'microservices'] }
+  template: { type: 'string', enum: ['blank', 'saas', 'ecommerce', 'mobile', 'realtime', 'microservices'] }
 }), async (req, res) => {
   try {
     const { id: userId } = req.user;
