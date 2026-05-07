@@ -598,7 +598,7 @@ export default function DiagramPage() {
   const [prompt, setPrompt] = useState('');
   const [template, setTemplate] = useState('blank');
   const [loading, setLoading] = useState(false);
-  const [inventory, setInventory] = useState({ builtIn: {}, custom: [] });
+  const [inventory, setInventory] = useState({ builtIn: {}, community: [] });
   const [searchTerm, setSearchTerm] = useState('');
   const [toast, setToast] = useState(null);
   const [autoSaveTimer, setAutoSaveTimer] = useState(null);
@@ -663,9 +663,12 @@ export default function DiagramPage() {
   const loadInventory = async () => {
     try {
       const data = await api.getInventory();
-      setInventory(data);
-    } catch (err) {
-      console.error('Failed to load inventory:', err);
+      setInventory({
+        builtIn: data.builtIn,
+        community: data.community
+      });
+    } catch (error) {
+      console.error('Failed to load inventory:', error);
     }
   };
 
@@ -1229,6 +1232,32 @@ export default function DiagramPage() {
                   </ActionButton>
                 </div>
                 
+                {inventory.community.length > 0 && (
+                  <TechCategory>
+                    <CategoryLabel>COMMUNITY_MODULES</CategoryLabel>
+                    {inventory.community
+                      .filter(tech => !searchTerm || tech.name.toLowerCase().includes(searchTerm.toLowerCase()))
+                      .map(tech => (
+                      <TechChip 
+                        key={tech.id} 
+                        draggable 
+                        onDragStart={(e) => handleDragStart(e, tech)}
+                        $category={tech.category}
+                      >
+                        {tech.name}
+                        {tech.isOwner && (
+                          <button 
+                            onClick={(e) => { e.stopPropagation(); deleteFromInventory(tech.id); }}
+                            style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', fontSize: '10px' }}
+                          >
+                            🗑️
+                          </button>
+                        )}
+                      </TechChip>
+                    ))}
+                  </TechCategory>
+                )}
+
                 {Object.keys(inventory.builtIn).map(category => {
                   const builtInForCat = inventory.builtIn[category] || [];
                   const customForCat = (inventory.custom || []).filter(item => item.category === category);

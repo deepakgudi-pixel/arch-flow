@@ -80,24 +80,24 @@ router.get('/', optionalAuth, async (req, res) => {
   try {
     const result = {
       builtIn: builtInTech,
-      custom: []
+      community: []
     };
 
-    if (req.user) {
-      const customResult = await pool.query(
-        'SELECT * FROM user_inventory WHERE user_id = $1 ORDER BY created_at DESC',
-        [req.user.id]
-      );
+    // Fetch all community-created tech blocks
+    const communityResult = await pool.query(
+      'SELECT id, user_id as creator_id, name, category, description, products, icon FROM user_inventory ORDER BY created_at DESC'
+    );
 
-      result.custom = customResult.rows.map(item => ({
-        id: item.id,
-        name: item.name,
-        category: item.category,
-        description: item.description,
-        products: item.products,
-        icon: item.icon
-      }));
-    }
+    result.community = communityResult.rows.map(item => ({
+      id: item.id,
+      creatorId: item.creator_id,
+      name: item.name,
+      category: item.category,
+      description: item.description,
+      products: item.products,
+      icon: item.icon,
+      isOwner: req.user ? req.user.id === item.creator_id : false
+    }));
 
     res.json(result);
   } catch (err) {
