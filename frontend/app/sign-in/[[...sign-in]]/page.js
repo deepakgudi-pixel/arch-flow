@@ -156,7 +156,7 @@ export default function SignInPage() {
           <Hero>
             <StatusTag>
               <div style={{ width: 8, height: 8, background: '#00C853', borderRadius: '50%' }} />
-              System Online // Protocol 4.2
+              System Online // Protocol 1.0
             </StatusTag>
             <Title>
               <ScrambleText text="AUTHENTICATE" delay={200} />
