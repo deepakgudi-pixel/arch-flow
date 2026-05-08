@@ -235,7 +235,7 @@ router.put('/:id', clerkAuth, validate({
             id, 
             nodes ? JSON.stringify(nodes) : JSON.stringify(existing.rows[0].nodes),
             edges ? JSON.stringify(edges) : JSON.stringify(existing.rows[0].edges),
-            'Manual save'
+            'MANUAL_UPDATE'
           ]
         );
       } catch (vErr) {
@@ -266,11 +266,14 @@ router.get('/:id/versions', clerkAuth, async (req, res) => {
     }
 
     const versions = await pool.query(
-      'SELECT id, prompt_text, created_at FROM diagram_versions WHERE diagram_id = $1 ORDER BY created_at DESC',
+      'SELECT id, prompt_text, nodes, edges, created_at FROM diagram_versions WHERE diagram_id = $1 ORDER BY created_at DESC',
       [id]
     );
 
-    res.json(versions.rows);
+    res.json(versions.rows.map(v => ({
+      ...v,
+      created_at: v.created_at instanceof Date ? v.created_at.toISOString() : v.created_at
+    })));
   } catch (err) {
     logger.error('Error fetching diagram versions', { error: err.message, id });
     res.status(500).json({ error: 'Failed to fetch versions' });

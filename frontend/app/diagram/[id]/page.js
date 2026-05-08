@@ -244,6 +244,7 @@ export default function DiagramPage() {
       }));
 
       await api.updateDiagram(diagramId, { name: diagramName, nodes: nodesData, edges: edgesData });
+      loadVersions();
 
       if (showToast) {
         setToast({ message: 'SYSTEM_SYNC: SUCCESS', error: false, warning: false });
@@ -272,7 +273,11 @@ export default function DiagramPage() {
     
     try {
       await api.streamDiagram(
-        { description: prompt, template: template === 'blank' ? null : template },
+        { 
+          description: prompt, 
+          template: template === 'blank' ? null : template,
+          diagramId: diagramId // Ensure the AI knows which diagram this belongs to
+        },
         (chunk) => {
           setStreamingContent(prev => prev + chunk);
         },
@@ -303,7 +308,7 @@ export default function DiagramPage() {
           setEdges(newEdges);
           setPrompt('');
           setIsStreaming(false);
-          fetchVersions(); // Refresh history
+          loadVersions(); // Refresh history
           setToast({ message: 'SYNTHESIS_COMPLETE: 100%', error: false });
           setTimeout(() => setToast(null), 2000);
         },

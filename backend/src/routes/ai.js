@@ -307,7 +307,7 @@ router.post('/generate-diagram', aiLimiter, optionalAuth, validate({
   // 2. Redis Cache check (Layer 2 - Global)
   const redisCached = await redis.get(`ai_diag:${cacheKey}`);
   if (redisCached) {
-    const data = JSON.parse(redisCached);
+    const data = typeof redisCached === 'string' ? JSON.parse(redisCached) : redisCached;
     logger.cacheMetrics('REDIS_GET', cacheKey, true);
     // Backfill local cache
     localCache.set(cacheKey, { data, timestamp: Date.now() });
@@ -380,13 +380,14 @@ JSON_STRUCTURE_SPECIFICATION:
 }
 
 STRICT_CONSTRAINTS:
-1. Names must be uppercase and technically precise.
+1. Names must be uppercase and technically precise (e.g., NODEJS_API, POSTGRESQL_DB).
 2. Category must be strictly: mobile, frontend, backend, database, queue, auth, storage, external, devops.
-3. Edges must represent actual data dependencies.
-4. Output ONLY the JSON object.
+3. **FRONTENDS MUST NEVER CONNECT DIRECTLY TO DATABASES.** Always place a Backend/API layer in between for security and business logic.
+4. Edges must represent actual data dependencies.
+5. Output ONLY the JSON object.
 
 ARCH_PATTERN_ADVICE:
-- Minimalist: Do not add unnecessary layers. If it's a simple script, don't add a load balancer.
+- **Standard 3-Tier**: For web/mobile apps, always default to a Frontend/Mobile -> Backend -> Database flow.
 - Focused: Ensure the technology choice matches the scale implied by the prompt.`;
 
   let responseText = '';
@@ -446,7 +447,7 @@ ARCH_PATTERN_ADVICE:
         [
           diagramId || null,
           cacheKey,
-          description,
+          `AI_SYNTHESIS: ${description}`,
           JSON.stringify(positionedNodes),
           JSON.stringify(edges),
           responseText

@@ -115,8 +115,15 @@ Archflow leverages the built-in **Node.js Crypto** module to maintain industrial
    cd backend && npm run dev
    
    # Terminal 2: UI Layer
-   cd frontend && npm run dev
-   ```
+    cd frontend && npm run dev
+    ```
+
+### 🛠️ Maintenance & Reset
+To perform a complete "Master Wipe" of the infrastructure (NeonDB, Local Redis, and Upstash Cloud), run the following from the backend directory:
+```bash
+npm run wipe-all
+```
+*Note: This is a destructive command and is intended for clearing environments between major architectural iterations.*
 
 ---
 
