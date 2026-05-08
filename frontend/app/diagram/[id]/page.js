@@ -68,7 +68,7 @@ const GlobalStyle = createGlobalStyle`
   }
 
   .react-flow__controls {
-    box-shadow: 4px 4px 0px #000000 !important;
+    box-shadow: none !important;
     border: 3px solid #000000 !important;
     border-radius: 0 !important;
     overflow: hidden;
@@ -80,7 +80,6 @@ const GlobalStyle = createGlobalStyle`
     &:last-child { border-bottom: none !important; }
     &:hover { background: #f0f0f0 !important; }
   }
-
   .react-flow__minimap {
     border: 3px solid #000000 !important;
     border-radius: 0 !important;
@@ -89,21 +88,6 @@ const GlobalStyle = createGlobalStyle`
 
   .react-flow__attribution {
     display: none !important;
-  }
-
-  .react-flow__controls {
-    box-shadow: none !important;
-    border: 3px solid #000000;
-  }
-
-  .react-flow__controls-button {
-    border-bottom: 1px solid #eee !important;
-    box-shadow: none !important;
-    background: #ffffff !important;
-
-    &:hover {
-      background: #f0f0f0 !important;
-    }
   }
 `;
 

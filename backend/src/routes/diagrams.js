@@ -7,9 +7,7 @@ import { logger } from '../lib/logger.js';
 
 const router = express.Router();
 
-function generateId() {
-  return 'd_' + Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
-}
+import crypto from 'crypto';
 
 router.get('/', optionalAuth, async (req, res) => {
   try {
@@ -62,11 +60,11 @@ router.post('/', clerkAuth, validate({
 }), async (req, res) => {
   try {
     const { id: userId } = req.user;
+    const id = 'd_' + crypto.randomUUID().split('-')[0];
     const { name, template } = req.body;
 
     await ensureUserExists(req.user);
 
-    const id = generateId();
     let nodes = [];
     let edges = [];
 
