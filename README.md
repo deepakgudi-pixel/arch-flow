@@ -45,6 +45,11 @@
 - **Database**: [Neon](https://neon.tech/) — A serverless PostgreSQL choice that provides **ACID compliance** for architectural snapshots while scaling down to zero when idle.
 - **Auth**: [Clerk](https://clerk.com/) — Managed identity with **JWT-based verification**, offloading the security burden while providing a premium user onboarding experience.
 
+### ⚡ Universal Redis Architecture
+Archflow uses a specialized "Dual-Protocol" Redis strategy to ensure zero-latency development and production-grade stability:
+- **Local (Native TCP)**: Uses standard `redis://` protocol for sub-millisecond performance on persistent local connections.
+- **Production (Serverless REST)**: Switches to **Upstash REST API** when deployed to Vercel. This bypasses the TCP connection limits of serverless environments, ensuring high availability and eliminating "cold start" connection bottlenecks.
+
 ---
 
 ## 🚀 Getting Started
