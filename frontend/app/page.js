@@ -449,12 +449,9 @@ export default function HomePage() {
         </DesktopCopy>
         <DesktopPreview>
            <img 
-             src="https://raw.githubusercontent.com/deepakgudi-pixel/arch-flow/main/screenshots/desktop-preview.png" 
-             alt="Archflow Desktop"
-             onError={(e) => {
-               e.target.src = 'https://img.icons8.com/ios-filled/512/000000/processor.png'; // Fallback
-               e.target.style.filter = 'invert(1)';
-             }}
+             src="/images/processor.png" 
+             alt="Archflow Engine"
+             style={{ filter: 'invert(1)', maxWidth: '100%', height: 'auto' }}
            />
         </DesktopPreview>
       </DesktopSection>
