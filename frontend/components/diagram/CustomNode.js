@@ -55,7 +55,11 @@ const NodeRole = styled.div`
   text-transform: uppercase;
 `;
 
+import * as LucideIcons from 'lucide-react';
+
 export function CustomNode({ data, selected }) {
+  const IconComponent = LucideIcons[data.icon] || LucideIcons.Layers;
+
   return (
     <>
       <Handle type="target" position={Position.Left} />
@@ -64,8 +68,15 @@ export function CustomNode({ data, selected }) {
           <NodeCategoryLabel>{data.category}</NodeCategoryLabel>
         </NodeTopBar>
         <NodeBody>
-          <NodeName>{data.label}</NodeName>
-          <NodeRole>{data.role}</NodeRole>
+          <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+            <div style={{ padding: '6px', border: '2px solid #000', background: '#f5f5f5' }}>
+              <IconComponent size={16} strokeWidth={3} />
+            </div>
+            <div>
+              <NodeName>{data.label}</NodeName>
+              <NodeRole>{data.role}</NodeRole>
+            </div>
+          </div>
         </NodeBody>
       </NodeWrapper>
       <Handle type="source" position={Position.Right} />

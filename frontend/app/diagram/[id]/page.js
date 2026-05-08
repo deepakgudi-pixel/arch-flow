@@ -24,8 +24,10 @@ import { CustomNode } from '@/components/diagram/CustomNode';
 import EditorHeader from '@/components/diagram/EditorHeader';
 import NodeDetailsSidebar from '@/components/diagram/NodeDetailsSidebar';
 import TechInventoryPanel from '@/components/diagram/TechInventoryPanel';
+import HistoryPanel from '@/components/diagram/HistoryPanel';
 import PromptBar from '@/components/diagram/PromptBar';
 import InviteModal from '@/components/diagram/InviteModal';
+import SynthesisTerminal from '@/components/diagram/SynthesisTerminal';
 import Toast from '@/components/ui/Toast';
 import {
   Container, MainArea, CanvasWrapper, EmptyCanvas, EmptyIcon, EmptyText
@@ -142,6 +144,9 @@ export default function DiagramPage() {
   const [prompt, setPrompt] = useState('');
   const [template, setTemplate] = useState('blank');
   const [loading, setLoading] = useState(false);
+  const [streamingContent, setStreamingContent] = useState('');
+  const [isStreaming, setIsStreaming] = useState(false);
+  const [streamError, setStreamError] = useState(null);
   const [inventory, setInventory] = useState({ builtIn: {}, community: [] });
   const [searchTerm, setSearchTerm] = useState('');
   const [toast, setToast] = useState(null);
@@ -155,6 +160,8 @@ export default function DiagramPage() {
   const [customTechPrompt, setCustomTechPrompt] = useState('');
   const [generatingTech, setGeneratingTech] = useState(false);
   const [simulateFlow, setSimulateFlow] = useState(false);
+  const [historyPanelOpen, setHistoryPanelOpen] = useState(false);
+  const [versions, setVersions] = useState([]);
 
   useEffect(() => {
     if (isLoaded && !isSignedIn) {
@@ -169,8 +176,18 @@ export default function DiagramPage() {
       });
       loadDiagram();
       loadInventory();
+      loadVersions();
     }
   }, [isSignedIn, diagramId]);
+
+  const loadVersions = async () => {
+    try {
+      const data = await api.getDiagramVersions(diagramId);
+      setVersions(data);
+    } catch (err) {
+      console.error('Failed to load versions:', err);
+    }
+  };
 
   useEffect(() => {
     if (autoSaveTimer) clearTimeout(autoSaveTimer);
@@ -265,37 +282,91 @@ export default function DiagramPage() {
     }
 
     setLoading(true);
+    setIsStreaming(true);
+    setStreamingContent('');
+    setStreamError(null);
+    
     try {
-      const result = await api.generateDiagram({ description: prompt, template: template === 'blank' ? null : template });
+      await api.streamDiagram(
+        { description: prompt, template: template === 'blank' ? null : template },
+        (chunk) => {
+          setStreamingContent(prev => prev + chunk);
+        },
+        (result) => {
+          const newNodes = result.nodes.map(node => ({
+            id: node.id,
+            type: 'customNode',
+            position: node.position,
+            data: { 
+          label: node.name, 
+          role: node.role, 
+          category: node.category, 
+          reason: node.reason, 
+          icon: node.icon,
+          products: node.products || [] 
+        }
+          }));
 
-      const newNodes = result.nodes.map(node => ({
-        id: node.id,
-        type: 'customNode',
-        position: node.position,
-        data: { label: node.name, role: node.role, category: node.category, reason: node.reason, products: node.products || [] }
-      }));
+          const newEdges = result.edges.map(edge => ({
+            id: edge.id,
+            source: edge.source,
+            target: edge.target,
+            label: edge.label,
+            animated: simulateFlow
+          }));
 
-      const newEdges = result.edges.map(edge => ({
-        id: edge.id,
-        source: edge.source,
-        target: edge.target,
-        label: edge.label,
-        animated: simulateFlow
-      }));
-
-      setNodes(newNodes);
-      setEdges(newEdges);
-      setPrompt('');
-
-      setToast({ message: 'SYNTHESIS_COMPLETE: 100%', error: false });
-      setTimeout(() => setToast(null), 2000);
+          setNodes(newNodes);
+          setEdges(newEdges);
+          setPrompt('');
+          setIsStreaming(false);
+          fetchVersions(); // Refresh history
+          setToast({ message: 'SYNTHESIS_COMPLETE: 100%', error: false });
+          setTimeout(() => setToast(null), 2000);
+        },
+        (error) => {
+          setStreamError(error);
+          setToast({ message: 'SYNTHESIS_FAILED: ' + error, error: true });
+          setTimeout(() => setToast(null), 3000);
+        }
+      );
     } catch (err) {
       console.error('Generation failed:', err);
       setToast({ message: 'SYNTHESIS_FAILED: ' + err.message, error: true });
+      setIsStreaming(false);
       setTimeout(() => setToast(null), 3000);
     } finally {
       setLoading(false);
+      saveDiagram(false); // Save the result to the main diagram record
     }
+  };
+
+  const handleSelectVersion = (version) => {
+    const newNodes = version.nodes.map(node => ({
+      id: node.id,
+      type: 'customNode',
+      position: node.position,
+      data: { 
+        label: node.name, 
+        role: node.role, 
+        category: node.category, 
+        reason: node.reason, 
+        icon: node.icon,
+        products: node.products || [] 
+      }
+    }));
+
+    const newEdges = version.edges.map(edge => ({
+      id: edge.id,
+      source: edge.source,
+      target: edge.target,
+      label: edge.label,
+      animated: simulateFlow
+    }));
+
+    setNodes(newNodes);
+    setEdges(newEdges);
+    setToast({ message: 'LOADED_SNAPSHOT_' + version.id.substring(0, 8), error: false });
+    setTimeout(() => setToast(null), 2000);
   };
 
   const handleGenerateTech = async () => {
@@ -555,7 +626,14 @@ export default function DiagramPage() {
 
     try {
       const nodesBounds = getRectOfNodes(nodes);
-      const transform = getTransformForBounds(nodesBounds, 1200, 800, 0.5, 2);
+      // Add 100px padding around all nodes to prevent clipping
+      const paddedBounds = {
+        x: nodesBounds.x - 100,
+        y: nodesBounds.y - 100,
+        width: nodesBounds.width + 200,
+        height: nodesBounds.height + 200
+      };
+      const transform = getTransformForBounds(paddedBounds, 1200, 800, 0.1, 2);
 
       const dataUrl = await toPng(document.querySelector('.react-flow__viewport'), {
         backgroundColor: '#ffffff',
@@ -599,7 +677,15 @@ export default function DiagramPage() {
           onOpenSpecs={() => setLeftSidebarOpen(true)}
           onDeleteNode={deleteSelected}
           rightPanelOpen={rightPanelOpen}
-          onToggleRightPanel={() => setRightPanelOpen(!rightPanelOpen)}
+          onToggleRightPanel={() => {
+            setRightPanelOpen(!rightPanelOpen);
+            if (!rightPanelOpen) setHistoryPanelOpen(false);
+          }}
+          historyPanelOpen={historyPanelOpen}
+          onToggleHistoryPanel={() => {
+            setHistoryPanelOpen(!historyPanelOpen);
+            if (!historyPanelOpen) setRightPanelOpen(false);
+          }}
           showExportMenu={showExportMenu}
           onToggleExportMenu={() => setShowExportMenu(!showExportMenu)}
           onSave={saveDiagram}
@@ -675,6 +761,13 @@ export default function DiagramPage() {
             onDragStart={handleDragStart}
             onDeleteFromInventory={deleteFromInventory}
           />
+
+          {historyPanelOpen && (
+            <HistoryPanel 
+              versions={versions} 
+              onSelectVersion={handleSelectVersion} 
+            />
+          )}
         </MainArea>
 
         <PromptBar
@@ -701,6 +794,15 @@ export default function DiagramPage() {
         <Toast $tone={toast.error ? 'error' : toast.warning ? 'warning' : 'success'}>
           <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 900 }}>[{toast.message}]</span>
         </Toast>
+      )}
+
+      {isStreaming && (
+        <SynthesisTerminal 
+          content={streamingContent} 
+          error={streamError}
+          onRetry={handleGenerate}
+          onClose={() => setIsStreaming(false)}
+        />
       )}
     </>
   );

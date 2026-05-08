@@ -1,6 +1,8 @@
+import dotenv from 'dotenv';
+dotenv.config();
+
 import express from 'express';
 import cors from 'cors';
-import dotenv from 'dotenv';
 
 import usersRouter from './routes/users.js';
 import diagramsRouter from './routes/diagrams.js';
@@ -8,8 +10,6 @@ import inventoryRouter from './routes/inventory.js';
 import settingsRouter from './routes/settings.js';
 import aiRouter from './routes/ai.js';
 import { initializeDatabase } from './db/init.js';
-
-dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 4000;

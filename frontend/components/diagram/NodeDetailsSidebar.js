@@ -15,19 +15,31 @@ const DetailHeader = styled.div`
 `;
 
 const NodeLabel = styled.div`
-  font-size: 2.5rem;
+  font-size: 2.2rem;
   font-weight: 900;
   line-height: 1;
   margin-bottom: 16px;
   text-transform: uppercase;
+  overflow-wrap: break-word;
+  word-break: normal; /* Don't break in middle of letters if possible */
+  letter-spacing: -0.04em;
+  hyphens: none;
+  
+  /* Scale down earlier and more aggressively for long names */
+  ${props => props.$isLong && `
+    font-size: 1.6rem;
+    letter-spacing: -0.02em;
+  `}
 `;
 
 const NodeRoleLabel = styled.div`
   font-family: var(--font-mono);
-  font-size: 12px;
+  font-size: 11px;
+  font-weight: 700;
   color: #666;
   margin-bottom: 32px;
   text-transform: uppercase;
+  word-break: break-word;
 `;
 
 export default function NodeDetailsSidebar({
@@ -51,7 +63,9 @@ export default function NodeDetailsSidebar({
                 <Badge $tone="neutral">STABLE</Badge>
               </DetailHeader>
 
-              <NodeLabel>{selectedNode.data.label}</NodeLabel>
+              <NodeLabel $isLong={selectedNode.data.label?.length > 12}>
+                {selectedNode.data.label}
+              </NodeLabel>
               <NodeRoleLabel>ROLE: {selectedNode.data.role}</NodeRoleLabel>
 
               <SectionTitle>FUNCTION_SPEC</SectionTitle>

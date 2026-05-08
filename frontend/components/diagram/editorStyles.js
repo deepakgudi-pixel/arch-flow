@@ -138,6 +138,7 @@ export const SidebarTitle = styled.h2`
   align-items: center;
   justify-content: space-between;
   text-transform: uppercase;
+  word-break: break-word;
 `;
 
 export const CloseBtn = styled.button`
@@ -210,6 +211,7 @@ export const ProductName = styled.div`
   text-transform: uppercase;
   color: #000000;
   margin-bottom: 8px;
+  word-break: break-word;
 `;
 
 export const ProductDesc = styled.div`

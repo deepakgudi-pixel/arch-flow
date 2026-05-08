@@ -66,6 +66,7 @@ export default function EditorHeader({
   diagramName, onDiagramNameChange, onDiagramNameBlur,
   selectedNode, onOpenSpecs, onDeleteNode,
   rightPanelOpen, onToggleRightPanel,
+  historyPanelOpen, onToggleHistoryPanel,
   showExportMenu, onToggleExportMenu,
   onSave, onSynthesizeProtocols, onExportPNG, onExportJSON,
   connectMode, onToggleConnectMode,
@@ -119,6 +120,9 @@ export default function EditorHeader({
           )}
           <ActionButton onClick={onToggleRightPanel}>
             {rightPanelOpen ? 'CLOSE_MODS' : 'VIEW_MODS'}
+          </ActionButton>
+          <ActionButton onClick={onToggleHistoryPanel}>
+            {historyPanelOpen ? 'CLOSE_HISTORY' : 'VIEW_HISTORY'}
           </ActionButton>
         </ActionGroupRight>
       </HeaderCenter>

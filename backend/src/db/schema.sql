@@ -21,6 +21,20 @@ CREATE TABLE IF NOT EXISTS diagrams (
 CREATE INDEX IF NOT EXISTS idx_diagrams_user_id ON diagrams(user_id);
 CREATE INDEX IF NOT EXISTS idx_diagrams_invite_code ON diagrams(invite_code);
 
+CREATE TABLE IF NOT EXISTS diagram_versions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  diagram_id VARCHAR(50) REFERENCES diagrams(id) ON DELETE CASCADE,
+  prompt_hash VARCHAR(64),
+  prompt_text TEXT,
+  nodes JSONB NOT NULL,
+  edges JSONB NOT NULL,
+  raw_response TEXT,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_versions_diagram_id ON diagram_versions(diagram_id);
+CREATE INDEX IF NOT EXISTS idx_versions_prompt_hash ON diagram_versions(prompt_hash);
+
 CREATE TABLE IF NOT EXISTS diagram_collaborators (
   diagram_id VARCHAR(50) NOT NULL REFERENCES diagrams(id) ON DELETE CASCADE,
   user_id VARCHAR(255) NOT NULL REFERENCES users(id) ON DELETE CASCADE,
@@ -39,7 +53,7 @@ CREATE TABLE IF NOT EXISTS user_inventory (
   created_at TIMESTAMP DEFAULT NOW()
 );
 
-CREATE INDEX IF NOT EXISTS idx_inventory_user_id ON user_inventory(user_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_inventory_user_tech ON user_inventory(user_id, name);
 
 CREATE TABLE IF NOT EXISTS user_settings (
   user_id VARCHAR(255) PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,

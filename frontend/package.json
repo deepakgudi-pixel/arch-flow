@@ -10,6 +10,7 @@
   "dependencies": {
     "@clerk/nextjs": "^4.29.1",
     "@reactflow/core": "^11.10.1",
+    "date-fns": "^4.1.0",
     "framer-motion": "^12.38.0",
     "html-to-image": "^1.11.13",
     "lucide-react": "^1.14.0",

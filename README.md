@@ -17,9 +17,9 @@
 - **Mobile-First Intelligence**: Native support for Android (Kotlin), iOS (Swift), and cross-platform (Flutter/React Native) architectures.
 - **Technical Sourcing**: Automated technical module generation with deep-dives into specific product stacks.
 
-### 👥 Collaborative Blueprinting
 - **Invite Terminal**: Generate secure invite codes to bring collaborators into your workspace.
 - **Real-time Sync**: Collaborative editing with persistence powered by **Neon PostgreSQL**.
+- **Design History**: Integrated **Architectural Versioning** system for time-travel navigation through previous system snapshots.
 - **Community Inventory**: Automated discovery and registration of new technical modules to a shared global registry.
 
 ### 📦 Production Templates
@@ -41,10 +41,11 @@
 
 ### Backend (Robust API Infrastructure)
 - **Runtime**: [Node.js](https://nodejs.org/) / [Express.js](https://expressjs.com/)
-- **Validation**: Schema-based input hardening for all write operations
+- **Caching**: **Triple-Tier Cache** (In-Memory L1, Redis L2, PostgreSQL L3)
+- **Observability**: Structured JSON logging with AI performance metrics
 - **Database**: [Neon](https://neon.tech/) (Serverless PostgreSQL)
 - **Auth**: [Clerk](https://clerk.com/) Enterprise-grade authentication
-- **AI Engine**: [OpenRouter](https://openrouter.ai/) (DeepSeek-R1 / Free Fallbacks)
+- **AI Engine**: [OpenRouter](https://openrouter.ai/) (Auto-routing / Streaming SSE)
 
 ---
 
@@ -72,6 +73,11 @@
    CLERK_SECRET_KEY=sk_test_xxx
    CLERK_JWT_KEY=your_clerk_jwt_public_key # Optional: For faster token verification
    OPENROUTER_API_KEY=sk-or-v1-xxx
+   
+   # Redis Configuration (Local & Production)
+   REDIS_URL=redis://localhost:6379
+   UPSTASH_REDIS_REST_URL=https://your-db.upstash.io
+   UPSTASH_REDIS_REST_TOKEN=your_token
    ```
 
    **Frontend (`frontend/.env.local`)**

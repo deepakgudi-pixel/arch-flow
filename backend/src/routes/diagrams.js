@@ -3,6 +3,7 @@ import pool from '../db/pool.js';
 import { clerkAuth, optionalAuth } from '../middleware/clerkAuth.js';
 import { ensureUserExists } from '../services/userSync.js';
 import { validate } from '../middleware/validate.js';
+import { logger } from '../lib/logger.js';
 
 const router = express.Router();
 
@@ -212,7 +213,7 @@ router.put('/:id', clerkAuth, validate({
     const { id: userId } = req.user;
 
     const existing = await pool.query(
-      `SELECT user_id FROM diagrams d 
+      `SELECT user_id, nodes, edges FROM diagrams d 
        WHERE d.id = $1 AND (d.user_id = $2 OR EXISTS(SELECT 1 FROM diagram_collaborators WHERE diagram_id = $1 AND user_id = $2))`,
       [id, userId]
     );
@@ -226,10 +227,55 @@ router.put('/:id', clerkAuth, validate({
       [name, nodes ? JSON.stringify(nodes) : null, edges ? JSON.stringify(edges) : null, id]
     );
 
+    // Create a manual version if nodes/edges changed
+    if (nodes || edges) {
+      try {
+        await pool.query(
+          `INSERT INTO diagram_versions (diagram_id, nodes, edges, prompt_text)
+           VALUES ($1, $2, $3, $4)`,
+          [
+            id, 
+            nodes ? JSON.stringify(nodes) : JSON.stringify(existing.rows[0].nodes),
+            edges ? JSON.stringify(edges) : JSON.stringify(existing.rows[0].edges),
+            'Manual save'
+          ]
+        );
+      } catch (vErr) {
+        logger.error('Failed to save manual diagram version', { error: vErr.message, id });
+      }
+    }
+
     res.json({ success: true });
   } catch (err) {
-    console.error('Error updating diagram:', err);
+    logger.error('Error updating diagram', { error: err.message });
     res.status(500).json({ error: 'Failed to update diagram' });
+  }
+});
+
+router.get('/:id/versions', clerkAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { id: userId } = req.user;
+
+    const existing = await pool.query(
+      `SELECT user_id FROM diagrams d 
+       WHERE d.id = $1 AND (d.user_id = $2 OR EXISTS(SELECT 1 FROM diagram_collaborators WHERE diagram_id = $1 AND user_id = $2))`,
+      [id, userId]
+    );
+
+    if (existing.rows.length === 0) {
+      return res.status(403).json({ error: 'Permission denied' });
+    }
+
+    const versions = await pool.query(
+      'SELECT id, prompt_text, created_at FROM diagram_versions WHERE diagram_id = $1 ORDER BY created_at DESC',
+      [id]
+    );
+
+    res.json(versions.rows);
+  } catch (err) {
+    logger.error('Error fetching diagram versions', { error: err.message, id });
+    res.status(500).json({ error: 'Failed to fetch versions' });
   }
 });
 
