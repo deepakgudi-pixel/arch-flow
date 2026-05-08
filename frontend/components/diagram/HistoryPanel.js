@@ -7,7 +7,6 @@ import { formatDistanceToNow } from 'date-fns';
 const Panel = styled.div`
   width: 320px;
   background: #ffffff;
-  border-left: 4px solid #000000;
   display: flex;
   flex-direction: column;
   height: 100%;
@@ -86,7 +85,36 @@ const EmptyState = styled.div`
   font-weight: 800;
 `;
 
-export default function HistoryPanel({ versions, onSelectVersion }) {
+const Footer = styled.div`
+  padding: 16px;
+  border-top: 3px solid #000000;
+`;
+
+const ClearButton = styled.button`
+  width: 100%;
+  padding: 12px;
+  background: #ff4444;
+  color: #fff;
+  border: 3px solid #000000;
+  font-family: var(--font-mono);
+  font-weight: 900;
+  font-size: 11px;
+  cursor: pointer;
+  box-shadow: 4px 4px 0px #000000;
+  transition: all 0.1s;
+
+  &:hover {
+    transform: translate(-2px, -2px);
+    box-shadow: 6px 6px 0px #000000;
+  }
+
+  &:active {
+    transform: translate(2px, 2px);
+    box-shadow: none;
+  }
+`;
+
+export default function HistoryPanel({ versions, onSelectVersion, onClearHistory }) {
   return (
     <Panel>
       <PanelHeader>
@@ -110,6 +138,13 @@ export default function HistoryPanel({ versions, onSelectVersion }) {
           ))
         )}
       </VersionList>
+      {versions.length > 0 && (
+        <Footer>
+          <ClearButton onClick={onClearHistory}>
+            CLEAR_ALL_HISTORY
+          </ClearButton>
+        </Footer>
+      )}
     </Panel>
   );
 }

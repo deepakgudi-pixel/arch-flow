@@ -2,6 +2,7 @@
 
 import { createGlobalStyle } from 'styled-components';
 import { useUser, useAuth } from '@clerk/nextjs';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import ReactFlow, {
@@ -28,6 +29,7 @@ import HistoryPanel from '@/components/diagram/HistoryPanel';
 import PromptBar from '@/components/diagram/PromptBar';
 import InviteModal from '@/components/diagram/InviteModal';
 import SynthesisTerminal from '@/components/diagram/SynthesisTerminal';
+import ConfirmModal from '@/components/ui/ConfirmModal';
 import Toast from '@/components/ui/Toast';
 import {
   Container, MainArea, CanvasWrapper, EmptyCanvas, EmptyIcon, EmptyText
@@ -145,6 +147,7 @@ export default function DiagramPage() {
   const [generatingTech, setGeneratingTech] = useState(false);
   const [simulateFlow, setSimulateFlow] = useState(false);
   const [historyPanelOpen, setHistoryPanelOpen] = useState(false);
+  const [showConfirmHistory, setShowConfirmHistory] = useState(false);
   const [versions, setVersions] = useState([]);
 
   useEffect(() => {
@@ -356,6 +359,25 @@ export default function DiagramPage() {
     setEdges(newEdges);
     setToast({ message: 'LOADED_SNAPSHOT_' + version.id.substring(0, 8), error: false });
     setTimeout(() => setToast(null), 2000);
+  };
+
+  const handleClearHistory = () => {
+    setShowConfirmHistory(true);
+  };
+
+  const confirmClearHistory = async () => {
+    try {
+      await api.clearDiagramVersions(diagramId);
+      setVersions([]);
+      setShowConfirmHistory(false);
+      setToast({ message: 'HISTORY_PURGED', error: false });
+      setTimeout(() => setToast(null), 2000);
+    } catch (err) {
+      console.error('Failed to clear history:', err);
+      setShowConfirmHistory(false);
+      setToast({ message: 'PURGE_FAILED', error: true });
+      setTimeout(() => setToast(null), 3000);
+    }
   };
 
   const handleGenerateTech = async () => {
@@ -667,13 +689,18 @@ export default function DiagramPage() {
           onDeleteNode={deleteSelected}
           rightPanelOpen={rightPanelOpen}
           onToggleRightPanel={() => {
-            setRightPanelOpen(!rightPanelOpen);
-            if (!rightPanelOpen) setHistoryPanelOpen(false);
+            const nextState = !rightPanelOpen;
+            setRightPanelOpen(nextState);
+            if (nextState) setHistoryPanelOpen(false);
           }}
           historyPanelOpen={historyPanelOpen}
           onToggleHistoryPanel={() => {
-            setHistoryPanelOpen(!historyPanelOpen);
-            if (!historyPanelOpen) setRightPanelOpen(false);
+            const nextState = !historyPanelOpen;
+            setHistoryPanelOpen(nextState);
+            if (nextState) {
+              setRightPanelOpen(false);
+              setLeftSidebarOpen(false);
+            }
           }}
           showExportMenu={showExportMenu}
           onToggleExportMenu={() => setShowExportMenu(!showExportMenu)}
@@ -751,12 +778,33 @@ export default function DiagramPage() {
             onDeleteFromInventory={deleteFromInventory}
           />
 
-          {historyPanelOpen && (
-            <HistoryPanel 
-              versions={versions} 
-              onSelectVersion={handleSelectVersion} 
-            />
-          )}
+          <AnimatePresence>
+            {historyPanelOpen && (
+              <motion.div
+                initial={{ x: 320 }}
+                animate={{ x: 0 }}
+                exit={{ x: 320 }}
+                transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+                style={{ 
+                  position: 'absolute',
+                  top: 0,
+                  right: 0,
+                  bottom: 0,
+                  width: 320,
+                  background: '#fff', 
+                  zIndex: 1000,
+                  borderLeft: '4px solid #000',
+                  boxShadow: '10px 0px 20px rgba(0,0,0,0.1)' // Subtle depth, not a border
+                }}
+              >
+                <HistoryPanel 
+                  versions={versions} 
+                  onSelectVersion={handleSelectVersion} 
+                  onClearHistory={handleClearHistory}
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
         </MainArea>
 
         <PromptBar
@@ -793,6 +841,14 @@ export default function DiagramPage() {
           onClose={() => setIsStreaming(false)}
         />
       )}
+
+      <ConfirmModal
+        open={showConfirmHistory}
+        title="IRREVERSIBLE_ACTION: PURGE_HISTORY"
+        message="YOU ARE ABOUT TO DELETE ALL ARCHITECTURAL SNAPSHOTS FOR THIS PROJECT. THIS DATA CANNOT BE RECOVERED. PROCEED?"
+        onConfirm={confirmClearHistory}
+        onCancel={() => setShowConfirmHistory(false)}
+      />
     </>
   );
 }

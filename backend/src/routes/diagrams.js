@@ -272,11 +272,27 @@ router.get('/:id/versions', clerkAuth, async (req, res) => {
 
     res.json(versions.rows.map(v => ({
       ...v,
-      created_at: v.created_at instanceof Date ? v.created_at.toISOString() : v.created_at
+      created_at: new Date(v.created_at + ' +00').toISOString()
     })));
   } catch (err) {
     logger.error('Error fetching diagram versions', { error: err.message, id });
     res.status(500).json({ error: 'Failed to fetch versions' });
+  }
+});
+
+router.delete('/:id/versions', clerkAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { id: userId } = req.user;
+
+    const check = await pool.query('SELECT id FROM diagrams WHERE id = $1 AND user_id = $2', [id, userId]);
+    if (check.rows.length === 0) return res.status(403).json({ error: 'Permission denied' });
+
+    await pool.query('DELETE FROM diagram_versions WHERE diagram_id = $1', [id]);
+    res.json({ success: true });
+  } catch (err) {
+    logger.error('Failed to clear diagram versions', { error: err.message, id });
+    res.status(500).json({ error: 'Failed to clear versions' });
   }
 });
 

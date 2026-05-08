@@ -166,6 +166,7 @@ export const api = {
   inferConnection: (data) => fetchAPI('/ai/infer-connection', { method: 'POST', body: JSON.stringify(data) }),
 
   getDiagramVersions: (id) => fetchAPI(`/diagrams/${id}/versions`),
+  clearDiagramVersions: (id) => fetchAPI(`/diagrams/${id}/versions`, { method: 'DELETE' }),
   getInviteCode: (id) => fetchAPI(`/diagrams/${id}/invite`, { method: 'POST' }),
   joinDiagram: (code) => fetchAPI(`/diagrams/join/${code}`, { method: 'POST' }),
   getCollaborators: (id) => fetchAPI(`/diagrams/${id}/collaborators`),
