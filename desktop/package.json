@@ -18,10 +18,7 @@
     "productName": "Archflow",
     "mac": {
       "category": "public.app-category.developer-tools",
-      "target": [
-        "dmg",
-        "zip"
-      ],
+      "target": ["dmg", "zip"],
       "icon": "icon.png"
     },
     "directories": {

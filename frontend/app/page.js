@@ -172,15 +172,78 @@ const FeatureCard = styled(Card)`
   }
 `;
 
+const DesktopSection = styled.section`
+  max-width: var(--page-width);
+  margin: 64px auto;
+  padding: 80px var(--spacing-md);
+  background: #000;
+  color: #fff;
+  border: 8px solid #000;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 64px;
+  align-items: center;
+  position: relative;
+  overflow: hidden;
+
+  @media (max-width: 1024px) {
+    grid-template-columns: 1fr;
+    padding: 48px 24px;
+  }
+`;
+
+const DesktopCopy = styled.div`
+  display: grid;
+  gap: 24px;
+  position: relative;
+  z-index: 2;
+`;
+
+const DesktopTitle = styled.h2`
+  font-size: clamp(2rem, 4vw, 3.5rem);
+  font-weight: 900;
+  line-height: 1;
+  text-transform: uppercase;
+`;
+
+const DesktopPreview = styled.div`
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  
+  img {
+    max-width: 100%;
+    height: auto;
+    border: 4px solid #fff;
+    box-shadow: 12px 12px 0px rgba(255, 255, 255, 0.2);
+  }
+`;
+
+const TechLabel = styled.div`
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 900;
+  color: #4ADE80;
+  letter-spacing: 2px;
+  margin-bottom: 8px;
+`;
+
 export default function HomePage() {
   const { isLoaded, isSignedIn } = useUser();
   const router = useRouter();
   const [verifying, setVerifying] = useState(false);
   const [tracing, setTracing] = useState(false);
+  const [isDesktop, setIsDesktop] = useState(false);
   const [progress1, setProgress1] = useState(0);
   const [progress2, setProgress2] = useState(0);
 
   useEffect(() => {
+    // Detect if running inside our Electron shell
+    if (typeof window !== 'undefined' && window.navigator.userAgent.includes('ArchflowDesktop')) {
+      setIsDesktop(true);
+    }
+
     if (isLoaded && isSignedIn) {
       router.push('/dashboard');
     }
@@ -366,6 +429,35 @@ export default function HomePage() {
           </FeatureCard>
         </FeatureGrid>
       </Section>
+
+      <DesktopSection>
+        <DesktopCopy>
+          <TechLabel>SYSTEM_HARDWARE // MACOS_SILICON_READY</TechLabel>
+          <DesktopTitle>The Elite <br/>Desktop Engine.</DesktopTitle>
+          <HeroText style={{ color: '#aaa' }}>
+            Experience Archflow as a dedicated industrial workstation. Frameless design, native performance, and a distraction-free environment for serious architectural thinking.
+          </HeroText>
+          {!isDesktop && (
+            <div style={{ marginTop: '16px' }}>
+              <a href="/downloads/Archflow.zip" download>
+                <Button $variant="primary" $size="lg" style={{ background: '#fff', color: '#000' }}>
+                  DOWNLOAD_FOR_MAC_V1.0
+                </Button>
+              </a>
+            </div>
+          )}
+        </DesktopCopy>
+        <DesktopPreview>
+           <img 
+             src="https://raw.githubusercontent.com/deepakgudi-pixel/arch-flow/main/screenshots/desktop-preview.png" 
+             alt="Archflow Desktop"
+             onError={(e) => {
+               e.target.src = 'https://img.icons8.com/ios-filled/512/000000/processor.png'; // Fallback
+               e.target.style.filter = 'invert(1)';
+             }}
+           />
+        </DesktopPreview>
+      </DesktopSection>
     </Page>
   );
 }
