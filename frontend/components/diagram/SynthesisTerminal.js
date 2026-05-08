@@ -22,7 +22,6 @@ const TerminalContainer = styled.div`
   max-width: 800px;
   background: #000000;
   border: 4px solid #000000;
-  box-shadow: 12px 12px 0px #000000;
   display: flex;
   flex-direction: column;
   height: 60vh;
