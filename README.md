@@ -33,19 +33,17 @@
 ## 🛠️ Tech Stack
 
 ### Frontend (Industrial Component Architecture)
-- **Framework**: [Next.js 14](https://nextjs.org/) (App Router)
-- **State & Logic**: Component-driven architecture (Header, Sidebar, Inventory, PromptBar)
-- **Styling**: [Styled Components](https://styled-components.com/) with Neo-Brutalist tokens
-- **Animations**: [Framer Motion](https://www.framer.com/motion/)
-- **Diagramming**: [React Flow](https://reactflow.dev/)
+- **Framework**: [Next.js 14](https://nextjs.org/) — Chosen for its **App Router** orchestration and superior **SEO/Performance** profile in complex SPAs.
+- **Diagramming**: [React Flow](https://reactflow.dev/) — The gold standard for node-based UIs; chosen for its high-performance rendering and deep extensibility for custom industrial nodes.
+- **Styling**: [Styled Components](https://styled-components.com/) — Allows for strict **Neo-Brutalist design tokens** and dynamic, state-driven styling without the bloat of utility classes.
+- **Animations**: [Framer Motion](https://www.framer.com/motion/) — Handles the high-fidelity micro-interactions that make the industrial UI feel "alive."
 
 ### Backend (Robust API Infrastructure)
-- **Runtime**: [Node.js](https://nodejs.org/) / [Express.js](https://expressjs.com/)
-- **Caching**: **Triple-Tier Cache** (In-Memory L1, Redis L2, PostgreSQL L3)
-- **Observability**: Structured JSON logging with AI performance metrics
-- **Database**: [Neon](https://neon.tech/) (Serverless PostgreSQL)
-- **Auth**: [Clerk](https://clerk.com/) Enterprise-grade authentication
-- **AI Engine**: [OpenRouter](https://openrouter.ai/) (Auto-routing / Streaming SSE)
+- **Runtime**: [Node.js](https://nodejs.org/) / [Express.js](https://expressjs.com/) — Provides a lightweight, high-concurrency event loop perfect for streaming AI responses via SSE.
+- **AI Orchestration**: [OpenRouter](https://openrouter.ai/) — Integrated with **Auto-routing** to ensure model-agnostic resilience. It dynamically selects the best LLM to prevent vendor lock-in and downtime.
+- **Multi-Layer Cache**: **Redis (Upstash)** — Implemented for its serverless-optimized REST API, providing cross-server state persistence and global rate limiting without connection bottlenecks.
+- **Database**: [Neon](https://neon.tech/) — A serverless PostgreSQL choice that provides **ACID compliance** for architectural snapshots while scaling down to zero when idle.
+- **Auth**: [Clerk](https://clerk.com/) — Managed identity with **JWT-based verification**, offloading the security burden while providing a premium user onboarding experience.
 
 ---
 
