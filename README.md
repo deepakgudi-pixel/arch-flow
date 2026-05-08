@@ -17,10 +17,13 @@
 - **Mobile-First Intelligence**: Native support for Android (Kotlin), iOS (Swift), and cross-platform (Flutter/React Native) architectures.
 - **Technical Sourcing**: Automated technical module generation with deep-dives into specific product stacks.
 
-- **Invite Terminal**: Generate secure invite codes to bring collaborators into your workspace.
-- **Real-time Sync**: Collaborative editing with persistence powered by **Neon PostgreSQL**.
-- **Design History**: Integrated **Architectural Versioning** system for time-travel navigation through previous system snapshots.
 - **Community Inventory**: Automated discovery and registration of new technical modules to a shared global registry.
+
+### 📜 Architectural Versioning & Design History
+Archflow includes a professional-grade versioning engine that treats system design with the same rigor as source code:
+- **Design Time-Travel**: Instantly navigate between previous architectural snapshots. Every AI synthesis and manual save creates a permanent record in the design history.
+- **Iterative Branching**: Experiment with complex infrastructure changes (e.g., transitioning from Monolith to Microservices) with the safety of a one-click rollback.
+- **Resilient Recovery**: Even in the event of an interrupted AI stream or network failure, Archflow captures and persists partial system designs to ensure no technical "thinking" is lost.
 
 ### 📦 Production Templates
 - **SaaS Stack**: Next.js, Clerk, Express, PostgreSQL, Redis.
