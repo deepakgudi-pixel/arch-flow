@@ -199,7 +199,7 @@ export default function SignInPage() {
           transition={{ delay: 2 }}
           style={{ fontFamily: 'var(--font-mono)', fontSize: '0.7rem', color: 'var(--color-ink-muted)' }}
         >
-          © 2026 ARCHFLOW SYSTEMS. ALL RIGHTS RESERVED. [BUILD_772]
+          © 2026 ARCHFLOW SYSTEMS. ALL RIGHTS RESERVED. [BUILD_001]
         </motion.div>
       </Sidebar>
 

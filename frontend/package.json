@@ -8,7 +8,7 @@
     "start": "next start"
   },
   "dependencies": {
-    "@clerk/nextjs": "^4.29.1",
+    "@clerk/nextjs": "^5.7.6",
     "@reactflow/core": "^11.10.1",
     "date-fns": "^4.1.0",
     "framer-motion": "^12.38.0",

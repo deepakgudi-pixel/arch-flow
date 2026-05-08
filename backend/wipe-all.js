@@ -5,11 +5,28 @@ import { execSync } from 'child_process';
 async function masterWipe() {
   console.log('🌌 --- ARCHFLOW MASTER WIPE INITIATED --- 🌌');
 
-  // 1. Clear NeonDB
+  // 1. Clear NeonDB (ALL TABLES)
   try {
-    console.log('⌛ Clearing NeonDB (PostgreSQL)...');
-    await pool.query('TRUNCATE diagrams, diagram_versions, user_inventory, diagram_collaborators CASCADE');
-    console.log('✅ NeonDB Cleared.');
+    console.log('⌛ Clearing ALL tables in NeonDB...');
+    
+    // Get all table names in the public schema
+    const tablesRes = await pool.query(`
+      SELECT table_name 
+      FROM information_schema.tables 
+      WHERE table_schema = 'public' 
+      AND table_type = 'BASE TABLE'
+    `);
+    
+    const tables = tablesRes.rows.map(r => r.table_name);
+    
+    if (tables.length > 0) {
+      // Truncate all tables with CASCADE to handle foreign keys
+      const truncateQuery = `TRUNCATE TABLE ${tables.join(', ')} RESTART IDENTITY CASCADE`;
+      await pool.query(truncateQuery);
+      console.log(`✅ NeonDB Fully Purged (${tables.length} tables cleared).`);
+    } else {
+      console.log('ℹ️ No tables found to clear.');
+    }
   } catch (err) {
     console.error('❌ NeonDB Wipe Failed:', err.message);
   }

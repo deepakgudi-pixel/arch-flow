@@ -131,6 +131,14 @@ const GlobalStyleSheet = createGlobalStyle`
     background: var(--color-ink);
     color: var(--color-canvas);
   }
+
+  /* 🧼 Clerk Branding Purge */
+  .cl-internal-1dauvpw, 
+  .cl-internal-pe6vm4,
+  .cl-footer,
+  .cl-internal-1fpq5at {
+    display: none !important;
+  }
 `;
 
 export default function GlobalStyles() {
