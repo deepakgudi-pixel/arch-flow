@@ -27,21 +27,39 @@ export async function resolveUserEmail(userId, fallbackEmail) {
 }
 
 export async function ensureUserExists(user) {
-  const existing = await pool.query(
+  // 1. Try to find by ID (standard path)
+  const byId = await pool.query(
     'SELECT id, email FROM users WHERE id = $1',
     [user.id]
   );
 
-  if (existing.rows.length > 0) {
-    return existing.rows[0];
+  if (byId.rows.length > 0) {
+    return byId.rows[0];
   }
 
+  // 2. ID not found, let's resolve the email
   const email = await resolveUserEmail(user.id, user.email);
-
   if (!email) {
     throw new Error('Unable to resolve user email');
   }
 
+  // 3. Try to find by EMAIL (migration path)
+  const byEmail = await pool.query(
+    'SELECT id, email FROM users WHERE email = $1',
+    [email]
+  );
+
+  if (byEmail.rows.length > 0) {
+    // Identity Migration: Update the old ID to the new one
+    console.log(`🔄 Migrating identity for ${email}: ${byEmail.rows[0].id} -> ${user.id}`);
+    const updated = await pool.query(
+      'UPDATE users SET id = $1 WHERE email = $2 RETURNING id, email',
+      [user.id, email]
+    );
+    return updated.rows[0];
+  }
+
+  // 4. Truly new user: INSERT
   const inserted = await pool.query(
     'INSERT INTO users (id, email) VALUES ($1, $2) RETURNING id, email',
     [user.id, email]
