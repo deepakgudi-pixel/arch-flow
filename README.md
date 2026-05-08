@@ -50,6 +50,11 @@ Archflow uses a specialized "Dual-Protocol" Redis strategy to ensure zero-latenc
 - **Local (Native TCP)**: Uses standard `redis://` protocol for sub-millisecond performance on persistent local connections.
 - **Production (Serverless REST)**: Switches to **Upstash REST API** when deployed to Vercel. This bypasses the TCP connection limits of serverless environments, ensuring high availability and eliminating "cold start" connection bottlenecks.
 
+### 🔐 Security & Data Integrity
+Archflow leverages the built-in **Node.js Crypto** module to maintain industrial-grade data integrity:
+- **Deterministic Hashing**: Every AI prompt is transformed into a unique **SHA-256 fingerprint**. This allows for collision-free cache lookups and ensures that identical architectural requests are served instantly from the global cache.
+- **UUID Generation**: All system entities (diagrams, nodes, versions) utilize **v4 UUIDs** instead of sequential IDs. This prevents ID enumeration attacks and ensures global uniqueness across the distributed Neon database.
+
 ---
 
 ## 🚀 Getting Started
