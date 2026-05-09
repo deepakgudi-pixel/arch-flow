@@ -2,28 +2,33 @@
   "name": "archflow-frontend",
   "version": "1.0.0",
   "private": true,
+  "engines": {
+    "node": "22.16.x"
+  },
   "scripts": {
     "dev": "next dev",
+    "dev:webpack": "next dev --webpack",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "auth:smoke": "node scripts/auth-smoke.mjs"
   },
   "dependencies": {
-    "@clerk/nextjs": "^5.7.6",
+    "@clerk/nextjs": "^6.31.9",
     "@reactflow/core": "^11.10.1",
     "date-fns": "^4.1.0",
     "framer-motion": "^12.38.0",
     "html-to-image": "^1.11.13",
     "lucide-react": "^1.14.0",
-    "next": "14.2.25",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
+    "next": "^15.5.18",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
     "reactflow": "^11.10.1",
     "styled-components": "^6.1.8"
   },
   "devDependencies": {
     "@types/node": "^20.10.5",
-    "@types/react": "^18.2.45",
-    "@types/react-dom": "^18.2.18",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
     "typescript": "^5.3.3"
   }
 }

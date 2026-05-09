@@ -1,157 +1,302 @@
+# Archflow
 
-# 🌌 Archflow: The Industrial System Design Sandbox
+Archflow is an AI-assisted system architecture workspace for people who want to learn, understand, and iterate on software diagrams without needing to be perfect at system design on day one.
 
-**Archflow** is a high-fidelity, industrial-grade visual canvas designed for architects and developers to blueprint, simulate, and generate complex system architectures. Built with a bold **Neo-Brutalist** aesthetic and powered by state-of-the-art AI, it transforms technical planning into a high-performance creative process.
+The product is built around one core idea:
 
----
+- users should leave with a clearer mental model of the system, not just a pretty AI output
 
-## ✨ Key Features
+That means Archflow optimizes for trust, inspectability, presentability, and iteration speed.
 
-### 🛠️ Industrial Workspace
-- **Neo-Brutalist UI**: A high-contrast, production-focused interface designed for clarity and speed.
-- **Visual Canvas**: Drag-and-drop node editor powered by **React Flow** with specialized industrial node types.
-- **System Snapshots**: Download high-resolution PNGs or raw JSON blueprints for documentation.
+## What Archflow Helps With
 
-### 🤖 AI-Driven Synthesis
-- **DeepSeek-R1 Architecture**: Generate complete system designs from natural language prompts.
-- **Mobile-First Intelligence**: Native support for Android (Kotlin), iOS (Swift), and cross-platform (Flutter/React Native) architectures.
-- **Technical Sourcing**: Automated technical module generation with deep-dives into specific product stacks.
+- turn a natural-language product idea into a visual system diagram
+- understand why a technology was chosen
+- understand which units are connected, in which direction, and through which named flow
+- inspect assumptions and potential risks in the architecture
+- replace one part of the system without regenerating everything
+- keep diagrams readable with automatic layout and grouped categories
+- compare versions and continue improving the same system over time
+- export diagrams for sharing and documentation
 
-- **Community Inventory**: Automated discovery and registration of new technical modules to a shared global registry.
+## Product Principles
 
-### 📜 Architectural Versioning & Design History
-Archflow includes a professional-grade versioning engine that treats system design with the same rigor as source code:
-- **Design Time-Travel**: Instantly navigate between previous architectural snapshots. Every AI synthesis and manual save creates a permanent record in the design history.
-- **Iterative Branching**: Experiment with complex infrastructure changes (e.g., transitioning from Monolith to Microservices) with the safety of a one-click rollback.
-- **Resilient Recovery**: Even in the event of an interrupted AI stream or network failure, Archflow captures and persists partial system designs to ensure no technical "thinking" is lost.
+- Trust over novelty: the app should feel dependable, not magical-but-random
+- Learning over scoring: users should understand the architecture, not chase a number
+- Surgical iteration over full regeneration: changing one part of the system should not blow away the rest
+- Internal evaluation for us, review language for users: quality control belongs behind the scenes, not as a gamified user score
+- Flow clarity over label overload: connections should be understandable without turning the canvas into a wall of overlapping text
 
-### 📦 Production Templates
-- **SaaS Stack**: Next.js, Clerk, Express, PostgreSQL, Redis.
-- **Mobile Native**: FastAPI, PostgreSQL, Firebase Auth, S3.
-- **Microservices**: API Gateway, gRPC services, Kafka, PostgreSQL.
-- **Real-time Engine**: Socket.io, Redis Pub/Sub, Express.
+## User-Facing Features
 
----
+- AI diagram generation from free-form prompts
+- Auto-arrange that spaces nodes into cleaner category lanes
+- Node details sidebar with:
+  - why this was chosen
+  - assumptions
+  - review risks
+  - connected incoming and outgoing flows
+  - same-category replacement suggestions
+- Connection details sidebar for selected flows
+- Flow visibility modes:
+  - `FLOW_CONTEXT` for focused inspection
+  - `FLOW_ALL` for full connection labeling
+  - `FLOW_HIDE` for a cleaner canvas
+- Architecture review drawer with findings, all-clear state, and areas to verify
+- Version history with snapshot restore and diff-aware context
+- PNG and JSON export
+- Tech inventory with built-in and generated modules
+- Collaboration and invite support
 
-## 🛠️ Tech Stack
+## Connection Clarity
 
-### Frontend (Industrial Component Architecture)
-- **Framework**: [Next.js 14](https://nextjs.org/) — Chosen for its **App Router** orchestration and superior **SEO/Performance** profile in complex SPAs.
-- **Diagramming**: [React Flow](https://reactflow.dev/) — The gold standard for node-based UIs; chosen for its high-performance rendering and deep extensibility for custom industrial nodes.
-- **Styling**: [Styled Components](https://styled-components.com/) — Allows for strict **Neo-Brutalist design tokens** and dynamic, state-driven styling without the bloat of utility classes.
-- **Animations**: [Framer Motion](https://www.framer.com/motion/) — Handles the high-fidelity micro-interactions that make the industrial UI feel "alive."
+Connections are important enough that they cannot be treated like tiny edge decorations.
 
-### Backend (Robust API Infrastructure)
-- **Runtime**: [Node.js](https://nodejs.org/) / [Express.js](https://expressjs.com/) — Provides a lightweight, high-concurrency event loop perfect for streaming AI responses via SSE.
-- **AI Orchestration**: [OpenRouter](https://openrouter.ai/) — Integrated with **Auto-routing** to ensure model-agnostic resilience. It dynamically selects the best LLM to prevent vendor lock-in and downtime.
-- **Multi-Layer Cache**: **Redis (Upstash)** — Implemented for its serverless-optimized REST API, providing cross-server state persistence and global rate limiting without connection bottlenecks.
-- **Database**: [Neon](https://neon.tech/) — A serverless PostgreSQL choice that provides **ACID compliance** for architectural snapshots while scaling down to zero when idle.
-- **Auth**: [Clerk](https://clerk.com/) — Managed identity with **JWT-based verification**, offloading the security burden while providing a premium user onboarding experience.
+Archflow now handles flow understanding in a layered way:
 
-### ⚡ Universal Redis Architecture
-Archflow uses a specialized "Dual-Protocol" Redis strategy to ensure zero-latency development and production-grade stability:
-- **Local (Native TCP)**: Uses standard `redis://` protocol for sub-millisecond performance on persistent local connections.
-- **Production (Serverless REST)**: Switches to **Upstash REST API** when deployed to Vercel. This bypasses the TCP connection limits of serverless environments, ensuring high availability and eliminating "cold start" connection bottlenecks.
+- the canvas shows focused connection context instead of trying to show every label at once
+- selecting a unit reveals all of that unit's connected flows in `UNIT_DETAILS`
+- selecting a single flow opens `CONNECTION_DETAILS`
+- selected flows are emphasized visually on the canvas so users can immediately see the exact path being discussed
+- full-canvas labeling still exists through `FLOW_ALL`, but the default interaction favors readability over density
 
-### 🔐 Security & Data Integrity
-Archflow leverages the built-in **Node.js Crypto** module to maintain industrial-grade data integrity:
-- **Deterministic Hashing**: Every AI prompt is transformed into a unique **SHA-256 fingerprint**. This allows for collision-free cache lookups and ensures that identical architectural requests are served instantly from the global cache.
-- **UUID Generation**: All system entities (diagrams, nodes, versions) utilize **v4 UUIDs** instead of sequential IDs. This prevents ID enumeration attacks and ensures global uniqueness across the distributed Neon database.
+This is intentional. The goal is not to make the canvas say everything at once. The goal is to make the right relationship obvious at the right moment.
 
----
+## Review Language
 
-## 🚀 Getting Started
+Archflow avoids score-heavy wording in the product UI.
+
+Instead of confidence labels like `HIGH`, `MEDIUM`, and `LOW`, the editor uses:
+
+- `SOLID`
+- `CHECK`
+- `RISK`
+
+These are review signals, not grades. They exist to help users understand where a unit or flow feels well-supported and where it deserves another look.
+
+## What We Intentionally Avoid
+
+Archflow does not aim to be a public "architecture grading" product.
+
+We intentionally avoid a user-facing score like `78/100` because that usually creates the wrong behavior:
+
+- people optimize for the score instead of understanding the system
+- the app feels rigid and judgey
+- AI starts looking like it is grading itself
+
+Instead, the product surfaces:
+
+- findings
+- assumptions
+- risks
+- suggested edits
+- clear flow context
+
+That keeps the app educational and useful without turning it into a black-box evaluator.
+
+## Internal Quality Loop
+
+Archflow now includes an internal evaluation harness for maintainers. This is not a user-facing scoring system.
+
+The harness exists to help us answer questions like:
+
+- are model outputs getting more consistent?
+- did a prompt change make diagrams worse?
+- are important architecture layers being missed?
+- do repeated runs stay structurally similar?
+
+It works by:
+
+- generating prompt sets from a small matrix instead of hand-writing dozens of prompts
+- optionally mining real prompt text from `diagram_versions`
+- running prompts multiple times
+- scoring results with deterministic architecture checks
+- writing both JSON and Markdown reports for quick review
+
+Important files:
+
+- [backend/evals/matrix.json](/Users/deepak/Downloads/arch/backend/evals/matrix.json)
+- [backend/evals/README.md](/Users/deepak/Downloads/arch/backend/evals/README.md)
+- [backend/src/scripts/eval-harness.js](/Users/deepak/Downloads/arch/backend/src/scripts/eval-harness.js)
+- [backend/src/lib/evalHarness.js](/Users/deepak/Downloads/arch/backend/src/lib/evalHarness.js)
+- [backend/src/lib/diagramGenerator.js](/Users/deepak/Downloads/arch/backend/src/lib/diagramGenerator.js)
+
+Useful commands:
+
+```bash
+cd backend
+npm run eval:harness -- --generate-only
+```
+
+This creates:
+
+- `backend/evals/generated-prompts.json`
+- `backend/evals/latest-report.json`
+- `backend/evals/latest-report.md`
+
+To run a real evaluation pass:
+
+```bash
+cd backend
+npm run eval:harness -- --max-prompts 12 --runs 2
+```
+
+## Local Auth Verification
+
+Archflow also includes a maintainer auth smoke check for local development. This is meant to catch auth regressions early without needing to manually click through sign-in every time.
+
+What it verifies:
+
+- `/sign-in` renders
+- `/sign-up` renders
+- a protected probe route blocks logged-out access
+- the same protected probe can render under a tightly scoped local development bypass
+
+Important files:
+
+- [frontend/scripts/auth-smoke.mjs](/Users/deepak/Downloads/arch/frontend/scripts/auth-smoke.mjs)
+- [frontend/middleware.js](/Users/deepak/Downloads/arch/frontend/middleware.js)
+- [frontend/app/auth-smoke-probe/page.js](/Users/deepak/Downloads/arch/frontend/app/auth-smoke-probe/page.js)
+
+Important safety note:
+
+- the bypass is development-only
+- it only applies to `/auth-smoke-probe`
+- it only works on local hostnames
+- it requires a specific header token
+- production does not expose this path as a usable bypass
+
+Run it with the frontend dev server active:
+
+```bash
+cd frontend
+npm run dev
+```
+
+In another terminal:
+
+```bash
+cd frontend
+npm run auth:smoke
+```
+
+By default it targets `http://127.0.0.1:3000`.
+
+If you want to point the smoke test at a different local port:
+
+```bash
+cd frontend
+AUTH_SMOKE_BASE_URL=http://127.0.0.1:3010 npm run auth:smoke
+```
+
+If you ever want to test a real authenticated page instead of the built-in probe, you can still override the target path or provide a real auth cookie through environment variables. The probe exists so the default check works out of the box without copying browser session state by hand.
+
+## Tech Stack
+
+### Frontend
+
+- Next.js 14
+- React 18
+- React Flow
+- styled-components
+- Framer Motion
+
+### Backend
+
+- Node.js
+- Express
+- PostgreSQL / Neon
+- Redis / Upstash
+- Clerk
+- OpenRouter
+
+## Getting Started
 
 ### Prerequisites
-- Node.js 18+
-- Accounts: Neon DB, Clerk, OpenRouter
 
-### Installation
+- Node.js 22.16.x recommended
+- PostgreSQL database
+- Clerk project
+- OpenRouter API key
 
-1. **Clone & Enter**:
-   ```bash
-   git clone https://github.com/your-username/archflow.git
-   cd archflow
-   ```
+### Backend Environment
 
-2. **Industrial Environment Setup**:
-   Configure your secrets in both layers:
+Create `backend/.env`:
 
-   **Backend (`backend/.env`)**
-   ```env
-   PORT=4000
-   NEON_DB_URL=postgresql://user:password@host.neon.tech/archflow?sslmode=require
-   CLERK_SECRET_KEY=sk_test_xxx
-   CLERK_JWT_KEY=your_clerk_jwt_public_key # Optional: For faster token verification
-   OPENROUTER_API_KEY=sk-or-v1-xxx
-   
-   # Redis Configuration (Local & Production)
-   REDIS_URL=redis://localhost:6379
-   UPSTASH_REDIS_REST_URL=https://your-db.upstash.io
-   UPSTASH_REDIS_REST_TOKEN=your_token
-   ```
+```env
+PORT=4000
+NEON_DB_URL=postgresql://user:password@host.neon.tech/archflow?sslmode=require
+CLERK_SECRET_KEY=sk_test_xxx
+CLERK_JWT_KEY=your_clerk_jwt_public_key
+OPENROUTER_API_KEY=sk-or-v1-xxx
 
-   **Frontend (`frontend/.env.local`)**
-   ```env
-   NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_xxx
-   NEXT_PUBLIC_API_URL=http://localhost:4000/api
-   ```
-
-3. **Database Initialization**:
-   Execute the schema found in `backend/src/db/schema.sql` against your Neon PostgreSQL instance to set up the industrial registry.
-
-4. **Dependency Injection**:
-   ```bash
-   # Build Backend
-   cd backend && npm install
-   
-   # Build Frontend
-   cd ../frontend && npm install
-   ```
-
-4. **Boot Sequence**:
-   ```bash
-   # Terminal 1: API Layer
-   cd backend && npm run dev
-   
-   # Terminal 2: UI Layer
-    cd frontend && npm run dev
-    ```
-
-### 🛠️ Maintenance & Reset
-To perform a complete "Master Wipe" of the infrastructure (NeonDB, Local Redis, and Upstash Cloud), run the following from the backend directory:
-```bash
-npm run wipe-all
+REDIS_URL=redis://localhost:6379
+UPSTASH_REDIS_REST_URL=https://your-db.upstash.io
+UPSTASH_REDIS_REST_TOKEN=your_token
 ```
-*Note: This is a destructive command and is intended for clearing environments between major architectural iterations.*
 
----
+### Frontend Environment
 
-## 📂 Project Architecture
+Create `frontend/.env.local`:
+
+```env
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_xxx
+NEXT_PUBLIC_API_URL=http://localhost:4000/api
+```
+
+### Install Dependencies
+
+```bash
+cd backend && npm install
+cd ../frontend && npm install
+```
+
+### Run the App
+
+```bash
+cd backend && npm run dev
+```
+
+In another terminal:
+
+```bash
+cd frontend && npm run dev
+```
+
+Then open [http://localhost:3000](http://localhost:3000).
+
+## Project Structure
 
 ```text
 archflow/
-├── frontend/                # Next.js UI Layer
-│   ├── app/                 # App Router & Orchestration
+├── backend/
+│   ├── evals/              # Internal prompt matrix and eval outputs
+│   ├── src/
+│   │   ├── db/             # Schema, pool, initialization
+│   │   ├── lib/            # Shared generation, rules, logging, eval helpers
+│   │   ├── routes/         # AI, diagrams, inventory, settings, users
+│   │   └── scripts/        # Maintainer CLI workflows
+├── frontend/
+│   ├── app/                # Next.js App Router pages
 │   ├── components/
-│   │   ├── diagram/         # Extracted Editor Modules (Header, Sidebar, Prompt)
-│   │   └── ui/              # Shared Industrial UI Tokens
-│   └── lib/                 # Registry & API Clients
-└── backend/                 # Express API Layer
-    ├── src/
-    │   ├── db/              # Schema & Pool Management
-    │   ├── routes/          # AI, Diagrams, Inventory, Collaborators
-    │   └── middleware/      # Hardened Validation & Auth
+│   │   ├── diagram/        # Editor, review, history, node UI
+│   │   └── ui/             # Shared UI components
+│   └── lib/                # API client, theme, diagram intelligence
+└── OPTIMIZATION_LOG.md     # Product reasoning and implementation history
 ```
 
----
+## Why This Direction Matters
 
-## 📄 License
+Archflow gets stronger when it behaves like a clear architecture copilot:
 
-MIT License - Blueprint the future, responsibly.
+- AI helps create and edit the system
+- rules help keep results sane
+- UI helps users understand what happened
+- focused flow inspection keeps connection meaning readable
+- internal evaluation helps us improve quality without guessing
 
----
+That combination is the real moat, not a flashy score.
 
-Open [http://localhost:3000](http://localhost:3000) to start your next architectural masterwork.
+## License
 
-
+MIT

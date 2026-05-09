@@ -11,17 +11,26 @@ export const Container = styled.div`
 export const Header = styled.header`
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 18px 24px;
   padding: 16px 32px;
   background: #ffffff;
   border-bottom: 4px solid #000000;
   z-index: 100;
+
+  @media (max-width: 1180px) {
+    padding: 16px 20px;
+  }
 `;
 
 export const HeaderLeft = styled.div`
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 32px;
+  min-width: 280px;
+  flex: 1 1 320px;
 `;
 
 export const Logo = styled.div`
@@ -52,6 +61,7 @@ export const DiagramNameWrap = styled.div`
   padding: 8px 16px;
   border: 2px solid #000000;
   background: #f8f8f8;
+  min-width: 290px;
 `;
 
 export const DiagramName = styled.input`
@@ -61,7 +71,7 @@ export const DiagramName = styled.input`
   color: #000000;
   border: none;
   background: transparent;
-  width: 240px;
+  width: min(280px, 38vw);
   text-transform: uppercase;
   &:focus {
     outline: none;
@@ -71,6 +81,8 @@ export const DiagramName = styled.input`
 export const HeaderCenter = styled.div`
   display: flex;
   gap: 12px;
+  flex: 1 1 460px;
+  min-width: 320px;
 `;
 
 export const ActionButton = styled.button`
@@ -79,6 +91,7 @@ export const ActionButton = styled.button`
   font-size: 12px;
   font-weight: 900;
   text-transform: uppercase;
+  white-space: nowrap;
   cursor: pointer;
   border: 3px solid #000000;
   background: ${props => props.$active ? '#000000' : '#ffffff'};
@@ -103,6 +116,7 @@ export const HeaderRight = styled.div`
   display: flex;
   align-items: center;
   gap: 16px;
+  margin-left: auto;
 `;
 
 export const MainArea = styled.div`
@@ -368,5 +382,4 @@ export const EmptyText = styled.p`
   color: #000000;
   letter-spacing: 0.1em;
 `;
-
 

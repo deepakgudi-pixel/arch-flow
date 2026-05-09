@@ -9,15 +9,41 @@ import { logger } from '../lib/logger.js';
 import { redis } from '../lib/redis.js';
 import { 
   builtInTech, 
-  categoryOrder, 
   getTechDescription, 
   getCategoryProducts,
   categorizeTech
 } from '../lib/tech.js';
+import { callOpenRouterForJSON, DIAGRAM_MODEL, TECH_MODEL } from '../lib/openRouter.js';
+import { buildDiagramUserMessage, generateDiagramFromPrompt } from '../lib/diagramGenerator.js';
+import { recordAIFailure } from '../lib/aiFailures.js';
 
 const router = express.Router();
 
 import { RedisStore } from 'rate-limit-redis';
+
+const VALID_TECH_CATEGORIES = new Set(['mobile', 'frontend', 'backend', 'database', 'queue', 'auth', 'storage', 'external', 'devops']);
+
+function normalizeTechName(name) {
+  return String(name || '')
+    .trim()
+    .replace(/\s+/g, '_')
+    .replace(/[^\w.+/-]+/g, '_')
+    .replace(/_+/g, '_')
+    .replace(/^_+|_+$/g, '')
+    .toUpperCase();
+}
+
+function normalizeProtocolLabel(label) {
+  const normalized = String(label || 'REST')
+    .trim()
+    .replace(/\s+/g, '_')
+    .replace(/[^\w.+/-]+/g, '_')
+    .replace(/_+/g, '_')
+    .replace(/^_+|_+$/g, '')
+    .toUpperCase();
+
+  return normalized || 'REST';
+}
 
 // Rate limiting for AI endpoints
 const aiLimiter = rateLimit({
@@ -31,13 +57,6 @@ const aiLimiter = rateLimit({
     prefix: 'rl:ai:',
   }) : undefined,
 });
-
-const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
-const OPENROUTER_BASE = 'https://openrouter.ai/api/v1';
-
-const FALLBACK_FREE_MODEL = process.env.OPENROUTER_FALLBACK_MODEL || 'openrouter/free';
-const DIAGRAM_MODEL = process.env.OPENROUTER_DIAGRAM_MODEL || 'openrouter/auto';
-const TECH_MODEL = process.env.OPENROUTER_TECH_MODEL || 'openrouter/auto';
 
 // In-memory cache (Layer 1 - Local Instance)
 const localCache = new Map();
@@ -54,128 +73,6 @@ async function addToCache(key, value) {
 
   // 2. Update Redis (Layer 2 - Global)
   await redis.set(`ai_diag:${key}`, JSON.stringify(value), 3600);
-}
-
-async function sendOpenRouterRequest(messages, model, signal, onChunk) {
-  const isStreaming = !!onChunk;
-  const response = await fetch(`${OPENROUTER_BASE}/chat/completions`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
-      'HTTP-Referer': 'https://archflow.app',
-      'X-Title': 'Archflow'
-    },
-    body: JSON.stringify({
-      model,
-      messages,
-      temperature: 0.7,
-      stream: isStreaming
-    }),
-    signal
-  });
-
-  if (!response.ok) {
-    const rawText = await response.text();
-    throw new Error(`OpenRouter error: ${rawText}`);
-  }
-
-  if (isStreaming) {
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder();
-    let fullContent = '';
-
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-
-      const chunk = decoder.decode(value, { stream: true });
-      const lines = chunk.split('\n').filter(line => line.trim() !== '');
-
-      for (const line of lines) {
-        if (line.startsWith('data: ')) {
-          const data = line.slice(6);
-          if (data === '[DONE]') continue;
-          try {
-            const parsed = JSON.parse(data);
-            const content = parsed.choices[0]?.delta?.content || '';
-            if (content) {
-              fullContent += content;
-              onChunk(content);
-            }
-          } catch (e) {
-            console.error('Error parsing stream chunk:', e);
-          }
-        }
-      }
-    }
-    return { content: fullContent, model };
-  } else {
-    const data = await response.json();
-    return {
-      content: data.choices[0].message.content,
-      model: data.model || model
-    };
-  }
-}
-
-function shouldFallbackToFreeRouter(error) {
-  return (
-    error.name === 'AbortError' ||
-    (typeof error.message === 'string' &&
-      (error.message.includes('No endpoints found') || 
-       error.message.includes('timeout') ||
-       error.message.includes('504') ||
-       error.message.includes('429')))
-  );
-}
-
-async function callOpenRouter(messages, primaryModel, onChunk) {
-  if (!OPENROUTER_API_KEY) {
-    throw new Error('Missing OPENROUTER_API_KEY');
-  }
-
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 60000); // 60s for stream
-
-  try {
-    return await sendOpenRouterRequest(messages, primaryModel, controller.signal, onChunk);
-  } catch (error) {
-    if (!shouldFallbackToFreeRouter(error) || primaryModel === FALLBACK_FREE_MODEL) {
-      throw error;
-    }
-
-    console.warn(`OpenRouter model ${primaryModel} failed/timeout, retrying with ${FALLBACK_FREE_MODEL}`);
-    const fallbackController = new AbortController();
-    const fallbackTimeoutId = setTimeout(() => fallbackController.abort(), 45000);
-    
-    try {
-      return await sendOpenRouterRequest(messages, FALLBACK_FREE_MODEL, fallbackController.signal, onChunk);
-    } finally {
-      clearTimeout(fallbackTimeoutId);
-    }
-  } finally {
-    clearTimeout(timeoutId);
-  }
-}
-
-function robustParseJSON(text) {
-  try {
-    // Remove markdown code fences if present
-    const clean = text.replace(/```json|```/g, '').trim();
-    // Find the first { and last } to isolate the JSON object
-    const start = clean.indexOf('{');
-    const end = clean.lastIndexOf('}');
-    
-    if (start === -1 || end === -1) {
-      throw new Error('No JSON object found in response');
-    }
-    
-    return JSON.parse(clean.substring(start, end + 1));
-  } catch (err) {
-    console.error('JSON Parse Error. Raw text:', text);
-    throw new Error('Failed to parse AI response: ' + err.message);
-  }
 }
 
 async function autoRegisterTech(user, nodes) {
@@ -217,81 +114,13 @@ async function autoRegisterTech(user, nodes) {
   }
 }
 
-function generateNodesFromDiagram(nodes) {
-  const categoryColumns = {};
-  const columnWidth = 300;
-  const nodeHeight = 80;
-  const startX = 100;
-  const startY = 100;
-
-  categoryOrder.forEach((cat, idx) => {
-    categoryColumns[cat] = startX + (idx * columnWidth);
-  });
-
-  const nodesByCategory = {};
-  nodes.forEach(node => {
-    const cat = node.category || 'backend';
-    if (!nodesByCategory[cat]) nodesByCategory[cat] = [];
-    nodesByCategory[cat].push(node);
-  });
-
-  let idCounter = 1;
-  const positionedNodes = [];
-
-  categoryOrder.forEach(cat => {
-    const catNodes = nodesByCategory[cat] || [];
-    const x = categoryColumns[cat];
-
-    catNodes.forEach((node, idx) => {
-      positionedNodes.push({
-        id: `n${idCounter++}`,
-        name: node.name,
-        category: cat,
-        role: node.role || `Handles ${node.name.toLowerCase()} operations`,
-        reason: node.reason || `Selected for its strength in handling ${cat} requirements`,
-        icon: node.icon || 'tech',
-        position: {
-          x: x,
-          y: startY + (idx * nodeHeight)
-        },
-        products: getCategoryProducts(cat)
-      });
-    });
-  });
-
-  return positionedNodes;
-}
-
-function generateEdgesFromDiagram(nodes, edges, positionedNodes) {
-  const nodeNameToId = {};
-  positionedNodes.forEach(node => {
-    nodeNameToId[node.name.toLowerCase()] = node.id;
-  });
-
-  return edges.map((edge, idx) => {
-    const sourceId = nodeNameToId[edge.source.toLowerCase()] || `n${idx + 1}`;
-    const targetId = nodeNameToId[edge.target.toLowerCase()] || `n${idx + 2}`;
-
-    return {
-      id: `e${idx + 1}`,
-      source: sourceId,
-      target: targetId,
-      label: edge.label || 'Connection',
-      type: 'step'
-    };
-  });
-}
-
 router.post('/generate-diagram', aiLimiter, optionalAuth, validate({
   description: { required: true, type: 'string', maxLength: 2000 },
   template: { type: 'string', maxLength: 50 },
   diagramId: { type: 'string', maxLength: 50 }
 }), async (req, res) => {
   const { description, template, diagramId } = req.body;
-
-  const userMessage = template
-    ? `Create a system design for a ${template} application. ${description}`
-    : description;
+  const userMessage = buildDiagramUserMessage(description, template);
 
   // 1. In-memory Cache check (Layer 1 - Local Instance)
   const cacheKey = crypto.createHash('sha256').update(userMessage).digest('hex');
@@ -347,65 +176,19 @@ router.post('/generate-diagram', aiLimiter, optionalAuth, validate({
     res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
   };
 
-  const systemPrompt = `You are a Senior Principal Infrastructure Architect. Your mandate is to design technically accurate, production-grade systems. Accuracy is paramount; do not include irrelevant or vague components.
-
-PRECISION_MANDATE:
-- RELEVANCE: Only include components that are strictly necessary for the architecture.
-- SPECIFICITY: Use real-world, industry-standard technology names (e.g., KAFKA instead of GENERIC_QUEUE).
-- PLATFORM_INTEGRITY: Distinguish clearly between Mobile and Web. If the user specifies 'Mobile', use mobile-native tech (e.g., SWIFT, KOTLIN, REACT_NATIVE). If 'Web', use web tech (e.g., NEXT.JS, REACT). Do not blend them unless a cross-platform or multi-client system is requested.
-
-ARCHITECTURAL_RIGOR:
-- SECURITY_FIRST: Always consider if a system needs an AUTH gateway, Firewall, or Secret Management (e.g., VAULT).
-- DATA_FLOW_STRICTNESS: Labels on connections should describe the ACTION or PATTERN (e.g., EVENT_PUBLISH, SYNC_FETCH, BATCH_WRITE) when appropriate.
-- OBSERVABILITY: For non-trivial systems, include logging and monitoring components (e.g., GRAFANA, DATADOG, ELK) in the 'devops' category.
-
-JSON_STRUCTURE_SPECIFICATION:
-{
-  "nodes": [
-    {
-      "name": "TECH_NAME_UPPERCASE",
-      "category": "mobile|frontend|backend|database|queue|auth|storage|external|devops",
-      "role": "Specific technical function (e.g., INVENTORY_CACHE)",
-      "reason": "Technical justification based on the user's specific requirements",
-      "icon": "Lucide icon name (e.g., database, server, shield, smartphone, message-square, storage)"
-    }
-  ],
-  "edges": [
-    {
-      "source": "TECH_NAME_UPPERCASE",
-      "target": "TECH_NAME_UPPERCASE",
-      "label": "EXACT_PROTOCOL (e.g., gRPC, AMQP, SQL, OIDC)"
-    }
-  ]
-}
-
-STRICT_CONSTRAINTS:
-1. Names must be uppercase and technically precise (e.g., NODEJS_API, POSTGRESQL_DB).
-2. Category must be strictly: mobile, frontend, backend, database, queue, auth, storage, external, devops.
-3. **FRONTENDS MUST NEVER CONNECT DIRECTLY TO DATABASES.** Always place a Backend/API layer in between for security and business logic.
-4. Edges must represent actual data dependencies.
-5. Output ONLY the JSON object.
-
-ARCH_PATTERN_ADVICE:
-- **Standard 3-Tier**: For web/mobile apps, always default to a Frontend/Mobile -> Backend -> Database flow.
-- Focused: Ensure the technology choice matches the scale implied by the prompt.`;
-
   let responseText = '';
   try {
     const startAI = Date.now();
-    const openRouterResult = await callOpenRouter(
-      [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userMessage }
-      ],
-      DIAGRAM_MODEL,
-      (chunk) => {
+    const generatedDiagram = await generateDiagramFromPrompt({
+      description,
+      template,
+      model: DIAGRAM_MODEL,
+      onChunk: (chunk) => {
         responseText += chunk;
         sendEvent('chunk', { content: chunk });
       }
-    );
-    // Use the full content from result if stream was incomplete but somehow finished
-    responseText = openRouterResult.content;
+    });
+    responseText = generatedDiagram.rawResponse;
     const duration = Date.now() - startAI;
 
     logger.aiInteraction({
@@ -416,24 +199,15 @@ ARCH_PATTERN_ADVICE:
       is_cached: false
     });
 
-    const parsed = robustParseJSON(responseText);
-
-    const positionedNodes = generateNodesFromDiagram(parsed.nodes || []);
-    const edges = generateEdgesFromDiagram(
-      parsed.nodes || [],
-      parsed.edges || [],
-      positionedNodes
-    );
-
     const result = {
-      nodes: positionedNodes,
-      edges
+      nodes: generatedDiagram.nodes,
+      edges: generatedDiagram.edges
     };
 
     // Auto-register new tech to community inventory if user is logged in
     if (req.user) {
       try {
-        await autoRegisterTech(req.user, positionedNodes);
+        await autoRegisterTech(req.user, result.nodes);
       } catch (regErr) {
         logger.error('Tech auto-registration failed', { error: regErr.message });
       }
@@ -448,8 +222,8 @@ ARCH_PATTERN_ADVICE:
           diagramId || null,
           cacheKey,
           `AI_SYNTHESIS: ${description}`,
-          JSON.stringify(positionedNodes),
-          JSON.stringify(edges),
+          JSON.stringify(result.nodes),
+          JSON.stringify(result.edges),
           responseText
         ]
       );
@@ -466,6 +240,13 @@ ARCH_PATTERN_ADVICE:
     logger.error('Error generating diagram', { 
       error: err.message, 
       partial_response_length: responseText.length 
+    });
+    await recordAIFailure({
+      kind: 'generate-diagram',
+      model: DIAGRAM_MODEL,
+      inputPayload: { description, template, diagramId },
+      rawResponse: responseText,
+      errorMessage: err.message
     });
 
     // Even on error, save partial if it exists
@@ -489,6 +270,7 @@ ARCH_PATTERN_ADVICE:
 router.post('/generate-tech', aiLimiter, clerkAuth, validate({
   description: { required: true, type: 'string', maxLength: 500 }
 }), async (req, res) => {
+  let responseText = '';
   try {
     const { description } = req.body;
 
@@ -515,27 +297,38 @@ OPERATIONAL_RULES:
 3. Provide 2-3 high-quality product recommendations with valid URLs.
 4. Maintain an industrial, precise, and professional tone.`;
 
-    const { content: responseText } = await callOpenRouter(
-      [
+    const { data: parsed, rawResponse } = await callOpenRouterForJSON({
+      messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: `Generate details for this technology: ${description}` }
       ],
-      TECH_MODEL
-    );
+      model: TECH_MODEL,
+      schemaHint: '{"name":"TECH_NAME_UPPERCASE","category":"mobile|frontend|backend|database|queue|auth|storage|external|devops","description":"...","products":[{"name":"...","description":"...","url":"https://..."}],"icon":"lucide-icon-name"}'
+    });
+    responseText = rawResponse;
 
-    const parsed = robustParseJSON(responseText);
-
-    const category = parsed.category || categorizeTech(parsed.name);
+    const name = normalizeTechName(parsed.name || description);
+    const normalizedCategory = String(parsed.category || '').trim().toLowerCase();
+    const category = VALID_TECH_CATEGORIES.has(normalizedCategory)
+      ? normalizedCategory
+      : categorizeTech(name);
 
     res.json({
-      name: parsed.name,
+      name,
       category,
-      description: parsed.description || getTechDescription(parsed.name),
+      description: parsed.description || getTechDescription(name),
       products: parsed.products || getCategoryProducts(category),
       icon: parsed.icon || 'tech'
     });
   } catch (err) {
     console.error('Error generating tech:', err);
+    await recordAIFailure({
+      kind: 'generate-tech',
+      model: TECH_MODEL,
+      inputPayload: req.body,
+      rawResponse: responseText,
+      errorMessage: err.message
+    });
     res.status(500).json({ error: 'Failed to generate tech block: ' + err.message });
   }
 });
@@ -544,6 +337,7 @@ router.post('/infer-connection', aiLimiter, optionalAuth, validate({
   source: { required: true, type: 'object' },
   target: { required: true, type: 'object' }
 }), async (req, res) => {
+  let responseText = '';
   try {
     const { source, target } = req.body;
 
@@ -569,18 +363,25 @@ router.post('/infer-connection', aiLimiter, optionalAuth, validate({
     Source: ${source.name} (${source.category})
     Target: ${target.name} (${target.category})`;
 
-    const { content: responseText } = await callOpenRouter(
-      [
+    const { data: parsed, rawResponse } = await callOpenRouterForJSON({
+      messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userMessage }
       ],
-      TECH_MODEL
-    );
-
-    const parsed = robustParseJSON(responseText);
-    res.json({ label: parsed.label || 'REST' });
+      model: TECH_MODEL,
+      schemaHint: '{"label":"PROTOCOL_NAME"}'
+    });
+    responseText = rawResponse;
+    res.json({ label: normalizeProtocolLabel(parsed.label) });
   } catch (err) {
     console.error('Error inferring connection:', err);
+    await recordAIFailure({
+      kind: 'infer-connection',
+      model: TECH_MODEL,
+      inputPayload: req.body,
+      rawResponse: responseText,
+      errorMessage: err.message
+    });
     res.json({ label: 'REST' }); // Fallback on error
   }
 });

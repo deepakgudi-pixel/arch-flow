@@ -3,6 +3,7 @@ import pool from '../db/pool.js';
 import { clerkAuth } from '../middleware/clerkAuth.js';
 import { ensureUserExists } from '../services/userSync.js';
 import { validate } from '../middleware/validate.js';
+import { syncCanonicalConnectionRules } from '../lib/connectionRules.js';
 
 const router = express.Router();
 
@@ -32,7 +33,7 @@ router.get('/', clerkAuth, async (req, res) => {
 });
 
 router.put('/', clerkAuth, validate({
-  connection_mode: { type: 'string', enum: ['guided', 'free'] },
+  connection_mode: { type: 'string', enum: ['strict', 'guided', 'sandbox'] },
   default_template: { type: 'string', maxLength: 50 },
   autosave_interval: { type: 'number', min: 5, max: 300 },
   theme: { type: 'string', enum: ['light', 'dark'] }
@@ -75,6 +76,7 @@ router.put('/', clerkAuth, validate({
 
 router.get('/connection-rules', async (req, res) => {
   try {
+    await syncCanonicalConnectionRules(pool);
     const result = await pool.query('SELECT * FROM connection_rules');
     res.json(result.rows);
   } catch (err) {

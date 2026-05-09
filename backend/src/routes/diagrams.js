@@ -203,11 +203,12 @@ router.get('/:id', optionalAuth, async (req, res) => {
 router.put('/:id', clerkAuth, validate({
   name: { type: 'string', maxLength: 200 },
   nodes: { type: 'array' },
-  edges: { type: 'array' }
+  edges: { type: 'array' },
+  recordVersion: { type: 'boolean' }
 }), async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, nodes, edges } = req.body;
+    const { name, nodes, edges, recordVersion = false } = req.body;
     const { id: userId } = req.user;
 
     const existing = await pool.query(
@@ -226,7 +227,7 @@ router.put('/:id', clerkAuth, validate({
     );
 
     // Create a manual version if nodes/edges changed
-    if (nodes || edges) {
+    if (recordVersion && (nodes || edges)) {
       try {
         await pool.query(
           `INSERT INTO diagram_versions (diagram_id, nodes, edges, prompt_text)

@@ -2,6 +2,8 @@
 
 import styled from 'styled-components';
 import { Badge } from '@/components/ui/Badge';
+import { Button } from '@/components/ui/Button';
+import { formatTechDisplayLabel } from '@/lib/displayNames';
 import {
   LeftSidebar, SidebarContent, SidebarTitle, CloseBtn,
   TechBadge, SectionTitle, Description, ProductCard, ProductName, ProductDesc
@@ -42,9 +44,126 @@ const NodeRoleLabel = styled.div`
   word-break: break-word;
 `;
 
+const InsightList = styled.div`
+  display: grid;
+  gap: 12px;
+  margin-bottom: 24px;
+`;
+
+const InsightItem = styled.div`
+  padding: 14px 16px;
+  border: 2px solid #000000;
+  background: #f8f8f8;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #333;
+`;
+
+const ReplaceStack = styled.div`
+  display: grid;
+  gap: 12px;
+`;
+
+const ReplaceCard = styled.div`
+  padding: 14px 16px;
+  border: 2px solid #000000;
+  background: #ffffff;
+  display: grid;
+  gap: 10px;
+`;
+
+const ReplaceTitle = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+`;
+
+const ReplaceName = styled.div`
+  font-weight: 900;
+  font-size: 0.95rem;
+  text-transform: uppercase;
+  color: #000000;
+`;
+
+const ReplaceMeta = styled.div`
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 800;
+  color: #666;
+  text-transform: uppercase;
+`;
+
+const ReplaceDescription = styled.div`
+  font-size: 12px;
+  line-height: 1.5;
+  color: #444;
+`;
+
+const ConnectionStack = styled.div`
+  display: grid;
+  gap: 12px;
+  margin-bottom: 24px;
+`;
+
+const ConnectionCard = styled.div`
+  padding: 14px 16px;
+  border: 2px solid #000000;
+  background: #ffffff;
+  display: grid;
+  gap: 8px;
+  cursor: pointer;
+  transition: transform 0.12s ease, background 0.12s ease;
+
+  &:hover {
+    transform: translate(-2px, -2px);
+    background: #fffaf6;
+  }
+`;
+
+const ConnectionRoute = styled.div`
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 800;
+  color: #666666;
+  text-transform: uppercase;
+  line-height: 1.4;
+  word-break: break-word;
+`;
+
+const ConnectionLabel = styled.div`
+  font-weight: 900;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  color: #000000;
+  line-height: 1.35;
+  word-break: break-word;
+`;
+
+const ConnectionMeta = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+`;
+
+const EmptyHint = styled.div`
+  padding: 14px 16px;
+  border: 2px dashed #bdbdbd;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 800;
+  color: #777;
+  text-transform: uppercase;
+`;
+
 export default function NodeDetailsSidebar({
-  open, onClose, selectedNode
+  open, onClose, selectedNode, trustProfile, replacementOptions, connectedFlows, onSelectFlow, onReplaceNode
 }) {
+  const displayLabel = selectedNode
+    ? formatTechDisplayLabel(selectedNode.data.label, selectedNode.data.category)
+    : '';
+
   return (
     <LeftSidebar $open={open}>
       {open && (
@@ -60,37 +179,93 @@ export default function NodeDetailsSidebar({
                 <TechBadge $category={selectedNode.data.category}>
                   {selectedNode.data.category}
                 </TechBadge>
-                <Badge $tone="neutral">STABLE</Badge>
+                <Badge $tone={
+                  trustProfile?.confidence === 'HIGH' ? 'success' :
+                  trustProfile?.confidence === 'MEDIUM' ? 'warning' :
+                  'signal'
+                }>
+                  {trustProfile?.confidenceLabel || 'REVIEW'}
+                </Badge>
               </DetailHeader>
 
-              <NodeLabel $isLong={selectedNode.data.label?.length > 12}>
-                {selectedNode.data.label}
+              <NodeLabel $isLong={displayLabel.length > 12}>
+                {displayLabel}
               </NodeLabel>
               <NodeRoleLabel>ROLE: {selectedNode.data.role}</NodeRoleLabel>
 
-              <SectionTitle>FUNCTION_SPEC</SectionTitle>
+              <SectionTitle>Function Spec</SectionTitle>
               <Description>
-                {selectedNode.data.category === 'database' && `${selectedNode.data.label} handles persistence operations and state management for the identified domain.`}
-                {selectedNode.data.category === 'mobile' && `${selectedNode.data.label} serves as the native entry point for Android and iOS users, providing high-precision mobile interfaces.`}
-                {selectedNode.data.category === 'frontend' && `${selectedNode.data.label} provides the primary interaction layer and state orchestration for end-users.`}
-                {selectedNode.data.category === 'backend' && `${selectedNode.data.label} executes core business logic and exposes secure operational endpoints.`}
-                {selectedNode.data.category === 'auth' && `${selectedNode.data.label} manages identity verification and permission lifecycle.`}
-                {selectedNode.data.category === 'queue' && `${selectedNode.data.label} buffers high-volume data streams for asynchronous processing.`}
-                {selectedNode.data.category === 'storage' && `${selectedNode.data.label} provides scalable object storage for unstructured binary data.`}
-                {selectedNode.data.category === 'external' && `${selectedNode.data.label} represents an external dependency outside the primary system boundary.`}
-                {selectedNode.data.category === 'devops' && `${selectedNode.data.label} facilitates infrastructure automation and delivery pipelines.`}
+                {selectedNode.data.category === 'database' && `${displayLabel} handles persistence operations and state management for the identified domain.`}
+                {selectedNode.data.category === 'mobile' && `${displayLabel} serves as the native entry point for Android and iOS users, providing high-precision mobile interfaces.`}
+                {selectedNode.data.category === 'frontend' && `${displayLabel} provides the primary interaction layer and state orchestration for end-users.`}
+                {selectedNode.data.category === 'backend' && `${displayLabel} executes core business logic and exposes secure operational endpoints.`}
+                {selectedNode.data.category === 'auth' && `${displayLabel} manages identity verification and permission lifecycle.`}
+                {selectedNode.data.category === 'queue' && `${displayLabel} buffers high-volume data streams for asynchronous processing.`}
+                {selectedNode.data.category === 'storage' && `${displayLabel} provides scalable object storage for unstructured binary data.`}
+                {selectedNode.data.category === 'external' && `${displayLabel} represents an external dependency outside the primary system boundary.`}
+                {selectedNode.data.category === 'devops' && `${displayLabel} facilitates infrastructure automation and delivery pipelines.`}
               </Description>
 
-              {selectedNode.data.reason && (
+              {trustProfile?.whyChosen && (
                 <>
-                  <SectionTitle>DESIGN_RATIONALE</SectionTitle>
-                  <Description>{selectedNode.data.reason}</Description>
+                  <SectionTitle>Why This Was Chosen</SectionTitle>
+                  <Description>{trustProfile.whyChosen}</Description>
                 </>
               )}
 
+              {trustProfile?.assumptions?.length > 0 && (
+                <>
+                  <SectionTitle>Assumptions</SectionTitle>
+                  <InsightList>
+                    {trustProfile.assumptions.map((assumption, index) => (
+                      <InsightItem key={`${selectedNode.id}_assumption_${index}`}>
+                        {assumption}
+                      </InsightItem>
+                    ))}
+                  </InsightList>
+                </>
+              )}
+
+              {trustProfile?.risks?.length > 0 && (
+                <>
+                  <SectionTitle>Review Risks</SectionTitle>
+                  <InsightList>
+                    {trustProfile.risks.map((risk, index) => (
+                      <InsightItem key={`${selectedNode.id}_risk_${index}`}>
+                        {risk}
+                      </InsightItem>
+                    ))}
+                  </InsightList>
+                </>
+              )}
+
+              <SectionTitle>Connected Flows</SectionTitle>
+              <ConnectionStack>
+                {connectedFlows && connectedFlows.length > 0 ? (
+                  connectedFlows.map(flow => (
+                    <ConnectionCard key={flow.id} onClick={() => onSelectFlow?.(flow.id)}>
+                      <ConnectionRoute>{flow.routeText}</ConnectionRoute>
+                      <ConnectionLabel>{flow.label}</ConnectionLabel>
+                      <ConnectionMeta>
+                        <Badge $tone={
+                          flow.confidence === 'HIGH' ? 'success' :
+                          flow.confidence === 'MEDIUM' ? 'warning' :
+                          'signal'
+                        }>
+                          {flow.confidenceLabel || flow.confidence}
+                        </Badge>
+                        <ReplaceMeta>{flow.direction}</ReplaceMeta>
+                      </ConnectionMeta>
+                    </ConnectionCard>
+                  ))
+                ) : (
+                  <EmptyHint>No connected flows yet.</EmptyHint>
+                )}
+              </ConnectionStack>
+
               {selectedNode.data.products && selectedNode.data.products.length > 0 && (
                 <>
-                  <SectionTitle>RECOMMENDED_STACK</SectionTitle>
+                  <SectionTitle>Recommended Stack</SectionTitle>
                   {selectedNode.data.products.map((product, idx) => (
                     <ProductCard key={idx} onClick={() => window.open(product.url, '_blank')}>
                       <ProductName>{product.name}</ProductName>
@@ -99,6 +274,28 @@ export default function NodeDetailsSidebar({
                   ))}
                 </>
               )}
+
+              <SectionTitle>Replace Unit</SectionTitle>
+              <ReplaceStack>
+                {replacementOptions && replacementOptions.length > 0 ? (
+                  replacementOptions.map(option => (
+                    <ReplaceCard key={`${selectedNode.id}_${option.name}`}>
+                      <ReplaceTitle>
+                        <ReplaceName>{option.name}</ReplaceName>
+                        <ReplaceMeta>{option.source}</ReplaceMeta>
+                      </ReplaceTitle>
+                      <ReplaceDescription>
+                        {option.description || `${option.name} can replace this ${selectedNode.data.category} unit without changing the rest of the architecture.`}
+                      </ReplaceDescription>
+                      <Button $variant="secondary" $size="sm" onClick={() => onReplaceNode?.(option)}>
+                        Replace With {option.name}
+                      </Button>
+                    </ReplaceCard>
+                  ))
+                ) : (
+                  <EmptyHint>No same-category replacements available yet.</EmptyHint>
+                )}
+              </ReplaceStack>
             </>
           )}
         </SidebarContent>

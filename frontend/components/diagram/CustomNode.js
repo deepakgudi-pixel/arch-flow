@@ -3,14 +3,22 @@
 import styled from 'styled-components';
 import { Handle, Position } from 'reactflow';
 import { categoryColors } from '@/lib/theme';
+import { formatTechDisplayLabel } from '@/lib/displayNames';
 
 const NodeWrapper = styled.div`
   padding: 0;
   background: #ffffff;
   border: 3px solid #000000;
-  min-width: 180px;
+  width: 220px;
+  min-width: 220px;
+  min-height: 96px;
+  display: flex;
+  flex-direction: column;
   transition: all 0.1s;
   overflow: hidden;
+  opacity: ${props => props.$dimmed ? 0.32 : 1};
+  filter: ${props => props.$dimmed ? 'grayscale(0.16)' : 'none'};
+  box-shadow: ${props => props.$highlighted ? '0 0 0 4px rgba(255, 122, 69, 0.18)' : 'none'};
   ${props => props.$selected && `
     transform: translate(-2px, -2px);
     border-width: 4px;
@@ -37,6 +45,8 @@ const NodeCategoryLabel = styled.span`
 
 const NodeBody = styled.div`
   padding: 16px;
+  display: flex;
+  flex: 1;
 `;
 
 const NodeName = styled.div`
@@ -44,26 +54,26 @@ const NodeName = styled.div`
   color: #000000;
   font-size: 15px;
   text-transform: uppercase;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
   margin-bottom: 4px;
-`;
-
-const NodeRole = styled.div`
-  font-family: var(--font-mono);
-  font-size: 11px;
-  font-weight: 700;
-  color: #666;
-  text-transform: uppercase;
 `;
 
 import * as LucideIcons from 'lucide-react';
 
 export function CustomNode({ data, selected }) {
   const IconComponent = LucideIcons[data.icon] || LucideIcons.Layers;
+  const displayLabel = formatTechDisplayLabel(data.label, data.category);
 
   return (
     <>
       <Handle type="target" position={Position.Left} />
-      <NodeWrapper $selected={selected} $category={data.category}>
+      <NodeWrapper
+        $selected={selected}
+        $category={data.category}
+        $dimmed={data.dimmed}
+        $highlighted={data.highlighted}
+      >
         <NodeTopBar $category={data.category}>
           <NodeCategoryLabel>{data.category}</NodeCategoryLabel>
         </NodeTopBar>
@@ -73,8 +83,7 @@ export function CustomNode({ data, selected }) {
               <IconComponent size={16} strokeWidth={3} />
             </div>
             <div>
-              <NodeName>{data.label}</NodeName>
-              <NodeRole>{data.role}</NodeRole>
+              <NodeName style={{ marginBottom: 0 }}>{displayLabel}</NodeName>
             </div>
           </div>
         </NodeBody>

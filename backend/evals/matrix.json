@@ -1,0 +1,73 @@
+{
+  "families": [
+    {
+      "id": "saas_dashboard",
+      "description": "multi-tenant B2B SaaS dashboard with user accounts, admin workflows, and reporting",
+      "expectedCategories": ["frontend", "backend", "database", "auth"]
+    },
+    {
+      "id": "ecommerce",
+      "description": "commerce platform with catalog, checkout, payments, and order management",
+      "expectedCategories": ["frontend", "backend", "database", "external", "auth"]
+    },
+    {
+      "id": "realtime_collaboration",
+      "description": "realtime collaboration app with shared sessions, live updates, and presence",
+      "expectedCategories": ["frontend", "backend", "database"],
+      "requireQueue": true
+    },
+    {
+      "id": "internal_admin",
+      "description": "internal operations tool with approval flows, dashboards, and audit visibility",
+      "expectedCategories": ["frontend", "backend", "database", "auth"]
+    },
+    {
+      "id": "ai_product",
+      "description": "AI-powered product with ingestion, orchestration, storage, and model-facing workflows",
+      "expectedCategories": ["frontend", "backend", "database", "storage"],
+      "requireDevops": true
+    }
+  ],
+  "clientTypes": [
+    {
+      "id": "web",
+      "label": "web"
+    },
+    {
+      "id": "mobile_web",
+      "label": "mobile and web",
+      "expectedCategories": ["mobile", "frontend"]
+    }
+  ],
+  "scaleLevels": [
+    {
+      "id": "small",
+      "label": "small-scale"
+    },
+    {
+      "id": "growth",
+      "label": "growing"
+    },
+    {
+      "id": "large",
+      "label": "large-scale",
+      "requireQueue": true,
+      "requireDevops": true
+    }
+  ],
+  "constraints": [
+    {
+      "id": "low_cost",
+      "label": "low cost"
+    },
+    {
+      "id": "high_security",
+      "label": "high security",
+      "requireAuth": true
+    },
+    {
+      "id": "fast_delivery",
+      "label": "fast time-to-market"
+    }
+  ]
+}

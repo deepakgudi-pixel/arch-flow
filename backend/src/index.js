@@ -10,6 +10,7 @@ import inventoryRouter from './routes/inventory.js';
 import settingsRouter from './routes/settings.js';
 import aiRouter from './routes/ai.js';
 import { initializeDatabase } from './db/init.js';
+import { assertBackendEnv } from './config/env.js';
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -31,6 +32,8 @@ app.get('/health', (req, res) => {
 export default app;
 
 // Call DB initialization
+assertBackendEnv();
+
 initializeDatabase().then(() => {
   if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
     app.listen(PORT, () => {

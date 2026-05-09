@@ -1,0 +1,4 @@
+ALTER TABLE diagrams ADD COLUMN IF NOT EXISTS invite_code VARCHAR(50) UNIQUE;
+ALTER TABLE diagram_versions ADD COLUMN IF NOT EXISTS prompt_hash VARCHAR(64);
+ALTER TABLE diagram_versions ADD COLUMN IF NOT EXISTS prompt_text TEXT;
+ALTER TABLE diagram_versions ADD COLUMN IF NOT EXISTS raw_response TEXT;

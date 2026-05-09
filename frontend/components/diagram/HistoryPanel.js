@@ -3,6 +3,7 @@
 import styled from 'styled-components';
 import { History, Clock, RotateCcw } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
+import { buildVersionDiff } from '@/lib/diagramIntelligence';
 
 const Panel = styled.div`
   width: 320px;
@@ -76,6 +77,15 @@ const VersionPrompt = styled.div`
   overflow: hidden;
 `;
 
+const VersionDiff = styled.div`
+  margin-top: 10px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 800;
+  color: #666;
+  text-transform: uppercase;
+`;
+
 const EmptyState = styled.div`
   padding: 40px 20px;
   text-align: center;
@@ -114,7 +124,7 @@ const ClearButton = styled.button`
   }
 `;
 
-export default function HistoryPanel({ versions, onSelectVersion, onClearHistory }) {
+export default function HistoryPanel({ versions, currentNodes, currentEdges, onSelectVersion, onClearHistory }) {
   return (
     <Panel>
       <PanelHeader>
@@ -134,6 +144,14 @@ export default function HistoryPanel({ versions, onSelectVersion, onClearHistory
               <VersionPrompt>
                 {v.prompt_text || 'GENERATE_REQUEST'}
               </VersionPrompt>
+              {(() => {
+                const diff = buildVersionDiff(currentNodes, currentEdges, v.nodes || [], v.edges || []);
+                return (
+                  <VersionDiff>
+                    Δ NODES +{diff.addedNodes} / -{diff.removedNodes} · Δ EDGES +{diff.addedEdges} / -{diff.removedEdges}
+                  </VersionDiff>
+                );
+              })()}
             </VersionCard>
           ))
         )}

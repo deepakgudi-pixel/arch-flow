@@ -2,6 +2,7 @@ import StyledComponentsRegistry from '@/lib/registry';
 import ClerkAuthProvider from '@/app/_clerk/ClerkProvider';
 import GlobalStyles from '@/components/layout/GlobalStyles';
 import MobileGate from '@/components/layout/MobileGate';
+import { assertFrontendEnv } from '@/lib/runtimeEnv';
 
 export const metadata = {
   title: 'Archflow - System Design Sandbox',
@@ -16,6 +17,8 @@ export const viewport = {
 };
 
 export default function RootLayout({ children }) {
+  assertFrontendEnv();
+
   return (
     <html lang="en">
       <head>
