@@ -1,6 +1,6 @@
 # Archflow FAQ
 
-This file is meant to help explain Archflow clearly in interviews, demos, founder conversations, and product discussions.
+This file is meant to help explain Archflow clearly in product discussions.
 
 The best way to use it:
 
