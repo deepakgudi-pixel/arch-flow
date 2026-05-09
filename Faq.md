@@ -1,4 +1,4 @@
-# Archflow Interview FAQ
+# Archflow FAQ
 
 This file is meant to help explain Archflow clearly in interviews, demos, founder conversations, and product discussions.
 
