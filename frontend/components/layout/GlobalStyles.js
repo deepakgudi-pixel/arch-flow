@@ -1,6 +1,7 @@
 'use client';
 
 import { createGlobalStyle } from 'styled-components';
+import { useEffect, useState } from 'react';
 import { theme } from '@/lib/theme';
 
 const GlobalStyleSheet = createGlobalStyle`
@@ -53,7 +54,7 @@ const GlobalStyleSheet = createGlobalStyle`
     box-sizing: border-box;
     margin: 0;
     padding: 0;
-    cursor: crosshair;
+    cursor: ${props => props.$isDesktop ? 'auto' : 'crosshair'};
   }
 
   html {
@@ -142,5 +143,13 @@ const GlobalStyleSheet = createGlobalStyle`
 `;
 
 export default function GlobalStyles() {
-  return <GlobalStyleSheet />;
+  const [isDesktop, setIsDesktop] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.navigator.userAgent.includes('ArchflowDesktop')) {
+      setIsDesktop(true);
+    }
+  }, []);
+
+  return <GlobalStyleSheet $isDesktop={isDesktop} />;
 }

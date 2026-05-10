@@ -73,7 +73,7 @@ const GlobalStyle = createGlobalStyle`
   }
 
   .react-flow__node {
-    cursor: crosshair;
+    cursor: ${props => props.$isDesktop ? 'auto' : 'crosshair'};
   }
 
   .react-flow__handle {
@@ -798,6 +798,13 @@ export default function DiagramPage() {
   const [prompt, setPrompt] = useState('');
   const [template, setTemplate] = useState('blank');
   const [loading, setLoading] = useState(false);
+  const [isDesktop, setIsDesktop] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.navigator.userAgent.includes('ArchflowDesktop')) {
+      setIsDesktop(true);
+    }
+  }, []);
   const [streamingContent, setStreamingContent] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
   const [streamError, setStreamError] = useState(null);
@@ -2281,7 +2288,7 @@ export default function DiagramPage() {
 
   return (
     <>
-      <GlobalStyle />
+      <GlobalStyle $isDesktop={isDesktop} />
       <Container>
         <EditorHeader
           diagramName={diagramName}
