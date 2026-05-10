@@ -801,7 +801,7 @@ export default function DiagramPage() {
   const [isDesktop, setIsDesktop] = useState(false);
 
   useEffect(() => {
-    if (typeof window !== 'undefined' && window.navigator.userAgent.includes('ArchflowDesktop')) {
+    if (typeof window !== 'undefined' && (window.archflowDesktopStorage || window.navigator.userAgent.includes('ArchflowDesktop'))) {
       setIsDesktop(true);
     }
   }, []);
