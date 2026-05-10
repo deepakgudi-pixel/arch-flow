@@ -257,7 +257,7 @@ export default function HomePage() {
 
   useEffect(() => {
     // Detect if running inside our Electron shell
-    if (typeof window !== 'undefined' && window.navigator.userAgent.includes('ArchflowDesktop')) {
+    if (typeof window !== 'undefined' && (window.archflowDesktopStorage || window.navigator.userAgent.includes('ArchflowDesktop'))) {
       setIsDesktop(true);
     }
 

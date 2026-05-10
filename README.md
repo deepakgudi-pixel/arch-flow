@@ -237,7 +237,59 @@ If you ever want to test a real authenticated page instead of the built-in probe
 - PostgreSQL / Neon
 - Redis / Upstash
 - Clerk
-- OpenRouter
+### Desktop (Mac App)
+
+- Electron
+- electron-builder (for DMG/distribution)
+
+## Mac Desktop Application
+
+Archflow includes a native Mac application built with Electron. The desktop version functions as a high-performance industrial workstation, providing a distraction-free environment and native features like local draft persistence.
+
+### How it works
+
+The desktop app is a specialized shell that:
+1. Loads the production URL (`https://arch-flow.vercel.app`).
+2. Injects a native bridge (`archflowDesktopStorage`) through a preload script.
+3. Automatically switches the interface to "Desktop Mode" (e.g., normal cursor behavior, removed download prompts).
+4. Handles local file system storage for architectural drafts that survive refreshes.
+
+### Running Locally
+
+To run the desktop shell in development mode:
+
+```bash
+cd desktop
+npm install
+npm start
+```
+
+### Building the DMG (Mac Installer)
+
+To package the application into a redistributable Mac `.dmg` file:
+
+```bash
+cd desktop
+npm run build
+```
+
+This will generate an `Archflow.dmg` and a `.zip` file in the `desktop/dist/` directory.
+
+**Note on Packaging:**
+- The build process uses `electron-builder`.
+- It bundles the `main.js`, `preload.js`, and local assets.
+- For production distribution, the app points to the live Vercel deployment, allowing for instant frontend updates without requiring users to download a new DMG for every small change.
+
+### Troubleshooting Unsigned Mac Builds
+
+Because early development builds are not yet notarized by Apple, you may see a warning when opening the `.dmg` or the `.app`.
+
+1. **Gatekeeper Bypass**: If you see a "damaged" or "cannot be opened" message, run this in your terminal:
+   ```bash
+   sudo xattr -cr /Applications/Archflow.app
+   ```
+2. **Right-Click Open**: Instead of double-clicking, **Right-Click** the app and choose **Open**. This allows you to bypass the security block.
+3. **Security Settings**: Alternatively, go to **System Settings > Privacy & Security** and click **"Open Anyway"** near the bottom of the page.
 
 ## Getting Started
 

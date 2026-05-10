@@ -1,5 +1,56 @@
 # Archflow Optimization Log
 
+**log:** 2026-05-11 02:05:00 IST (+0530)
+
+## Overview
+Mac Desktop App Ergonomics and Platform-Specific UX Pass. Focus area: removing "web-only" visual artifacts from the native Mac experience, specifically the custom crosshair cursor, to ensure the desktop app feels like a first-class industrial workstation.
+
+---
+
+## 1. Custom Cursors Felt "Webby" on Desktop
+**Why:** While a `crosshair` cursor can feel technical and "tool-like" in a browser-based diagramming tool, it feels non-standard and distracting in a native Mac application. For a premium desktop experience, the app should respect the system's default cursor behavior (the standard arrow) unless explicitly interacting with a tool.
+
+**What changed:**
+- introduced a more robust desktop detection engine that checks both for the `ArchflowDesktop` user agent and the presence of the `archflowDesktopStorage` preload bridge
+- moved the global `*` selector cursor to a conditional state
+- desktop app now defaults to `auto` (system-normal) cursor behavior
+- web version preserves the `crosshair` aesthetic as requested, maintaining its distinct technical identity
+- applied the same conditional logic to the diagram editor nodes
+
+**How this helps Archflow:**
+- improves the "native" feel of the Mac application
+- reduces visual fatigue for desktop power users
+- maintains platform-specific identities (technical/web vs. industrial/desktop)
+- ensures that future UI components in the desktop app inherit standard OS behaviors by default
+
+---
+
+## 2. Robust Desktop Detection via Preload Bridge
+**Why:** Relying solely on `userAgent` strings for platform detection can be fragile, especially if users are running older versions of the desktop shell or if the UA is stripped by middle-boxes.
+
+**What changed:**
+- updated detection logic to check for the `window.archflowDesktopStorage` object
+- this object is explicitly injected by the Electron `preload.js` script, making it a "guaranteed" signal that the frontend is running inside the Archflow shell
+- detection is now "normal-first," ensuring that if detection fails or is uncertain, the app falls back to standard (normal) behavior rather than forcing a custom one
+
+**How this helps Archflow:**
+- eliminates "false negatives" where the Mac app would show web-only UI elements (like "Download for Mac" buttons)
+- makes the frontend more resilient to variation in the desktop shell version
+- provides a cleaner path for future desktop-only feature toggles
+
+---
+
+## 3. Product-Level Reasoning
+The broader conclusion from this pass:
+
+- "Native" is a feeling, not just a packaging format
+- respect for system defaults (like the cursor) is a key differentiator between a "site in a box" and a "desktop application"
+- platform-specific ergonomics should be handled via reliable capability detection (like the preload bridge) rather than just string-matching
+
+This pass makes the Archflow Mac app feel more invisible and effortless to use, allowing the user to focus on the architecture rather than the interface.
+
+---
+
 **log:** 2026-05-10 21:10:00 IST (+0530)
 
 ## Overview
