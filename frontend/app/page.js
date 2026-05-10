@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useUser } from '@clerk/nextjs';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { GitBranch, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Card, CardEyebrow, CardText, CardTitle } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
@@ -143,6 +144,22 @@ const SectionHeader = styled.div`
   display: grid;
   gap: 24px;
   margin-bottom: 64px;
+`;
+
+const SplitSectionHeader = styled(SectionHeader)`
+  max-width: 100%;
+  grid-template-columns: minmax(0, 1.05fr) minmax(320px, 0.95fr);
+  align-items: start;
+  gap: 28px 40px;
+
+  @media (max-width: 1024px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+const SectionBodyText = styled(HeroText)`
+  max-width: none;
+  margin: 0;
 `;
 
 const SectionTitle = styled.h2`
@@ -364,12 +381,12 @@ export default function HomePage() {
       </Hero>
 
       <Section id="product">
-        <SectionHeader>
+        <SplitSectionHeader>
           <SectionTitle>Engineered for the messy middle of design.</SectionTitle>
-          <HeroText>
-            Archflow bridges the gap between rough sketches and implementation specs with a workspace that carries engineering context into every node.
-          </HeroText>
-        </SectionHeader>
+          <SectionBodyText>
+            Archflow bridges the gap between rough sketches and implementation specs with a workspace that carries engineering context into every node, every connection, and every AI-assisted review step.
+          </SectionBodyText>
+        </SplitSectionHeader>
 
         <FeatureGrid>
           <FeatureCard $span={6} $elevated style={{ overflow: 'hidden' }}>
@@ -390,9 +407,9 @@ export default function HomePage() {
               <div>
                 <Badge $tone="neutral">MODULE_01</Badge>
               </div>
-              <CardTitle>AI Synthesis</CardTitle>
+              <CardTitle>AI-Assisted Diagram Generation</CardTitle>
               <CardText>
-                Generate entire system architectures from product requirements. No more staring at blank canvases. Our engine maps your intent to real-world infrastructure components automatically.
+                Generate architecture drafts from product requirements, then keep refining them instead of restarting from scratch. Archflow helps users move from blank canvas to working system model fast.
               </CardText>
               <div style={{ marginTop: 'auto', paddingTop: '24px', display: 'flex', alignItems: 'center', gap: '16px' }}>
                 <Button 
@@ -402,7 +419,7 @@ export default function HomePage() {
                   disabled={verifying}
                   style={{ minWidth: '160px' }}
                 >
-                  {verifying ? 'VERIFYING...' : 'Verify Protocol'}
+                  {verifying ? 'REVIEWING...' : 'Inspect Flow'}
                 </Button>
                 {verifying && (
                   <span style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 900 }}>
@@ -418,13 +435,57 @@ export default function HomePage() {
               <div>
                 <Badge $tone="neutral">MODULE_02</Badge>
               </div>
-              <CardTitle>Visual Spec</CardTitle>
+              <CardTitle>AI Assistant + Architectural Review</CardTitle>
               <CardText>
-                Refine your stack with nodes that understand protocols, boundaries, and dependencies. Every connection carries technical weight, ensuring your visual model is ready for real-world implementation.
+                Users can ask the AI assistant what is missing, why a technology belongs, or how strong the current diagram is. Missing tech gets staged into Architectural Review before it touches the live diagram.
               </CardText>
-              <CardText style={{ marginTop: 'auto', fontSize: '0.9rem', opacity: 0.8 }}>
-                [ STATUS: SYSTEM_READY // LAYER_02_ACTIVE ]
+              <div style={{ marginTop: 'auto', paddingTop: '24px', display: 'flex', alignItems: 'center', gap: '16px' }}>
+                <Button
+                  $variant="secondary"
+                  $size="sm"
+                  onClick={startTracing}
+                  disabled={tracing}
+                  style={{ minWidth: '180px' }}
+                >
+                  {tracing ? 'STAGING...' : 'Stage AI Suggestions'}
+                </Button>
+                {tracing && (
+                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 900 }}>
+                    {Math.round(progress2)}% STAGED
+                  </span>
+                )}
+              </div>
+            </div>
+          </FeatureCard>
+
+          <FeatureCard $span={12} $elevated>
+            <div style={{ display: 'grid', gap: '18px' }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', alignItems: 'center' }}>
+                <Badge $tone="neutral">MODULE_03</Badge>
+                <Badge $tone="brand"><Sparkles size={12} /> REFRESH_SAFE_AI_DRAFTS</Badge>
+                <Badge $tone="warning"><GitBranch size={12} /> ACCEPT_AND_CONNECT</Badge>
+              </div>
+              <CardTitle>Built for iterative architecture work, not one-shot generation.</CardTitle>
+              <CardText>
+                Pending AI chat and staged review items survive refreshes, accepted suggestions connect into the diagram, and the review layer uses rule-aware checks so users can grow complex systems without losing clarity or control.
               </CardText>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '16px' }}>
+                <Card style={{ background: '#F8F8F8', padding: '20px' }}>
+                  <CardEyebrow>FLOW_01</CardEyebrow>
+                  <CardTitle $size="1.1rem">Ask AI</CardTitle>
+                  <CardText>Question the diagram in context.</CardText>
+                </Card>
+                <Card style={{ background: '#F8F8F8', padding: '20px' }}>
+                  <CardEyebrow>FLOW_02</CardEyebrow>
+                  <CardTitle $size="1.1rem">Review</CardTitle>
+                  <CardText>Stage additions before they change the architecture.</CardText>
+                </Card>
+                <Card style={{ background: '#F8F8F8', padding: '20px' }}>
+                  <CardEyebrow>FLOW_03</CardEyebrow>
+                  <CardTitle $size="1.1rem">Connect</CardTitle>
+                  <CardText>Accept and wire new tech into the diagram safely.</CardText>
+                </Card>
+              </div>
             </div>
           </FeatureCard>
         </FeatureGrid>
@@ -435,7 +496,7 @@ export default function HomePage() {
           <TechLabel>SYSTEM_HARDWARE // MACOS_SILICON_READY</TechLabel>
           <DesktopTitle>The Elite <br/>Desktop Engine.</DesktopTitle>
           <HeroText style={{ color: '#aaa' }}>
-            Experience Archflow as a dedicated industrial workstation. Frameless design, native performance, and a distraction-free environment for serious architectural thinking.
+            Experience Archflow as a dedicated industrial workstation. Native performance, distraction-free system design, and local draft persistence make the AI-assisted review workflow feel at home on desktop.
           </HeroText>
           {!isDesktop && (
             <div style={{ marginTop: '16px' }}>

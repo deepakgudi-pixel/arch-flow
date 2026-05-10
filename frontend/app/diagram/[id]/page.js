@@ -24,6 +24,11 @@ import { toPng } from 'html-to-image';
 import api, { setToken } from '@/lib/api';
 import { formatTechDisplayLabel } from '@/lib/displayNames';
 import {
+  clearReviewDraftFromStorage,
+  loadReviewDraftFromStorage,
+  saveReviewDraftToStorage
+} from '@/lib/reviewDraftStorage';
+import {
   estimateEdgeLabelDimensions,
   getEdgeLabelBasePosition,
   resolveEdgeLabelCollisions
@@ -44,6 +49,7 @@ import ConnectionDetailsSidebar from '@/components/diagram/ConnectionDetailsSide
 import TechInventoryPanel from '@/components/diagram/TechInventoryPanel';
 import HistoryPanel from '@/components/diagram/HistoryPanel';
 import ReviewPanel from '@/components/diagram/ReviewPanel';
+import DiagramAssistantPanel from '@/components/diagram/DiagramAssistantPanel';
 import PromptBar from '@/components/diagram/PromptBar';
 import InviteModal from '@/components/diagram/InviteModal';
 import SynthesisTerminal from '@/components/diagram/SynthesisTerminal';
@@ -141,6 +147,30 @@ const AUTO_LAYOUT = {
 };
 
 const GENERIC_PROTOCOL_LABELS = new Set(['CONNECTION', 'INFERRING...', '']);
+const REVIEW_NEW_NODE_TOKEN = '__NEW__';
+const FALLBACK_SUGGESTION_CONNECTION_RULES = [
+  { source_category: 'frontend', target_category: 'backend', is_valid: true },
+  { source_category: 'frontend', target_category: 'database', is_valid: false },
+  { source_category: 'frontend', target_category: 'queue', is_valid: false },
+  { source_category: 'frontend', target_category: 'auth', is_valid: true },
+  { source_category: 'frontend', target_category: 'storage', is_valid: false },
+  { source_category: 'frontend', target_category: 'external', is_valid: true },
+  { source_category: 'mobile', target_category: 'backend', is_valid: true },
+  { source_category: 'mobile', target_category: 'database', is_valid: false },
+  { source_category: 'mobile', target_category: 'queue', is_valid: false },
+  { source_category: 'mobile', target_category: 'auth', is_valid: true },
+  { source_category: 'mobile', target_category: 'storage', is_valid: false },
+  { source_category: 'backend', target_category: 'database', is_valid: true },
+  { source_category: 'backend', target_category: 'queue', is_valid: true },
+  { source_category: 'backend', target_category: 'auth', is_valid: true },
+  { source_category: 'backend', target_category: 'storage', is_valid: true },
+  { source_category: 'backend', target_category: 'external', is_valid: true },
+  { source_category: 'backend', target_category: 'backend', is_valid: true },
+  { source_category: 'database', target_category: 'backend', is_valid: false },
+  { source_category: 'queue', target_category: 'backend', is_valid: false },
+  { source_category: 'auth', target_category: 'frontend', is_valid: false },
+  { source_category: 'storage', target_category: 'frontend', is_valid: false }
+];
 
 function getBalancedColumnCount(nodeCount) {
   if (nodeCount >= 24) return 5;
@@ -156,6 +186,397 @@ function average(values) {
   }
 
   return values.reduce((sum, value) => sum + value, 0) / values.length;
+}
+
+function createReviewSuggestionId() {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+
+  return `suggestion_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function normalizeSuggestionValue(value) {
+  return String(value || '')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim();
+}
+
+function buildSuggestionKey(suggestion) {
+  return `${suggestion.category || 'backend'}:${normalizeSuggestionValue(suggestion.name)}`;
+}
+
+function buildConnectionSignature(connection) {
+  return `${connection.source}->${connection.target}`;
+}
+
+function buildSuggestionRuleMap(connectionRules) {
+  const effectiveRules = connectionRules && connectionRules.length > 0
+    ? connectionRules
+    : FALLBACK_SUGGESTION_CONNECTION_RULES;
+
+  return new Map(
+    effectiveRules.map(rule => [
+      `${rule.source_category || 'unknown'}->${rule.target_category || 'unknown'}`,
+      rule
+    ])
+  );
+}
+
+function isInvalidSuggestionConnection(sourceCategory, targetCategory, ruleMap) {
+  const rule = ruleMap.get(`${sourceCategory || 'unknown'}->${targetCategory || 'unknown'}`);
+  return rule?.is_valid === false;
+}
+
+function getSuggestionProtocolFamily(label) {
+  const protocol = String(label || '')
+    .trim()
+    .toUpperCase();
+
+  if (protocol.includes('SIGNED URL') || protocol.includes('SIGNED_URL')) {
+    return 'signed-url';
+  }
+
+  return 'other';
+}
+
+function mergeReviewSuggestions(existingSuggestions, incomingSuggestions) {
+  const existingByKey = new Map(
+    (existingSuggestions || []).map(suggestion => [buildSuggestionKey(suggestion), suggestion])
+  );
+  const mergedIncoming = (incomingSuggestions || []).map(suggestion => {
+    const key = buildSuggestionKey(suggestion);
+    const existing = existingByKey.get(key);
+
+    if (existing) {
+      existingByKey.delete(key);
+    }
+
+    return {
+      ...existing,
+      ...suggestion,
+      id: existing?.id || suggestion.id || createReviewSuggestionId()
+    };
+  });
+
+  return [...mergedIncoming, ...existingByKey.values()];
+}
+
+function snapCoordinate(value) {
+  return Math.round(value / 20) * 20;
+}
+
+function findOpenSuggestionPosition(basePosition, techNodes) {
+  const baseX = Math.max(60, snapCoordinate(basePosition.x || 160));
+  const baseY = Math.max(80, snapCoordinate(basePosition.y || 160));
+  let x = baseX;
+  let y = baseY;
+
+  for (let attempt = 0; attempt < 16; attempt += 1) {
+    const overlaps = techNodes.some(node => {
+      const nodeX = node.position?.x || 0;
+      const nodeY = node.position?.y || 0;
+
+      return Math.abs(nodeX - x) < AUTO_LAYOUT.nodeWidth + 24 &&
+        Math.abs(nodeY - y) < AUTO_LAYOUT.nodeHeight + 24;
+    });
+
+    if (!overlaps) {
+      return { x, y };
+    }
+
+    y += 140;
+
+    if (attempt > 0 && attempt % 4 === 0) {
+      x += 60;
+      y = baseY;
+    }
+  }
+
+  return { x, y };
+}
+
+function computeSuggestedNodePosition(suggestion, nodes) {
+  const techNodes = (nodes || []).filter(node => node.type === 'customNode');
+
+  if (techNodes.length === 0) {
+    return { x: 160, y: 160 };
+  }
+
+  const nodeById = new Map(techNodes.map(node => [node.id, node]));
+  const upstreamNodes = (suggestion.connections || [])
+    .filter(connection => connection.target === REVIEW_NEW_NODE_TOKEN)
+    .map(connection => nodeById.get(connection.source))
+    .filter(Boolean);
+  const downstreamNodes = (suggestion.connections || [])
+    .filter(connection => connection.source === REVIEW_NEW_NODE_TOKEN)
+    .map(connection => nodeById.get(connection.target))
+    .filter(Boolean);
+  const anchorNodes = [...new Set([...upstreamNodes, ...downstreamNodes])];
+
+  if (anchorNodes.length === 0) {
+    const rightmostX = Math.max(...techNodes.map(node => node.position?.x || 0), 120);
+    const anchorY = average(techNodes.map(node => node.position?.y || 0)) ?? 140;
+
+    return findOpenSuggestionPosition({
+      x: rightmostX + AUTO_LAYOUT.nodeWidth + 80,
+      y: anchorY
+    }, techNodes);
+  }
+
+  const xCandidates = [];
+
+  if (upstreamNodes.length > 0) {
+    xCandidates.push(
+      Math.max(...upstreamNodes.map(node => (node.position?.x || 0) + AUTO_LAYOUT.nodeWidth + 60))
+    );
+  }
+
+  if (downstreamNodes.length > 0) {
+    xCandidates.push(
+      Math.min(...downstreamNodes.map(node => (node.position?.x || 0) - AUTO_LAYOUT.nodeWidth - 60))
+    );
+  }
+
+  const baseX = average(xCandidates) ?? average(anchorNodes.map(node => node.position?.x || 0)) ?? 160;
+  const baseY = average(anchorNodes.map(node => node.position?.y || 0)) ?? 140;
+
+  return findOpenSuggestionPosition({ x: baseX, y: baseY }, techNodes);
+}
+
+function buildNodeDegreeLookup(nodes, edges) {
+  const techNodes = (nodes || []).filter(node => node.type === 'customNode');
+  const degrees = new Map(techNodes.map(node => [node.id, 0]));
+
+  (edges || []).forEach(edge => {
+    if (degrees.has(edge.source)) {
+      degrees.set(edge.source, (degrees.get(edge.source) || 0) + 1);
+    }
+
+    if (degrees.has(edge.target)) {
+      degrees.set(edge.target, (degrees.get(edge.target) || 0) + 1);
+    }
+  });
+
+  return degrees;
+}
+
+function pickPreferredAnchorNode(nodes, degreeLookup, categories, excludedIds = new Set()) {
+  return (nodes || [])
+    .filter(node => (
+      node.type === 'customNode' &&
+      categories.includes(node.data?.category) &&
+      !excludedIds.has(node.id)
+    ))
+    .sort((left, right) => {
+      const degreeDelta = (degreeLookup.get(right.id) || 0) - (degreeLookup.get(left.id) || 0);
+
+      if (degreeDelta !== 0) {
+        return degreeDelta;
+      }
+
+      return (left.position?.x || 0) - (right.position?.x || 0);
+    })[0] || null;
+}
+
+function buildFallbackSuggestionConnections(suggestion, nodes, edges) {
+  const techNodes = (nodes || []).filter(node => node.type === 'customNode');
+
+  if (techNodes.length === 0) {
+    return [];
+  }
+
+  const degreeLookup = buildNodeDegreeLookup(techNodes, edges);
+  const connections = [];
+  const usedAnchors = new Set();
+  const addConnection = (source, target, label, reason) => {
+    if (!source || !target || source === target) {
+      return;
+    }
+
+    const signature = `${source}->${target}`;
+
+    if (connections.some(connection => buildConnectionSignature(connection) === signature)) {
+      return;
+    }
+
+    if (source !== REVIEW_NEW_NODE_TOKEN) {
+      usedAnchors.add(source);
+    }
+
+    if (target !== REVIEW_NEW_NODE_TOKEN) {
+      usedAnchors.add(target);
+    }
+
+    connections.push({ source, target, label, reason });
+  };
+  const pick = (categories) => pickPreferredAnchorNode(techNodes, degreeLookup, categories, usedAnchors);
+  const pickAny = (categories) => pickPreferredAnchorNode(techNodes, degreeLookup, categories);
+  const category = suggestion.category;
+
+  if (category === 'backend') {
+    const client = pickAny(['frontend', 'mobile']);
+    const database = pickAny(['database']);
+    const auth = pickAny(['auth']);
+    const queue = pickAny(['queue']);
+    const storage = pickAny(['storage']);
+    const external = pickAny(['external']);
+
+    if (client) addConnection(client.id, REVIEW_NEW_NODE_TOKEN, 'REST', 'Client traffic should flow through an application layer.');
+    if (database) addConnection(REVIEW_NEW_NODE_TOKEN, database.id, 'SQL', 'The backend should own database access for this flow.');
+    if (auth) addConnection(REVIEW_NEW_NODE_TOKEN, auth.id, 'OIDC', 'The backend usually coordinates identity or token validation.');
+    if (queue) addConnection(REVIEW_NEW_NODE_TOKEN, queue.id, 'ASYNC', 'Background or deferred work should hang off the backend layer.');
+    if (storage) addConnection(REVIEW_NEW_NODE_TOKEN, storage.id, 'S3', 'The backend should mediate asset access and file workflows.');
+    if (external) addConnection(REVIEW_NEW_NODE_TOKEN, external.id, 'API', 'External integrations are typically orchestrated by the backend.');
+  }
+
+  if (category === 'frontend') {
+    const backend = pickAny(['backend']);
+    const auth = pickAny(['auth']);
+
+    if (backend) addConnection(REVIEW_NEW_NODE_TOKEN, backend.id, 'REST', 'The frontend should call into the backend or BFF.');
+    if (auth) addConnection(REVIEW_NEW_NODE_TOKEN, auth.id, 'OIDC', 'Client-facing login flows commonly integrate with the auth layer.');
+  }
+
+  if (category === 'mobile') {
+    const backend = pickAny(['backend']);
+    const auth = pickAny(['auth']);
+
+    if (backend) addConnection(REVIEW_NEW_NODE_TOKEN, backend.id, 'REST', 'The mobile client should rely on an application API.');
+    if (auth) addConnection(REVIEW_NEW_NODE_TOKEN, auth.id, 'OIDC', 'Mobile sign-in typically depends on the auth provider.');
+  }
+
+  if (category === 'database') {
+    const backend = pickAny(['backend']);
+
+    if (backend) addConnection(backend.id, REVIEW_NEW_NODE_TOKEN, 'SQL', 'The application layer should own database access.');
+  }
+
+  if (category === 'auth') {
+    const client = pickAny(['frontend', 'mobile']);
+    const backend = pickAny(['backend']);
+
+    if (client) addConnection(client.id, REVIEW_NEW_NODE_TOKEN, 'OIDC', 'The auth layer should serve the client-facing sign-in flow.');
+    if (backend) addConnection(backend.id, REVIEW_NEW_NODE_TOKEN, 'JWT', 'The backend typically validates or exchanges identity tokens here.');
+  }
+
+  if (category === 'queue') {
+    const backend = pickAny(['backend']);
+
+    if (backend) addConnection(backend.id, REVIEW_NEW_NODE_TOKEN, 'ASYNC', 'Queues are usually fed by backend services or workers.');
+  }
+
+  if (category === 'storage') {
+    const backend = pickAny(['backend']);
+
+    if (backend) addConnection(backend.id, REVIEW_NEW_NODE_TOKEN, 'S3', 'The backend commonly brokers storage access and uploads.');
+  }
+
+  if (category === 'external') {
+    const backend = pickAny(['backend']);
+    const client = pickAny(['frontend', 'mobile']);
+
+    if (backend) addConnection(backend.id, REVIEW_NEW_NODE_TOKEN, 'API', 'Most third-party integrations should sit behind the backend.');
+    else if (client) addConnection(client.id, REVIEW_NEW_NODE_TOKEN, 'HTTPS', 'If there is no backend yet, this external integration is client-facing.');
+  }
+
+  if (category === 'devops') {
+    const backend = pickAny(['backend']);
+    const frontend = pickAny(['frontend']);
+
+    if (backend) addConnection(REVIEW_NEW_NODE_TOKEN, backend.id, 'OBSERVE', 'Operational tooling should observe or manage the backend surface.');
+    if (frontend) addConnection(REVIEW_NEW_NODE_TOKEN, frontend.id, 'DEPLOY', 'This layer may also cover delivery or monitoring for the frontend.');
+  }
+
+  return connections;
+}
+
+function sanitizeSuggestionConnections(connections, suggestionCategory, nodes, connectionRules) {
+  const techNodes = (nodes || []).filter(node => node.type === 'customNode');
+  const nodeById = new Map(techNodes.map(node => [node.id, node]));
+  const ruleMap = buildSuggestionRuleMap(connectionRules);
+  const hasBackendControlPlane = techNodes.some(node => node.data?.category === 'backend');
+
+  return (connections || []).map(connection => {
+    const sourceCategory = connection.source === REVIEW_NEW_NODE_TOKEN
+      ? suggestionCategory
+      : nodeById.get(connection.source)?.data?.category;
+    const targetCategory = connection.target === REVIEW_NEW_NODE_TOKEN
+      ? suggestionCategory
+      : nodeById.get(connection.target)?.data?.category;
+
+    if (!sourceCategory || !targetCategory) {
+      return connection;
+    }
+
+    const signedStorageAccessPattern = getSuggestionProtocolFamily(connection.label) === 'signed-url'
+      && (sourceCategory === 'frontend' || sourceCategory === 'mobile')
+      && targetCategory === 'storage';
+    const forwardInvalid = isInvalidSuggestionConnection(sourceCategory, targetCategory, ruleMap);
+
+    if (!forwardInvalid || (signedStorageAccessPattern && hasBackendControlPlane)) {
+      return connection;
+    }
+
+    if (signedStorageAccessPattern) {
+      return null;
+    }
+
+    const reverseInvalid = isInvalidSuggestionConnection(targetCategory, sourceCategory, ruleMap);
+
+    if (!reverseInvalid) {
+      return {
+        ...connection,
+        source: connection.target,
+        target: connection.source
+      };
+    }
+
+    return null;
+  }).filter(Boolean);
+}
+
+function enrichSuggestionConnections(suggestion, nodes, edges, connectionRules) {
+  const explicitConnections = Array.isArray(suggestion.connections) ? suggestion.connections : [];
+  const sanitizedExplicitConnections = sanitizeSuggestionConnections(
+    explicitConnections,
+    suggestion.category,
+    nodes,
+    connectionRules
+  );
+  const fallbackConnections = sanitizeSuggestionConnections(
+    buildFallbackSuggestionConnections(suggestion, nodes, edges),
+    suggestion.category,
+    nodes,
+    connectionRules
+  );
+  const mergedConnections = [];
+  const seen = new Set();
+
+  [...sanitizedExplicitConnections, ...fallbackConnections].forEach(connection => {
+    const signature = buildConnectionSignature(connection);
+
+    if (seen.has(signature)) {
+      return;
+    }
+
+    seen.add(signature);
+    mergedConnections.push(connection);
+  });
+
+  return {
+    ...suggestion,
+    connections: mergedConnections
+  };
+}
+
+function formatStagedSuggestionNames(suggestions) {
+  return suggestions
+    .map(suggestion => suggestion.name)
+    .filter(Boolean)
+    .join(', ');
 }
 
 function getCategoryLayoutOrder(nodesByCategory) {
@@ -351,6 +772,14 @@ function serializeDiagramSnapshot(name, nodesData, edgesData) {
   });
 }
 
+function buildAssistantDraftStorageKey(userId, diagramId) {
+  if (!userId || !diagramId) {
+    return null;
+  }
+
+  return `archflow:assistant-review:${userId}:${diagramId}`;
+}
+
 export default function DiagramPage() {
   const params = useParams();
   const diagramId = params.id;
@@ -384,8 +813,13 @@ export default function DiagramPage() {
   const [customTechPrompt, setCustomTechPrompt] = useState('');
   const [generatingTech, setGeneratingTech] = useState(false);
   const [simulateFlow, setSimulateFlow] = useState(false);
+  const [assistantPanelOpen, setAssistantPanelOpen] = useState(false);
   const [reviewPanelOpen, setReviewPanelOpen] = useState(false);
   const [historyPanelOpen, setHistoryPanelOpen] = useState(false);
+  const [assistantPrompt, setAssistantPrompt] = useState('');
+  const [assistantMessages, setAssistantMessages] = useState([]);
+  const [reviewSuggestions, setReviewSuggestions] = useState([]);
+  const [reviewAssistantLoading, setReviewAssistantLoading] = useState(false);
   const [showConfirmHistory, setShowConfirmHistory] = useState(false);
   const [versions, setVersions] = useState([]);
   const [connectionMode, setConnectionMode] = useState('guided');
@@ -399,6 +833,63 @@ export default function DiagramPage() {
   const saveInFlightRef = useRef(false);
   const queuedSaveOptionsRef = useRef(null);
   const loadCompleteRef = useRef(false);
+  const hydratedAssistantDraftKeyRef = useRef(null);
+  const assistantDraftStorageKey = buildAssistantDraftStorageKey(user?.id, diagramId);
+
+  useEffect(() => {
+    if (!assistantDraftStorageKey) {
+      return;
+    }
+
+    if (hydratedAssistantDraftKeyRef.current === assistantDraftStorageKey) {
+      return;
+    }
+
+    let cancelled = false;
+
+    const restoreAssistantDraft = async () => {
+      const draft = await loadReviewDraftFromStorage(assistantDraftStorageKey);
+
+      if (cancelled) {
+        return;
+      }
+
+      setAssistantMessages(draft?.assistantMessages || []);
+      setReviewSuggestions(draft?.reviewSuggestions || []);
+      hydratedAssistantDraftKeyRef.current = assistantDraftStorageKey;
+
+      if (draft && (draft.assistantMessages.length > 0 || draft.reviewSuggestions.length > 0)) {
+        setToast({ message: 'REVIEW_DRAFT_RESTORED', error: false });
+        setTimeout(() => setToast(null), 2200);
+      }
+    };
+
+    restoreAssistantDraft();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [assistantDraftStorageKey]);
+
+  useEffect(() => {
+    if (!assistantDraftStorageKey) {
+      return;
+    }
+
+    if (hydratedAssistantDraftKeyRef.current !== assistantDraftStorageKey) {
+      return;
+    }
+
+    if (assistantMessages.length === 0 && reviewSuggestions.length === 0) {
+      clearReviewDraftFromStorage(assistantDraftStorageKey);
+      return;
+    }
+
+    saveReviewDraftToStorage(assistantDraftStorageKey, {
+      assistantMessages,
+      reviewSuggestions
+    });
+  }, [assistantDraftStorageKey, assistantMessages, reviewSuggestions]);
 
   useEffect(() => {
     if (isLoaded && !isSignedIn) {
@@ -407,16 +898,43 @@ export default function DiagramPage() {
   }, [isLoaded, isSignedIn, router]);
 
   useEffect(() => {
-    if (isSignedIn && diagramId) {
-      getToken().then(token => {
-        if (token) setToken(token);
-      });
+    if (!isSignedIn || !diagramId) {
+      return;
+    }
+
+    let cancelled = false;
+
+    const initializeDiagramPage = async () => {
+      try {
+        const token = await getToken();
+
+        if (cancelled) {
+          return;
+        }
+
+        if (token) {
+          setToken(token);
+        }
+      } catch (err) {
+        console.error('Failed to resolve auth token for diagram page:', err);
+      }
+
+      if (cancelled) {
+        return;
+      }
+
       loadDiagram();
       loadInventory();
       loadVersions();
       loadReviewContext();
-    }
-  }, [isSignedIn, diagramId]);
+    };
+
+    initializeDiagramPage();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [diagramId, getToken, isSignedIn]);
 
   const loadVersions = async () => {
     try {
@@ -428,16 +946,25 @@ export default function DiagramPage() {
   };
 
   const loadReviewContext = async () => {
+    let nextConnectionMode = 'guided';
+    let nextConnectionRules = [];
+
     try {
-      const [settingsData, rulesData] = await Promise.all([
-        api.getSettings(),
-        api.getConnectionRules()
-      ]);
-      setConnectionMode(settingsData.connection_mode || 'guided');
-      setConnectionRules(rulesData || []);
+      const settingsData = await api.getSettings();
+      nextConnectionMode = settingsData.connection_mode || 'guided';
     } catch (err) {
-      console.error('Failed to load review context:', err);
+      console.error('Failed to load review settings, using guided mode:', err);
     }
+
+    try {
+      const rulesData = await api.getConnectionRules();
+      nextConnectionRules = rulesData || [];
+    } catch (err) {
+      console.error('Failed to load connection rules, using local fallbacks:', err);
+    }
+
+    setConnectionMode(nextConnectionMode);
+    setConnectionRules(nextConnectionRules);
   };
 
   useEffect(() => {
@@ -790,6 +1317,196 @@ export default function DiagramPage() {
       setTimeout(() => setToast(null), 3000);
     }
   };
+
+  const openReviewQueue = useCallback(() => {
+    setAssistantPanelOpen(false);
+    setRightPanelOpen(false);
+    setHistoryPanelOpen(false);
+    setReviewPanelOpen(true);
+    setLeftSidebarOpen(false);
+  }, []);
+
+  const handleSendAssistantPrompt = useCallback(async (presetPrompt) => {
+    const question = String(presetPrompt ?? assistantPrompt).trim();
+
+    if (!question || reviewAssistantLoading) {
+      return;
+    }
+
+    const userMessage = {
+      id: createReviewSuggestionId(),
+      role: 'user',
+      content: question
+    };
+    const conversationMessages = [...assistantMessages, userMessage]
+      .map(message => ({ role: message.role, content: message.content }))
+      .slice(-8);
+
+    setAssistantMessages(current => [...current, userMessage]);
+    setAssistantPrompt('');
+    setReviewAssistantLoading(true);
+
+    try {
+      const currentReviewFindings = buildArchitectureReview({
+        nodes,
+        edges,
+        connectionRules,
+        connectionMode
+      });
+      const result = await api.reviewDiagram({
+        question,
+        diagramName,
+        nodes: buildPersistedNodesPayload(nodes),
+        edges: buildPersistedEdgesPayload(edges),
+        reviewFindings: currentReviewFindings,
+        messages: conversationMessages
+      });
+      const suggestions = (Array.isArray(result.suggestions) ? result.suggestions : [])
+        .map(suggestion => enrichSuggestionConnections(suggestion, nodes, edges, connectionRules));
+      const stagedNames = formatStagedSuggestionNames(suggestions);
+      const assistantContent = suggestions.length > 0
+        ? `${result.message}\n\nAdded to Architecture Review: ${stagedNames}.`
+        : result.message;
+
+      setAssistantMessages(current => [
+        ...current,
+        {
+          id: createReviewSuggestionId(),
+          role: 'assistant',
+          content: assistantContent,
+          suggestionsCount: suggestions.length
+        }
+      ]);
+
+      if (suggestions.length > 0) {
+        setReviewSuggestions(current => mergeReviewSuggestions(current, suggestions));
+        setToast({ message: `ARCH_REVIEW_UPDATED: ${suggestions.length}_ITEMS`, warning: true });
+        setTimeout(() => setToast(null), 2500);
+      } else {
+        setToast({ message: 'AI_REVIEW_COMPLETE', error: false });
+        setTimeout(() => setToast(null), 2000);
+      }
+    } catch (err) {
+      console.error('Assistant review failed:', err);
+      setAssistantMessages(current => [
+        ...current,
+        {
+          id: createReviewSuggestionId(),
+          role: 'assistant',
+          content: `I couldn't review the diagram right now. ${err.message}`
+        }
+      ]);
+      setToast({ message: 'AI_REVIEW_FAILED', error: true });
+      setTimeout(() => setToast(null), 3000);
+    } finally {
+      setReviewAssistantLoading(false);
+    }
+  }, [
+    assistantMessages,
+    assistantPrompt,
+    connectionMode,
+    connectionRules,
+    diagramName,
+    edges,
+    nodes,
+    openReviewQueue,
+    reviewAssistantLoading
+  ]);
+
+  const handleDeclineReviewSuggestion = useCallback((suggestion) => {
+    setReviewSuggestions(current => current.filter(item => item.id !== suggestion.id));
+    setToast({ message: `REVIEW_DECLINED: ${suggestion.name.toUpperCase()}`, warning: true });
+    setTimeout(() => setToast(null), 2000);
+  }, []);
+
+  const handleAcceptReviewSuggestion = useCallback((suggestion) => {
+    const techNodes = nodes.filter(node => node.type === 'customNode');
+    const validNodeIds = new Set(techNodes.map(node => node.id));
+    const enrichedSuggestion = enrichSuggestionConnections(suggestion, nodes, edges, connectionRules);
+    const existingNode = techNodes.find(node => (
+      normalizeSuggestionValue(node.data?.label) === normalizeSuggestionValue(enrichedSuggestion.name) &&
+      (node.data?.category || 'backend') === enrichedSuggestion.category
+    ));
+    const nextNodeId = existingNode?.id || `node_${Date.now()}`;
+    const suggestionNode = existingNode || {
+      id: nextNodeId,
+      type: 'customNode',
+      position: computeSuggestedNodePosition(enrichedSuggestion, nodes),
+      data: {
+        label: enrichedSuggestion.name,
+        role: enrichedSuggestion.role,
+        reason: enrichedSuggestion.reason,
+        category: enrichedSuggestion.category,
+        icon: enrichedSuggestion.icon || 'Layers',
+        products: Array.isArray(enrichedSuggestion.products) ? enrichedSuggestion.products : []
+      }
+    };
+    const nextNodes = existingNode ? nodes : [...nodes, suggestionNode];
+    const existingEdgeKeys = new Set(edges.map(edge => `${edge.source}->${edge.target}`));
+    const appendedEdges = [];
+
+    (enrichedSuggestion.connections || []).forEach((connection, index) => {
+      const source = connection.source === REVIEW_NEW_NODE_TOKEN ? nextNodeId : connection.source;
+      const target = connection.target === REVIEW_NEW_NODE_TOKEN ? nextNodeId : connection.target;
+
+      if (
+        !source ||
+        !target ||
+        source === target ||
+        (source !== nextNodeId && !validNodeIds.has(source)) ||
+        (target !== nextNodeId && !validNodeIds.has(target))
+      ) {
+        return;
+      }
+
+      const edgeKey = `${source}->${target}`;
+
+      if (existingEdgeKeys.has(edgeKey)) {
+        return;
+      }
+
+      existingEdgeKeys.add(edgeKey);
+      appendedEdges.push({
+        id: `e_${Date.now()}_${index}`,
+        source,
+        target,
+        label: connection.label || 'CONNECTION',
+        animated: simulateFlow
+      });
+    });
+
+    const nextEdges = appendedEdges.length > 0 ? [...edges, ...appendedEdges] : edges;
+
+    setNodes(nextNodes);
+    setEdges(nextEdges);
+    setReviewSuggestions(current => current.filter(item => item.id !== suggestion.id));
+    setSelectedNode(null);
+    setSelectedEdge(null);
+    setLeftSidebarOpen(false);
+
+    saveDiagram({
+      showToast: false,
+      recordVersion: true,
+      overrides: {
+        nodes: nextNodes,
+        edges: nextEdges
+      }
+    });
+
+    if (rfInstance) {
+      setTimeout(() => {
+        rfInstance.fitView({ padding: 0.16, duration: 320 });
+      }, 80);
+    }
+
+    setToast({
+      message: existingNode
+        ? `REVIEW_ACCEPTED: ${enrichedSuggestion.name.toUpperCase()}_LINKED`
+        : `REVIEW_ACCEPTED: ${enrichedSuggestion.name.toUpperCase()}_ADDED`,
+      error: false
+    });
+    setTimeout(() => setToast(null), 2200);
+  }, [connectionRules, edges, nodes, rfInstance, saveDiagram, simulateFlow]);
 
   const refreshEdgeLabelsForNode = useCallback(async (nodeId, nextNodes, baselineEdges = edges) => {
     const edgeUpdates = await Promise.all(baselineEdges.map(async edge => {
@@ -1424,17 +2141,38 @@ export default function DiagramPage() {
           };
         })
     : [];
-  const activeUtilityPanel = reviewPanelOpen
+  const activeUtilityPanel = assistantPanelOpen
+    ? {
+        key: 'assistant',
+        width: 390,
+        content: (
+          <DiagramAssistantPanel
+            messages={assistantMessages}
+            prompt={assistantPrompt}
+            onPromptChange={setAssistantPrompt}
+            onSend={handleSendAssistantPrompt}
+            loading={reviewAssistantLoading}
+            pendingSuggestionCount={reviewSuggestions.length}
+            onClose={() => setAssistantPanelOpen(false)}
+          />
+        )
+      }
+    : reviewPanelOpen
     ? {
         key: 'review',
         width: 360,
         content: (
           <ReviewPanel
             findings={reviewFindings}
+            suggestions={reviewSuggestions}
+            nodes={nodes.filter(node => node.type === 'customNode')}
             connectionMode={connectionMode}
             nodeCount={nodes.filter(node => node.type === 'customNode').length}
             edgeCount={edges.length}
             onFocusFinding={handleFocusFinding}
+            onAcceptSuggestion={handleAcceptReviewSuggestion}
+            onDeclineSuggestion={handleDeclineReviewSuggestion}
+            onClose={() => setReviewPanelOpen(false)}
           />
         )
       }
@@ -1449,6 +2187,7 @@ export default function DiagramPage() {
               currentEdges={edges}
               onSelectVersion={handleSelectVersion}
               onClearHistory={handleClearHistory}
+              onClose={() => setHistoryPanelOpen(false)}
             />
           )
         }
@@ -1549,7 +2288,6 @@ export default function DiagramPage() {
           onDiagramNameChange={updateDiagramName}
           onDiagramNameBlur={handleNameBlur}
           hasSelection={Boolean(selectedNode || selectedEdge)}
-          detailsOpen={leftSidebarOpen && Boolean(selectedNode || selectedEdge)}
           selectionKind={
             selectedConnectionProfile
               ? 'SELECTED_FLOW'
@@ -1564,22 +2302,35 @@ export default function DiagramPage() {
                 ? formatTechDisplayLabel(selectedNode.data.label, selectedNode.data.category)
                 : null
           }
-          onOpenSpecs={() => setLeftSidebarOpen(true)}
           onDeleteSelection={deleteSelected}
           rightPanelOpen={rightPanelOpen}
           onToggleRightPanel={() => {
             const nextState = !rightPanelOpen;
             setRightPanelOpen(nextState);
             if (nextState) {
+              setAssistantPanelOpen(false);
               setHistoryPanelOpen(false);
               setReviewPanelOpen(false);
             }
           }}
+          assistantPanelOpen={assistantPanelOpen}
+          onToggleAssistantPanel={() => {
+            const nextState = !assistantPanelOpen;
+            setAssistantPanelOpen(nextState);
+            if (nextState) {
+              setRightPanelOpen(false);
+              setHistoryPanelOpen(false);
+              setReviewPanelOpen(false);
+              setLeftSidebarOpen(false);
+            }
+          }}
           reviewPanelOpen={reviewPanelOpen}
+          reviewSuggestionCount={reviewSuggestions.length}
           onToggleReviewPanel={() => {
             const nextState = !reviewPanelOpen;
             setReviewPanelOpen(nextState);
             if (nextState) {
+              setAssistantPanelOpen(false);
               setRightPanelOpen(false);
               setHistoryPanelOpen(false);
               setLeftSidebarOpen(false);
@@ -1590,6 +2341,7 @@ export default function DiagramPage() {
             const nextState = !historyPanelOpen;
             setHistoryPanelOpen(nextState);
             if (nextState) {
+              setAssistantPanelOpen(false);
               setRightPanelOpen(false);
               setReviewPanelOpen(false);
               setLeftSidebarOpen(false);
@@ -1715,6 +2467,7 @@ export default function DiagramPage() {
             onGenerateTech={handleGenerateTech}
             onDragStart={handleDragStart}
             onDeleteFromInventory={deleteFromInventory}
+            onClose={() => setRightPanelOpen(false)}
           />
 
           <AnimatePresence mode="wait" initial={false}>

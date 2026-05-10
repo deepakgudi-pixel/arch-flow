@@ -2,7 +2,7 @@
 
 import styled from 'styled-components';
 import {
-  RightPanel, PanelContent, SidebarTitle, SearchInput,
+  RightPanel, PanelContent, SidebarTitle, SearchInput, CloseBtn,
   SectionTitle, ActionButton, TechChip, TechCategory, CategoryLabel
 } from './editorStyles';
 
@@ -48,13 +48,19 @@ const WideButton = styled(ActionButton)`
 export default function TechInventoryPanel({
   open, searchTerm, onSearchTermChange,
   inventory, customTechPrompt, onCustomTechPromptChange,
-  generatingTech, onGenerateTech, onDragStart, onDeleteFromInventory
+  generatingTech, onGenerateTech, onDragStart, onDeleteFromInventory,
+  onClose
 }) {
   return (
     <RightPanel $open={open}>
       {open && (
         <PanelContent>
-          <SidebarTitle>MODULES</SidebarTitle>
+          <SidebarTitle>
+            MODULES
+            <CloseBtn type="button" onClick={onClose} aria-label="Close tech library">
+              ×
+            </CloseBtn>
+          </SidebarTitle>
           <SearchInput
             placeholder="FILTER_TECH..."
             value={searchTerm}

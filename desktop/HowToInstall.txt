@@ -1,0 +1,18 @@
+HOW TO INSTALL ARCHFLOW ON MAC (Unsigned Version)
+-----------------------------------------------
+
+Because this app is currently in development and not yet signed by Apple, your Mac will initially block it. 
+
+Follow these steps to open it:
+
+1. Drag "Archflow" to your Applications folder as usual.
+2. RIGHT-CLICK the Archflow app and select "Open".
+3. A warning will appear. Click "Open" again. (This only needs to be done once).
+
+If "Open" doesn't appear:
+1. Go to System Settings > Privacy & Security.
+2. Scroll down to the "Security" section.
+3. You will see a message saying "Archflow was blocked...".
+4. Click "Open Anyway".
+
+Enjoy designing!

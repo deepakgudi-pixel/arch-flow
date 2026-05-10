@@ -12,81 +12,135 @@ import { ActionButton } from './editorStyles';
 const CenterStack = styled(HeaderCenter)`
   flex-direction: column;
   align-items: flex-start;
-  gap: 10px;
+  justify-content: center;
+  gap: 8px;
 `;
 
-const ToolbarRow = styled.div`
+const StatusRail = styled.div`
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: 8px;
   width: 100%;
 `;
 
-const ActionGroup = styled.div`
+const FocusChip = styled.div`
   display: flex;
-  gap: 8px;
-  background: #000;
-  padding: 4px;
-  flex-wrap: wrap;
-`;
-
-const SecondaryGroup = styled.div`
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-`;
-
-const ContextCard = styled.div`
-  min-width: 220px;
-  max-width: 420px;
-  padding: 10px 14px;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  max-width: min(100%, 440px);
+  padding: 8px 12px;
   border: 2px solid #000000;
-  background: #f8f8f8;
-  display: grid;
-  gap: 4px;
+  background: #f6f6f6;
 `;
 
-const ContextLabel = styled.div`
+const FocusLabel = styled.div`
   font-family: var(--font-mono);
   font-size: 10px;
   font-weight: 900;
-  color: #666666;
+  color: #6b7280;
   text-transform: uppercase;
+  flex-shrink: 0;
 `;
 
-const ContextValue = styled.div`
+const FocusValue = styled.div`
   font-size: 12px;
   font-weight: 900;
   color: #000000;
   text-transform: uppercase;
-  line-height: 1.35;
-  word-break: break-word;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 `;
 
-const ExportWrapper = styled.div`
-  position: relative;
+const StatusChip = styled.div`
   display: inline-flex;
-  flex-direction: column;
   align-items: center;
-  width: 220px;
+  gap: 8px;
+  padding: 8px 12px;
+  border: 2px solid #000000;
+  background: ${props => props.$tone === 'alert' ? '#fff4db' : '#ffffff'};
+  color: #000000;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+  line-height: 1;
 `;
 
-const ExportTrigger = styled(ActionButton)`
-  width: 100%;
+const StatusDot = styled.span`
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: ${props => props.$tone === 'alert' ? '#f59e0b' : '#000000'};
+  flex-shrink: 0;
+`;
+
+const ActionRail = styled(HeaderRight)`
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+`;
+
+const PrimaryGroup = styled.div`
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px;
+  border: 2px solid #000000;
+  background: #f3f3f3;
+  flex-wrap: wrap;
+`;
+
+const PrimaryAction = styled(ActionButton)`
+  border-width: 2px;
+  padding: 10px 14px;
+  min-height: 40px;
+  background: ${props => props.$active ? '#000000' : 'transparent'};
+  color: ${props => props.$active ? '#ffffff' : '#000000'};
+
+  &:hover {
+    transform: none;
+    background: ${props => props.$active ? '#000000' : '#ffffff'};
+  }
+
+  &:active {
+    transform: none;
+  }
+`;
+
+const ReviewCount = styled.span`
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: ${props => props.$active ? '#ffffff' : '#000000'};
+  color: ${props => props.$active ? '#000000' : '#ffffff'};
+  font-size: 10px;
+  line-height: 1;
+`;
+
+const UtilityWrapper = styled.div`
   position: relative;
-  z-index: 1001;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-end;
+`;
+
+const UtilityTrigger = styled(ActionButton)`
+  border-width: 2px;
+  padding: 10px 14px;
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   background: #ffffff;
   transform: none !important;
-  text-align: center;
-
-  ${props => props.$open && `
-    border-bottom: none;
-  `}
 
   &:hover {
     transform: none;
@@ -98,44 +152,45 @@ const ExportTrigger = styled(ActionButton)`
   }
 `;
 
-const ExportDropdownShell = styled.div`
+const UtilityDropdownShell = styled.div`
   position: absolute;
-  top: 100%;
-  left: 50%;
-  transform: translateX(-50%);
+  top: calc(100% + 6px);
+  right: 0;
   z-index: 1000;
-  width: 100%;
-  overflow: visible;
+  min-width: 250px;
 `;
 
-const ExportDropdown = styled(motion.div)`
+const UtilityDropdown = styled(motion.div)`
   background: #ffffff;
-  border: 3px solid #000000;
-  border-top: none;
+  border: 2px solid #000000;
   width: 100%;
   overflow: hidden;
 `;
 
-const ExportItem = styled.div`
-  padding: 12px 16px;
+const UtilityItem = styled.div`
+  padding: 12px 14px;
   cursor: pointer;
   font-family: var(--font-mono);
   font-size: 11px;
   font-weight: 900;
-  border-bottom: 1px solid #eee;
+  text-transform: uppercase;
+  border-bottom: 1px solid #e5e7eb;
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: space-between;
   gap: 8px;
-  text-align: center;
+  text-align: left;
+  background: ${props => props.$danger ? '#fff7f7' : '#ffffff'};
+  color: ${props => props.$danger ? '#b42318' : '#000000'};
+
   &:hover {
-    background: #f0f0f0;
+    background: ${props => props.$danger ? '#ffecec' : '#f3f4f6'};
   }
 `;
 
 const Divider = styled.div`
-  height: 2px;
-  background: #000;
+  height: 1px;
+  background: #d1d5db;
 `;
 
 const FieldLabel = styled.span`
@@ -144,11 +199,18 @@ const FieldLabel = styled.span`
   color: #999;
 `;
 
+const UtilityMeta = styled.span`
+  color: #6b7280;
+  font-size: 10px;
+`;
+
 export default function EditorHeader({
   diagramName, onDiagramNameChange, onDiagramNameBlur,
-  hasSelection, detailsOpen, selectionKind, selectionLabel, onOpenSpecs, onDeleteSelection,
+  hasSelection, selectionKind, selectionLabel, onDeleteSelection,
   rightPanelOpen, onToggleRightPanel,
+  assistantPanelOpen, onToggleAssistantPanel,
   reviewPanelOpen, onToggleReviewPanel,
+  reviewSuggestionCount = 0,
   historyPanelOpen, onToggleHistoryPanel,
   showExportMenu, onToggleExportMenu,
   onSave, onExportPNG, onExportJSON,
@@ -156,6 +218,38 @@ export default function EditorHeader({
   simulateFlow, onToggleSimulateFlow,
   onOpenInvite,
 }) {
+  const utilityItems = [
+    {
+      label: historyPanelOpen ? 'Hide history' : 'Open history',
+      meta: historyPanelOpen ? 'Active' : null,
+      onClick: onToggleHistoryPanel
+    },
+    {
+      label: connectMode ? 'Disable connect mode' : 'Enable connect mode',
+      meta: connectMode ? 'Active' : null,
+      onClick: onToggleConnectMode
+    },
+    {
+      label: simulateFlow ? 'Disable live flow' : 'Enable live flow',
+      meta: simulateFlow ? 'Active' : null,
+      onClick: onToggleSimulateFlow
+    },
+    hasSelection
+      ? {
+          label: 'Remove selection',
+          onClick: onDeleteSelection,
+          danger: true
+        }
+      : null,
+    { divider: true },
+    { label: 'Save changes', onClick: () => onSave(true) },
+    { label: 'Invite collaborator', onClick: onOpenInvite },
+    { label: 'Export PNG', onClick: onExportPNG },
+    { label: 'Export JSON', onClick: onExportJSON },
+    { divider: true },
+    { label: 'Return to dashboard', onClick: () => { window.location.href = '/dashboard'; } }
+  ].filter(Boolean);
+
   return (
     <Header>
       <HeaderLeft>
@@ -171,88 +265,80 @@ export default function EditorHeader({
         </DiagramNameWrap>
       </HeaderLeft>
       <CenterStack>
-        <ToolbarRow>
+        <StatusRail>
           {hasSelection && (
-            <ContextCard>
-              <ContextLabel>{selectionKind || 'Selection'}</ContextLabel>
-              <ContextValue>{selectionLabel}</ContextValue>
-            </ContextCard>
+            <FocusChip>
+              <FocusLabel>{selectionKind || 'Selection'}</FocusLabel>
+              <FocusValue>{selectionLabel}</FocusValue>
+            </FocusChip>
           )}
-
-          <ActionGroup>
-            <ActionButton
-              $active={connectMode}
-              onClick={onToggleConnectMode}
-              style={{ background: connectMode ? '#fff' : '#000', color: connectMode ? '#000' : '#fff', border: 'none', height: '32px' }}
-            >
-              CONNECT_MODE
-            </ActionButton>
-            <ActionButton
-              $active={simulateFlow}
-              onClick={onToggleSimulateFlow}
-              style={{ background: simulateFlow ? '#fff' : '#000', color: simulateFlow ? '#000' : '#fff', border: 'none', height: '32px' }}
-            >
-              LIVE_FLOW
-            </ActionButton>
-          </ActionGroup>
-        </ToolbarRow>
-
-        <SecondaryGroup>
-          {hasSelection && (
-            <>
-              <ActionButton $active={detailsOpen} onClick={onOpenSpecs}>DETAILS</ActionButton>
-              <ActionButton onClick={onDeleteSelection} style={{ borderColor: '#ff4444', color: '#ff4444' }}>REMOVE</ActionButton>
-            </>
+          {connectMode && (
+            <StatusChip>
+              <StatusDot />
+              Connect mode on
+            </StatusChip>
           )}
-          <ActionButton $active={rightPanelOpen} onClick={onToggleRightPanel}>
-            TECH_LIBRARY
-          </ActionButton>
-          <ActionButton $active={reviewPanelOpen} onClick={onToggleReviewPanel}>
-            ARCH_REVIEW
-          </ActionButton>
-          <ActionButton $active={historyPanelOpen} onClick={onToggleHistoryPanel}>
-            HISTORY
-          </ActionButton>
-        </SecondaryGroup>
+          {simulateFlow && (
+            <StatusChip>
+              <StatusDot />
+              Live flow on
+            </StatusChip>
+          )}
+          {reviewSuggestionCount > 0 && (
+            <StatusChip $tone="alert">
+              <StatusDot $tone="alert" />
+              {reviewSuggestionCount} staged in review
+            </StatusChip>
+          )}
+        </StatusRail>
       </CenterStack>
-      <HeaderRight>
-        <ExportWrapper>
-          <ExportTrigger onClick={onToggleExportMenu} $open={showExportMenu}>
-            MORE_ACTIONS {showExportMenu ? '↑' : '↓'}
-          </ExportTrigger>
+      <ActionRail>
+        <PrimaryGroup>
+          <PrimaryAction $active={assistantPanelOpen} onClick={onToggleAssistantPanel}>
+            Assistant
+          </PrimaryAction>
+          <PrimaryAction $active={reviewPanelOpen} onClick={onToggleReviewPanel}>
+            Review
+            {reviewSuggestionCount > 0 && (
+              <ReviewCount $active={reviewPanelOpen}>{reviewSuggestionCount}</ReviewCount>
+            )}
+          </PrimaryAction>
+          <PrimaryAction $active={rightPanelOpen} onClick={onToggleRightPanel}>
+            Library
+          </PrimaryAction>
+        </PrimaryGroup>
+        <UtilityWrapper>
+          <UtilityTrigger onClick={onToggleExportMenu}>
+            Actions {showExportMenu ? '↑' : '↓'}
+          </UtilityTrigger>
           <AnimatePresence>
             {showExportMenu && (
-              <ExportDropdownShell>
-                <ExportDropdown
+              <UtilityDropdownShell>
+                <UtilityDropdown
                   initial={{ opacity: 0, y: -10, scaleY: 0.96 }}
                   animate={{ opacity: 1, y: 0, scaleY: 1 }}
                   exit={{ opacity: 0, y: -8, scaleY: 0.97 }}
                   transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
-                  style={{ transformOrigin: 'top center' }}
+                  style={{ transformOrigin: 'top right' }}
                 >
-                  {[
-                    { label: '💾 SAVE_CHANGES', onClick: () => onSave(true) },
-                    { label: '🤝 INVITE_COLLABORATOR', onClick: onOpenInvite },
-                    { label: '🖼️ EXPORT_PNG', onClick: onExportPNG },
-                    { label: '📄 EXPORT_JSON', onClick: onExportJSON },
-                    { divider: true },
-                    { label: '🚪 RETURN_TO_DASHBOARD', onClick: () => window.location.href = '/dashboard' }
-                  ].map((item, idx) => item.divider ? (
+                  {utilityItems.map((item, idx) => item.divider ? (
                     <Divider key={idx} />
                   ) : (
-                    <ExportItem
+                    <UtilityItem
                       key={idx}
+                      $danger={item.danger}
                       onClick={() => { item.onClick(); onToggleExportMenu(); }}
                     >
-                      {item.label}
-                    </ExportItem>
+                      <span>{item.label}</span>
+                      {item.meta ? <UtilityMeta>{item.meta}</UtilityMeta> : null}
+                    </UtilityItem>
                   ))}
-                </ExportDropdown>
-              </ExportDropdownShell>
+                </UtilityDropdown>
+              </UtilityDropdownShell>
             )}
           </AnimatePresence>
-        </ExportWrapper>
-      </HeaderRight>
+        </UtilityWrapper>
+      </ActionRail>
     </Header>
   );
 }

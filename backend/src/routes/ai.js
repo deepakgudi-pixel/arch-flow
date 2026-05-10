@@ -22,6 +22,19 @@ const router = express.Router();
 import { RedisStore } from 'rate-limit-redis';
 
 const VALID_TECH_CATEGORIES = new Set(['mobile', 'frontend', 'backend', 'database', 'queue', 'auth', 'storage', 'external', 'devops']);
+const REVIEW_NEW_NODE_TOKEN = '__NEW__';
+const DIAGRAM_REVIEW_MODEL = process.env.OPENROUTER_REVIEW_MODEL || TECH_MODEL;
+const FALLBACK_ICON_BY_CATEGORY = {
+  mobile: 'Smartphone',
+  frontend: 'LayoutTemplate',
+  backend: 'Server',
+  database: 'Database',
+  queue: 'MessageSquare',
+  auth: 'ShieldCheck',
+  storage: 'HardDrive',
+  external: 'PlugZap',
+  devops: 'CloudCog'
+};
 
 function normalizeTechName(name) {
   return String(name || '')
@@ -43,6 +56,187 @@ function normalizeProtocolLabel(label) {
     .toUpperCase();
 
   return normalized || 'REST';
+}
+
+function normalizeReviewText(value, fallback = '') {
+  const normalized = String(value || '')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  return normalized || fallback;
+}
+
+function normalizeReviewIcon(icon, category) {
+  const normalized = String(icon || '').trim();
+
+  if (/^[A-Z][A-Za-z0-9]+$/.test(normalized)) {
+    return normalized;
+  }
+
+  return FALLBACK_ICON_BY_CATEGORY[category] || 'Layers';
+}
+
+function normalizeReviewProduct(product, category) {
+  if (!product || typeof product !== 'object' || Array.isArray(product)) {
+    return null;
+  }
+
+  const name = normalizeReviewText(product.name);
+
+  if (!name) {
+    return null;
+  }
+
+  const url = String(product.url || '').trim();
+
+  return {
+    name,
+    description: normalizeReviewText(
+      product.description,
+      `Recommended option for the ${category} layer in this architecture.`
+    ),
+    url: /^https?:\/\//i.test(url) ? url : 'https://example.com'
+  };
+}
+
+function normalizeReviewConnection(connection, validNodeIds) {
+  if (!connection || typeof connection !== 'object' || Array.isArray(connection)) {
+    return null;
+  }
+
+  const source = String(connection.source || '').trim();
+  const target = String(connection.target || '').trim();
+
+  if (!source || !target || source === target) {
+    return null;
+  }
+
+  const touchesNewNode = [source, target].filter(value => value === REVIEW_NEW_NODE_TOKEN).length === 1;
+
+  if (!touchesNewNode) {
+    return null;
+  }
+
+  const existingNodeId = source === REVIEW_NEW_NODE_TOKEN ? target : source;
+
+  if (!validNodeIds.has(existingNodeId)) {
+    return null;
+  }
+
+  return {
+    source,
+    target,
+    label: normalizeProtocolLabel(connection.label),
+    reason: normalizeReviewText(connection.reason)
+  };
+}
+
+function normalizeReviewSuggestion(suggestion, validNodeIds) {
+  if (!suggestion || typeof suggestion !== 'object' || Array.isArray(suggestion)) {
+    return null;
+  }
+
+  const name = normalizeReviewText(suggestion.name);
+  const normalizedCategory = String(suggestion.category || '').trim().toLowerCase();
+
+  if (!name || !VALID_TECH_CATEGORIES.has(normalizedCategory)) {
+    return null;
+  }
+
+  const products = Array.isArray(suggestion.products)
+    ? suggestion.products
+        .map(product => normalizeReviewProduct(product, normalizedCategory))
+        .filter(Boolean)
+        .slice(0, 3)
+    : [];
+  const connections = Array.isArray(suggestion.connections)
+    ? suggestion.connections
+        .map(connection => normalizeReviewConnection(connection, validNodeIds))
+        .filter(Boolean)
+        .slice(0, 6)
+    : [];
+
+  return {
+    name,
+    category: normalizedCategory,
+    role: normalizeReviewText(
+      suggestion.role,
+      `${name} covers the ${normalizedCategory} layer for this system.`
+    ),
+    reason: normalizeReviewText(
+      suggestion.reason,
+      `${name} fills a missing responsibility in the current architecture.`
+    ),
+    icon: normalizeReviewIcon(suggestion.icon, normalizedCategory),
+    products: products.length > 0 ? products : getCategoryProducts(normalizedCategory),
+    connections
+  };
+}
+
+function buildDiagramReviewSummary(nodes, edges, reviewFindings) {
+  const categoryCounts = (nodes || []).reduce((acc, node) => {
+    const category = String(node.category || 'unknown').trim().toLowerCase();
+    acc[category] = (acc[category] || 0) + 1;
+    return acc;
+  }, {});
+  const findingCounts = (reviewFindings || []).reduce((acc, finding) => {
+    const severity = normalizeReviewText(finding.severity, 'warning').toLowerCase();
+    acc[severity] = (acc[severity] || 0) + 1;
+    return acc;
+  }, {});
+
+  return {
+    nodeCount: (nodes || []).length,
+    edgeCount: (edges || []).length,
+    categoryCounts,
+    clientSurfaceCount: (categoryCounts.frontend || 0) + (categoryCounts.mobile || 0),
+    backendServiceCount: categoryCounts.backend || 0,
+    runtimeDependencyCount:
+      (categoryCounts.database || 0)
+      + (categoryCounts.queue || 0)
+      + (categoryCounts.storage || 0)
+      + (categoryCounts.external || 0)
+      + (categoryCounts.auth || 0),
+    findingCounts,
+    criticalSignals: (reviewFindings || [])
+      .filter(finding => normalizeReviewText(finding.severity, 'warning').toLowerCase() === 'critical')
+      .map(finding => normalizeReviewText(finding.title, 'REVIEW_SIGNAL'))
+      .slice(0, 6)
+  };
+}
+
+function buildDiagramReviewContext({ diagramName, nodes, edges, reviewFindings }) {
+  const normalizedNodes = (nodes || []).slice(0, 60).map(node => ({
+    id: String(node.id || '').trim(),
+    name: normalizeReviewText(node.name),
+    category: String(node.category || 'backend').trim().toLowerCase(),
+    role: normalizeReviewText(node.role)
+  }));
+  const normalizedEdges = (edges || []).slice(0, 80).map(edge => ({
+    source: String(edge.source || '').trim(),
+    target: String(edge.target || '').trim(),
+    label: normalizeProtocolLabel(edge.label)
+  }));
+  const normalizedReviewFindings = (reviewFindings || []).slice(0, 20).map(finding => ({
+    severity: normalizeReviewText(finding.severity, 'warning'),
+    title: normalizeReviewText(finding.title, 'REVIEW_SIGNAL'),
+    detail: normalizeReviewText(finding.detail)
+  }));
+
+  return {
+    diagramName: normalizeReviewText(diagramName, 'Untitled diagram'),
+    nodes: normalizedNodes,
+    edges: normalizedEdges,
+    reviewFindings: normalizedReviewFindings,
+    summary: buildDiagramReviewSummary(normalizedNodes, normalizedEdges, normalizedReviewFindings),
+    builtInCatalog: Object.fromEntries(
+      Object.entries(builtInTech).map(([category, items]) => [
+        category,
+        items.slice(0, 8).map(item => item.name)
+      ])
+    ),
+    connectionToken: REVIEW_NEW_NODE_TOKEN
+  };
 }
 
 // Rate limiting for AI endpoints
@@ -330,6 +524,155 @@ OPERATIONAL_RULES:
       errorMessage: err.message
     });
     res.status(500).json({ error: 'Failed to generate tech block: ' + err.message });
+  }
+});
+
+router.post('/review-diagram', aiLimiter, clerkAuth, validate({
+  question: { required: true, type: 'string', maxLength: 1200 },
+  diagramName: { type: 'string', maxLength: 255 },
+  nodes: { required: true, type: 'array' },
+  edges: { required: true, type: 'array' },
+  reviewFindings: { type: 'array' },
+  messages: { type: 'array' }
+}), async (req, res) => {
+  let responseText = '';
+
+  try {
+    const {
+      question,
+      diagramName,
+      nodes = [],
+      edges = [],
+      reviewFindings = [],
+      messages = []
+    } = req.body;
+
+    const diagramContext = buildDiagramReviewContext({
+      diagramName,
+      nodes,
+      edges,
+      reviewFindings
+    });
+    const validNodeIds = new Set(diagramContext.nodes.map(node => node.id).filter(Boolean));
+    const conversationMessages = Array.isArray(messages)
+      ? messages
+          .filter(message => message && ['user', 'assistant'].includes(message.role))
+          .map(message => ({
+            role: message.role,
+            content: normalizeReviewText(message.content).slice(0, 1600)
+          }))
+          .filter(message => message.content)
+          .slice(-8)
+      : [];
+
+    if (
+      conversationMessages.length === 0 ||
+      conversationMessages[conversationMessages.length - 1].role !== 'user' ||
+      conversationMessages[conversationMessages.length - 1].content !== question
+    ) {
+      conversationMessages.push({ role: 'user', content: question });
+    }
+
+    const systemPrompt = `You are Archflow's architecture copilot embedded inside an interactive diagram editor.
+
+Return ONLY JSON in this shape:
+{
+  "message": "Short helpful answer to the user's question.",
+  "suggestions": [
+    {
+      "name": "Technology or capability name with natural product casing",
+      "category": "mobile|frontend|backend|database|queue|auth|storage|external|devops",
+      "role": "One sentence describing the responsibility this addition would own",
+      "reason": "Why it is missing or useful for this specific diagram",
+      "icon": "PascalCase Lucide icon name such as Server or Database",
+      "products": [
+        {
+          "name": "Product or managed service name",
+          "description": "Why this option fits",
+          "url": "https://..."
+        }
+      ],
+      "connections": [
+        {
+          "source": "existing-node-id or ${REVIEW_NEW_NODE_TOKEN}",
+          "target": "existing-node-id or ${REVIEW_NEW_NODE_TOKEN}",
+          "label": "REST|SQL|OIDC|S3|KAFKA|...",
+          "reason": "Why that edge should exist"
+        }
+      ]
+    }
+  ]
+}
+
+Rules:
+1. Answer the user's question directly in "message".
+2. Use "suggestions" only for genuinely missing technologies or architecture layers.
+3. Keep suggestions specific to the diagram and the user's request. Prefer 0-4 suggestions, never more than 5.
+4. Never suggest a duplicate of an existing node unless the user explicitly asks for an alternative. In this feature, skip alternatives and replacements.
+5. Every suggested connection must reference exactly one ${REVIEW_NEW_NODE_TOKEN} token and one real existing node id from the diagram context.
+6. Any technology you want the user to consider adding must appear in "suggestions" because suggestions are automatically staged into the Architectural Review panel.
+7. When suggestions are present, tell the user in "message" that the suggestions were added to the Architectural Review panel and can be accepted or declined there.
+8. For each suggestion, provide 1-3 meaningful connections when the surrounding architecture makes them inferable.
+9. Treat diagramContext.reviewFindings and diagramContext.summary as authoritative reliability signals. Do not contradict them.
+10. If the diagram context is incomplete or ambiguous, say that plainly instead of acting certain.
+11. If critical or warning review findings exist, do not describe the architecture as complete or production-ready without naming the caveat.
+12. If the user is asking for explanation only, you may return an empty suggestions array.`;
+
+    const { data: parsed, rawResponse } = await callOpenRouterForJSON({
+      messages: [
+        { role: 'system', content: systemPrompt },
+        {
+          role: 'user',
+          content: `Current diagram context:\n${JSON.stringify(diagramContext, null, 2)}\n\nUse only the listed node ids for any connection that references an existing node.`
+        },
+        ...conversationMessages
+      ],
+      model: DIAGRAM_REVIEW_MODEL,
+      schemaHint: '{"message":"...","suggestions":[{"name":"...","category":"backend","role":"...","reason":"...","icon":"Server","products":[{"name":"...","description":"...","url":"https://..."}],"connections":[{"source":"existing-node-id-or-__NEW__","target":"existing-node-id-or-__NEW__","label":"REST","reason":"..."}]}]}'
+    });
+    responseText = rawResponse;
+
+    const seenSuggestions = new Set();
+    const suggestions = Array.isArray(parsed.suggestions)
+      ? parsed.suggestions
+          .map(suggestion => normalizeReviewSuggestion(suggestion, validNodeIds))
+          .filter(Boolean)
+          .filter(suggestion => {
+            const key = `${suggestion.category}:${suggestion.name.toLowerCase()}`;
+
+            if (seenSuggestions.has(key)) {
+              return false;
+            }
+
+            seenSuggestions.add(key);
+            return true;
+          })
+          .slice(0, 5)
+      : [];
+
+    let message = normalizeReviewText(
+      parsed.message,
+      'I reviewed the diagram and summarized the next architecture moves for you.'
+    );
+
+    if (suggestions.length > 0 && !/architectural review/i.test(message)) {
+      message = `${message} I staged ${suggestions.length} proposed addition${suggestions.length === 1 ? '' : 's'} in the Architectural Review panel so you can accept or decline them there.`;
+    }
+
+    res.json({
+      message,
+      suggestions
+    });
+  } catch (err) {
+    console.error('Error reviewing diagram:', err);
+    await recordAIFailure({
+      kind: 'review-diagram',
+      model: DIAGRAM_REVIEW_MODEL,
+      inputPayload: req.body,
+      rawResponse: responseText,
+      errorMessage: err.message
+    });
+    res.status(500).json({ error: 'Failed to review diagram: ' + err.message });
   }
 });
 

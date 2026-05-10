@@ -4,6 +4,7 @@ import styled from 'styled-components';
 import { History, Clock, RotateCcw } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { buildVersionDiff } from '@/lib/diagramIntelligence';
+import { CloseBtn } from './editorStyles';
 
 const Panel = styled.div`
   width: 320px;
@@ -16,6 +17,13 @@ const Panel = styled.div`
 const PanelHeader = styled.div`
   padding: 24px;
   border-bottom: 3px solid #000000;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+`;
+
+const TitleCluster = styled.div`
   display: flex;
   align-items: center;
   gap: 12px;
@@ -124,12 +132,17 @@ const ClearButton = styled.button`
   }
 `;
 
-export default function HistoryPanel({ versions, currentNodes, currentEdges, onSelectVersion, onClearHistory }) {
+export default function HistoryPanel({ versions, currentNodes, currentEdges, onSelectVersion, onClearHistory, onClose }) {
   return (
     <Panel>
       <PanelHeader>
-        <History size={18} />
-        <Title>SYSTEM_HISTORY</Title>
+        <TitleCluster>
+          <History size={18} />
+          <Title>SYSTEM_HISTORY</Title>
+        </TitleCluster>
+        <CloseBtn type="button" onClick={onClose} aria-label="Close history">
+          ×
+        </CloseBtn>
       </PanelHeader>
       <VersionList>
         {versions.length === 0 ? (

@@ -13,6 +13,8 @@ That means Archflow optimizes for trust, inspectability, presentability, and ite
 - turn a natural-language product idea into a visual system diagram
 - understand why a technology was chosen
 - understand which units are connected, in which direction, and through which named flow
+- ask the architecture assistant what is missing, weak, or worth verifying in the current diagram
+- stage suggested technologies into Architectural Review before they touch the live diagram
 - inspect assumptions and potential risks in the architecture
 - replace one part of the system without regenerating everything
 - keep diagrams readable with automatic layout and grouped categories
@@ -30,6 +32,7 @@ That means Archflow optimizes for trust, inspectability, presentability, and ite
 ## User-Facing Features
 
 - AI diagram generation from free-form prompts
+- AI architecture assistant chat that can explain the current diagram, call out missing layers, and stage additions for review
 - Auto-arrange that spaces nodes into cleaner category lanes
 - Node details sidebar with:
   - why this was chosen
@@ -42,11 +45,37 @@ That means Archflow optimizes for trust, inspectability, presentability, and ite
   - `FLOW_CONTEXT` for focused inspection
   - `FLOW_ALL` for full connection labeling
   - `FLOW_HIDE` for a cleaner canvas
-- Architecture review drawer with findings, all-clear state, and areas to verify
+- Architecture review drawer with findings, all-clear state, staged assistant suggestions, and accept-or-decline control
+- Accept-and-connect review flow that adds approved technologies directly into the diagram without breaking connection rules
 - Version history with snapshot restore and diff-aware context
+- Refresh-safe draft persistence for assistant chat and pending review suggestions
 - PNG and JSON export
 - Tech inventory with built-in and generated modules
 - Collaboration and invite support
+
+## Architecture Assistant Flow
+
+The architecture assistant is meant to feel helpful without becoming a black-box auto-editor.
+
+- users ask questions in chat such as what is missing, how strong the diagram is, or why a specific technology belongs
+- the assistant answers in chat first, then stages any proposed additions into `ARCHITECTURAL_REVIEW`
+- users decide what to accept or decline in review instead of having the AI mutate the live diagram on its own
+- accepted suggestions are added into the diagram and connected through a sanitized, rule-aware flow
+- assistant chat history and pending review suggestions are restored after refresh so in-progress review work is not lost
+
+This keeps the product collaborative: the assistant can move fast, but the user still stays in control of what becomes part of the architecture.
+
+## Architecture Assistant Reliability
+
+Archflow does not treat architecture review as pure chat.
+
+The assistant works through a layered reliability model:
+
+- deterministic review checks catch concrete issues like invalid edge direction, missing app layers, isolated units, queue topology gaps, generic protocols, and review-safe signed storage flows
+- the architecture assistant receives those review findings as structured context before it answers
+- staged suggestions are sanitized before they are accepted so invalid connections can be dropped or reversed instead of blindly added
+
+This means the assistant is strong on mainstream system patterns, but it is still an AI-assisted reviewer rather than a perfect verifier. The goal is trustworthy guidance, not false certainty.
 
 ## Connection Clarity
 

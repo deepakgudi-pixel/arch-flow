@@ -11,16 +11,16 @@ export const Container = styled.div`
 export const Header = styled.header`
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
+  align-items: center;
   flex-wrap: wrap;
-  gap: 18px 24px;
-  padding: 16px 32px;
+  gap: 14px 20px;
+  padding: 14px 24px;
   background: #ffffff;
-  border-bottom: 4px solid #000000;
+  border-bottom: 3px solid #000000;
   z-index: 100;
 
   @media (max-width: 1180px) {
-    padding: 16px 20px;
+    padding: 14px 18px;
   }
 `;
 
@@ -28,7 +28,7 @@ export const HeaderLeft = styled.div`
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 32px;
+  gap: 18px;
   min-width: 280px;
   flex: 1 1 320px;
 `;
@@ -58,9 +58,9 @@ export const DiagramNameWrap = styled.div`
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 8px 16px;
+  padding: 8px 14px;
   border: 2px solid #000000;
-  background: #f8f8f8;
+  background: #fafafa;
   min-width: 290px;
 `;
 
@@ -81,8 +81,8 @@ export const DiagramName = styled.input`
 export const HeaderCenter = styled.div`
   display: flex;
   gap: 12px;
-  flex: 1 1 460px;
-  min-width: 320px;
+  flex: 1 1 340px;
+  min-width: 260px;
 `;
 
 export const ActionButton = styled.button`
@@ -115,7 +115,7 @@ export const ActionButton = styled.button`
 export const HeaderRight = styled.div`
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
   margin-left: auto;
 `;
 
@@ -160,11 +160,16 @@ export const CloseBtn = styled.button`
   border: none;
   width: 32px;
   height: 32px;
-  display: grid;
-  place-items: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 0 2px;
   color: white;
-  font-size: 18px;
+  font-family: Arial, sans-serif;
+  font-size: 22px;
+  line-height: 1;
   cursor: pointer;
+
   &:hover {
     background: #333;
   }
@@ -382,4 +387,3 @@ export const EmptyText = styled.p`
   color: #000000;
   letter-spacing: 0.1em;
 `;
-

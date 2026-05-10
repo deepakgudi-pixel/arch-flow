@@ -1,5 +1,110 @@
 # Archflow Optimization Log
 
+**log:** 2026-05-10 21:10:00 IST (+0530)
+
+## Overview
+Architecture Assistant Review Flow and Reliability Hardening Pass. Focus areas: making the new assistant feel calm instead of overwhelming, ensuring staged review work survives refreshes, preparing draft persistence for Electron, and grounding the assistant in stronger deterministic architecture checks.
+
+---
+
+## 1. The Assistant Needed Review Staging, Not Silent Canvas Mutation
+**Why:** The assistant became much more useful once it could identify missing technologies, but that power created a UX risk. If suggestions immediately hijack the UI or alter the diagram before the user understands the answer, the product feels chaotic instead of trustworthy.
+
+**What changed:**
+- introduced an AI architecture assistant panel for diagram-specific chat
+- the assistant now stages missing technologies into `ARCHITECTURAL_REVIEW` instead of mutating the diagram directly
+- review items can be accepted or declined one by one
+- the assistant no longer auto-switches the user into the review panel after a response
+
+**How this helps Archflow:**
+- keeps the assistant conversational first
+- preserves user control over architecture changes
+- makes the review flow feel collaborative instead of pushy
+
+---
+
+## 2. Accept-and-Connect Needed to Feel Safe, Not Surprising
+**Why:** Once staged suggestions could be accepted into the live diagram, the next risk was correctness and focus. A good flow should wire the technology into the diagram, but it should not explode into invalid edges, open extra detail panels, or otherwise overwhelm the user.
+
+**What changed:**
+- `Accept and connect` now adds approved technologies directly into the diagram with rule-aware connection sanitization
+- invalid AI-suggested edges can be reversed or dropped before they are committed
+- the accept flow no longer opens `UNIT_DETAILS`
+- signed storage patterns are now treated more carefully so valid `SIGNED_URL` client flows can survive when a backend control plane exists
+
+**How this helps Archflow:**
+- reduces immediate `RULE_VIOLATION` noise after accepting a suggestion
+- keeps the edit flow calmer and easier to follow
+- makes assistant-driven diagram updates feel more trustworthy
+
+---
+
+## 3. Pending Review Work Needed to Survive Refreshes
+**Why:** Losing staged assistant output or pending review suggestions after a browser refresh would feel like the product dropped the user's work on the floor. For this feature, that kind of loss would burn trust faster than almost any cosmetic bug.
+
+**What changed:**
+- assistant chat history and pending review suggestions are now persisted per `user + diagram`
+- refresh restores in-progress review drafts instead of resetting them
+- draft persistence was moved behind a storage abstraction instead of hard-coding direct browser `localStorage` calls
+
+**How this helps Archflow:**
+- protects in-progress architecture review from accidental refreshes
+- reduces fear around exploring multiple assistant suggestions
+- gives the feature a much more durable feel without forcing draft data into the backend
+
+---
+
+## 4. Electron Compatibility Needed to Be Planned Early
+**Why:** Browser `localStorage` is acceptable for the web version, but the product is expected to ship as an Electron Mac app. Waiting too long to separate storage concerns would make that transition messier than it needs to be.
+
+**What changed:**
+- introduced a review-draft storage abstraction in the frontend
+- web continues to use browser-backed storage
+- the Electron shell now exposes a preload bridge and app-owned local JSON storage for the same draft data
+
+**How this helps Archflow:**
+- keeps the web and desktop flows aligned
+- avoids turning draft persistence into backend-only complexity
+- prepares Archflow for a desktop packaging path without changing the user-facing behavior
+
+---
+
+## 5. Reliability Needed Stronger Local Signals, Not Just Better Prompts
+**Why:** If Archflow is going to position the architecture assistant as dependable, it cannot rely on the language model alone. The product needs deterministic checks that stay grounded even when the model is uncertain or overconfident.
+
+**What changed:**
+- strengthened the local review engine with deeper architecture checks
+- added better handling for signed storage access patterns and missing signing control planes
+- added queue topology checks for missing producers or consumers
+- added complexity-aware warnings for missing observability, async-scaling gaps, and central backend choke points
+- passed structured review summaries and findings into the assistant prompt as authoritative context
+
+**How this helps Archflow:**
+- gives the assistant a more reliable floor for complex diagrams
+- reduces the chance of confidently wrong review language
+- keeps the product aligned with its trust-first positioning
+
+---
+
+## 6. Product-Level Reasoning
+The broader conclusion from this pass:
+
+- a good architecture assistant is not just "chat on top of a diagram"
+- review staging, persistence, and deterministic checks are part of the feature, not optional polish
+- reliability comes from layered product behavior, not from asking the model to sound smarter
+
+This pass made the assistant feel more real because it now behaves like a careful copilot:
+
+- it answers
+- it stages
+- it waits for approval
+- it connects safely
+- and it remembers unfinished work
+
+That is the kind of behavior users can build trust around.
+
+---
+
 **log:** 2026-05-09 15:59:46 IST (+0530)
 
 ## Overview

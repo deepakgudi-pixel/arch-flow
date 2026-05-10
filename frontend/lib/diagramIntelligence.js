@@ -85,7 +85,7 @@ function getProtocolFamily(protocolLabel) {
   if (protocol.includes('GRAPHQL')) return 'graphql';
   if (protocol.includes('KAFKA') || protocol.includes('AMQP') || protocol.includes('QUEUE') || protocol.includes('SQS') || protocol.includes('EVENT')) return 'async';
   if (protocol.includes('OIDC') || protocol.includes('OAUTH') || protocol.includes('SAML')) return 'identity';
-  if (protocol.includes('SIGNED URL')) return 'signed-url';
+  if (protocol.includes('SIGNED URL') || protocol.includes('SIGNED_URL')) return 'signed-url';
   if (protocol.includes('REST') || protocol.includes('HTTP') || protocol.includes('HTTPS') || protocol.includes('API')) return 'request-response';
   return 'specific';
 }
@@ -196,6 +196,34 @@ function getConnectionAssumptions(sourceNode, targetNode, protocolFamily) {
   return assumptions;
 }
 
+function isClientCategory(category) {
+  return category === 'frontend' || category === 'mobile';
+}
+
+function buildCategoryCounts(techNodes) {
+  return techNodes.reduce((acc, node) => {
+    const category = node.data.category || 'unknown';
+    acc[category] = (acc[category] || 0) + 1;
+    return acc;
+  }, {});
+}
+
+function buildDiagramComplexityScore(techNodes, edges, categoryCounts) {
+  const bonusCategories = ['auth', 'storage', 'external', 'queue', 'devops']
+    .reduce((sum, category) => sum + ((categoryCounts[category] || 0) > 0 ? 1 : 0), 0);
+
+  return techNodes.length
+    + Math.min((edges || []).length, 4)
+    + bonusCategories
+    + ((categoryCounts.backend || 0) >= 2 ? 1 : 0);
+}
+
+function isSignedStorageAccessPattern({ sourceCategory, targetCategory, protocolFamily }) {
+  return isClientCategory(sourceCategory)
+    && targetCategory === 'storage'
+    && protocolFamily === 'signed-url';
+}
+
 export function getReplacementCandidates(inventory, category, currentLabel) {
   if (!category) {
     return [];
@@ -268,7 +296,11 @@ export function buildArchitectureReview({ nodes, edges, connectionRules, connect
 
   const nodeById = new Map(techNodes.map(node => [node.id, node]));
   const degreeByNodeId = new Map(techNodes.map(node => [node.id, 0]));
+  const incomingEdgesByNodeId = new Map(techNodes.map(node => [node.id, []]));
+  const outgoingEdgesByNodeId = new Map(techNodes.map(node => [node.id, []]));
   const categories = new Map();
+  const categoryCounts = buildCategoryCounts(techNodes);
+  const complexityScore = buildDiagramComplexityScore(techNodes, edges, categoryCounts);
 
   techNodes.forEach(node => {
     categories.set(node.id, node.data.category || 'unknown');
@@ -295,10 +327,19 @@ export function buildArchitectureReview({ nodes, edges, connectionRules, connect
 
     degreeByNodeId.set(edge.source, (degreeByNodeId.get(edge.source) || 0) + 1);
     degreeByNodeId.set(edge.target, (degreeByNodeId.get(edge.target) || 0) + 1);
+    incomingEdgesByNodeId.get(edge.target)?.push(edge);
+    outgoingEdgesByNodeId.get(edge.source)?.push(edge);
 
     const sourceCategory = sourceNode.data.category || 'unknown';
     const targetCategory = targetNode.data.category || 'unknown';
+    const protocolFamily = getProtocolFamily(edge.label);
     const rule = ruleMap.get(getRuleKey(sourceCategory, targetCategory));
+    const signedStorageAccessPattern = isSignedStorageAccessPattern({
+      sourceCategory,
+      targetCategory,
+      protocolFamily
+    });
+    const signedStorageHasBackendControlPlane = signedStorageAccessPattern && (categoryCounts.backend || 0) > 0;
 
     if (sourceCategory === 'frontend' && targetCategory === 'database') {
       pushFinding(findings, {
@@ -320,7 +361,23 @@ export function buildArchitectureReview({ nodes, edges, connectionRules, connect
       });
     }
 
-    if (rule && rule.is_valid === false && connectionMode !== 'sandbox') {
+    if (signedStorageAccessPattern && !signedStorageHasBackendControlPlane && connectionMode !== 'sandbox') {
+      pushFinding(findings, {
+        severity: 'warning',
+        title: 'MISSING_STORAGE_CONTROL_PLANE',
+        detail: 'The client is using a signed storage access pattern, but no backend or signing service is present to issue scoped upload/download credentials.',
+        nodeIds: [sourceNode.id, targetNode.id],
+        edgeIds: [edge.id]
+      });
+    } else if (signedStorageHasBackendControlPlane && connectionMode !== 'sandbox') {
+      pushFinding(findings, {
+        severity: 'info',
+        title: 'SIGNED_STORAGE_PATH',
+        detail: 'The client reaches storage through a signed access flow. Verify the backend is issuing short-lived, tightly scoped credentials or URLs.',
+        nodeIds: [sourceNode.id, targetNode.id],
+        edgeIds: [edge.id]
+      });
+    } else if (rule && rule.is_valid === false && connectionMode !== 'sandbox') {
       pushFinding(findings, {
         severity: connectionMode === 'strict' ? 'critical' : 'warning',
         title: 'RULE_VIOLATION',
@@ -360,12 +417,6 @@ export function buildArchitectureReview({ nodes, edges, connectionRules, connect
     }
   });
 
-  const categoryCounts = techNodes.reduce((acc, node) => {
-    const category = node.data.category || 'unknown';
-    acc[category] = (acc[category] || 0) + 1;
-    return acc;
-  }, {});
-
   if ((categoryCounts.frontend || categoryCounts.mobile) && categoryCounts.database && !categoryCounts.backend) {
     pushFinding(findings, {
       severity: 'critical',
@@ -388,31 +439,96 @@ export function buildArchitectureReview({ nodes, edges, connectionRules, connect
     });
   }
 
-  if ((categoryCounts.backend || 0) >= 3 && !categoryCounts.queue) {
-    pushFinding(findings, {
-      severity: 'info',
-      title: 'LIMITED_ASYNC_SCALING_PATH',
-      detail: 'This system has multiple backend services but no queue or event stream, so background workloads may remain tightly coupled.',
-      nodeIds: techNodes.filter(node => node.data.category === 'backend').map(node => node.id)
-    });
-  }
-
-  if (techNodes.length >= 7 && !categoryCounts.devops) {
+  if (complexityScore >= 10 && !categoryCounts.devops) {
     pushFinding(findings, {
       severity: 'info',
       title: 'NO_OBSERVABILITY_LAYER',
-      detail: 'The architecture is non-trivial, but there is no explicit devops or observability layer for logging, monitoring, or deployment control.',
+      detail: 'The architecture has enough moving parts to justify explicit observability or delivery tooling, but no devops layer is modeled yet.',
       nodeIds: techNodes.map(node => node.id)
     });
   }
 
-  if ((categoryCounts.database || 0) === 1 && techNodes.length >= 8) {
+  if ((categoryCounts.database || 0) === 1 && complexityScore >= 12) {
     pushFinding(findings, {
       severity: 'warning',
       title: 'SINGLE_DATASTORE_PRESSURE',
       detail: 'A larger system is relying on a single explicit datastore. Review whether this becomes a throughput or failure bottleneck.',
       nodeIds: techNodes.filter(node => node.data.category === 'database').map(node => node.id)
     });
+  }
+
+  const queueNodes = techNodes.filter(node => node.data.category === 'queue');
+  queueNodes.forEach(node => {
+    const inboundEdges = incomingEdgesByNodeId.get(node.id) || [];
+    const outboundEdges = outgoingEdgesByNodeId.get(node.id) || [];
+    const hasProducer = inboundEdges.some(edge => {
+      const sourceCategory = nodeById.get(edge.source)?.data?.category;
+      return sourceCategory === 'backend' || sourceCategory === 'external' || sourceCategory === 'queue';
+    });
+    const hasConsumer = outboundEdges.some(edge => {
+      const targetCategory = nodeById.get(edge.target)?.data?.category;
+      return targetCategory === 'backend' || targetCategory === 'queue';
+    });
+
+    if (!hasProducer || !hasConsumer) {
+      pushFinding(findings, {
+        severity: 'warning',
+        title: !hasProducer ? 'QUEUE_WITHOUT_PRODUCER' : 'QUEUE_WITHOUT_CONSUMER',
+        detail: !hasProducer
+          ? `${formatTechDisplayLabel(node.data.label, node.data.category)} has no clear producer. Model which service or external event source publishes work into the queue.`
+          : `${formatTechDisplayLabel(node.data.label, node.data.category)} has no clear consumer. Model the worker or backend service that drains and processes this queue.`,
+        nodeIds: [node.id],
+        edgeIds: [...inboundEdges, ...outboundEdges].map(edge => edge.id).filter(Boolean)
+      });
+    }
+  });
+
+  const backendNodes = techNodes.filter(node => node.data.category === 'backend');
+  const heavyBackendNodes = backendNodes.filter(node => {
+    const outgoingEdges = outgoingEdgesByNodeId.get(node.id) || [];
+    const downstreamCategories = new Set(
+      outgoingEdges
+        .map(edge => nodeById.get(edge.target)?.data?.category)
+        .filter(category => ['database', 'storage', 'external', 'queue'].includes(category))
+    );
+
+    return downstreamCategories.size >= 2;
+  });
+
+  if (
+    !categoryCounts.queue
+    && (
+      backendNodes.length >= 3
+      || (
+        heavyBackendNodes.length > 0
+        && ((categoryCounts.database || 0) + (categoryCounts.storage || 0) + (categoryCounts.external || 0)) >= 2
+      )
+    )
+  ) {
+    pushFinding(findings, {
+      severity: 'info',
+      title: 'LIMITED_ASYNC_SCALING_PATH',
+      detail: 'The system has multiple downstream workloads but no explicit queue or event stream, so background processing and retries may stay tightly coupled to synchronous request paths.',
+      nodeIds: backendNodes.map(node => node.id)
+    });
+  }
+
+  if (backendNodes.length === 1 && techNodes.length >= 6) {
+    const centralBackend = backendNodes[0];
+    const downstreamCategories = new Set(
+      (outgoingEdgesByNodeId.get(centralBackend.id) || [])
+        .map(edge => nodeById.get(edge.target)?.data?.category)
+        .filter(category => ['database', 'auth', 'storage', 'external', 'queue'].includes(category))
+    );
+
+    if (downstreamCategories.size >= 3) {
+      pushFinding(findings, {
+        severity: 'info',
+        title: 'CENTRAL_BACKEND_CHOKE_POINT',
+        detail: `${formatTechDisplayLabel(centralBackend.data.label, centralBackend.data.category)} is carrying several downstream responsibilities on its own. Review whether this becomes a scaling or failure choke point as the product grows.`,
+        nodeIds: [centralBackend.id]
+      });
+    }
   }
 
   const deduped = new Map();

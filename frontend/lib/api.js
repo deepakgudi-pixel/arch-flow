@@ -163,6 +163,7 @@ export const api = {
     }
   },
   generateTech: (data) => fetchAPI('/ai/generate-tech', { method: 'POST', body: JSON.stringify(data) }),
+  reviewDiagram: (data) => fetchAPI('/ai/review-diagram', { method: 'POST', body: JSON.stringify(data) }),
   inferConnection: (data) => fetchAPI('/ai/infer-connection', { method: 'POST', body: JSON.stringify(data) }),
 
   getDiagramVersions: (id) => fetchAPI(`/diagrams/${id}/versions`),
