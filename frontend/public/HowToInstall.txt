@@ -6,8 +6,10 @@ Because this app is currently in development and not yet signed by Apple, your M
 Follow these steps to open it:
 
 1. Drag "Archflow" to your Applications folder as usual.
-2. RIGHT-CLICK the Archflow app and select "Open".
-3. A warning will appear. Click "Open" again. (This only needs to be done once).
+2. If it says "App is damaged", open your TERMINAL and run:
+   sudo xattr -cr /Applications/Archflow.app
+3. Now, RIGHT-CLICK the Archflow app and select "Open".
+4. A warning will appear. Click "Open" again. (This only needs to be done once).
 
 If "Open" doesn't appear:
 1. Go to System Settings > Privacy & Security.
