@@ -51,28 +51,6 @@ const BrandMark = styled.span`
   font-weight: 800;
 `;
 
-const BrandText = styled.div`
-  display: grid;
-  gap: 2px;
-`;
-
-const BrandTitle = styled.span`
-  font-family: var(--font-sans);
-  font-weight: 800;
-  font-size: 1.2rem;
-  letter-spacing: -0.02em;
-  color: #000;
-`;
-
-const BrandSubtitle = styled.span`
-  font-family: var(--font-sans);
-  font-size: 0.65rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  color: #999;
-  letter-spacing: 0.05em;
-`;
-
 const Nav = styled.nav`
   display: flex;
   flex-wrap: wrap;
@@ -121,10 +99,6 @@ export default function AppShell({ children, navItems = [], actions, userSlot })
               <BrandMark>
                 <Hexagon size={20} strokeWidth={3} fill="currentColor" />
               </BrandMark>
-              <BrandText>
-                <BrandTitle>Archflow</BrandTitle>
-                <BrandSubtitle>AI system design workspace</BrandSubtitle>
-              </BrandText>
             </Brand>
             {navItems.length ? (
               <Nav>
