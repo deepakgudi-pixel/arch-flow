@@ -26,17 +26,25 @@ const Stack = styled.div`
 const UserChip = styled.div`
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 12px 20px;
-  border: 3px solid #000000;
+  gap: 12px;
+  padding: 6px 14px 6px 6px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
   background: #ffffff;
-  box-shadow: 4px 4px 0px #000000;
+  border-radius: 999px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  transition: all 0.2s;
+
+  &:hover {
+    border-color: rgba(0, 0, 0, 0.15);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  }
 `;
 
 const UserAvatar = styled.img`
-  width: 44px;
-  height: 44px;
-  border: 2px solid #000000;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, 0.05);
   object-fit: cover;
 `;
 
@@ -46,16 +54,19 @@ const UserCopy = styled.div`
 `;
 
 const UserName = styled.strong`
-  font-size: 1rem;
-  font-weight: 900;
-  text-transform: uppercase;
-  color: var(--color-ink);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 700;
+  color: #000;
+  line-height: 1;
 `;
 
 const UserMeta = styled.span`
-  font-family: var(--font-mono);
-  font-size: 0.75rem;
-  color: var(--color-ink-soft);
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 500;
+  color: #999;
+  line-height: 1;
 `;
 
 const Overview = styled(Card)`

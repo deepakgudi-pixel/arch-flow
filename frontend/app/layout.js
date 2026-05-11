@@ -3,6 +3,7 @@ import ClerkAuthProvider from '@/app/_clerk/ClerkProvider';
 import GlobalStyles from '@/components/layout/GlobalStyles';
 import MobileGate from '@/components/layout/MobileGate';
 import { assertFrontendEnv } from '@/lib/runtimeEnv';
+import { headers } from 'next/headers';
 
 export const metadata = {
   title: 'Archflow - System Design Sandbox',
@@ -16,8 +17,10 @@ export const viewport = {
   userScalable: false,
 };
 
-export default function RootLayout({ children }) {
+export default async function RootLayout({ children }) {
   assertFrontendEnv();
+  const headerStore = await headers();
+  const isSmokeRoute = headerStore.get('x-archflow-smoke-route') === '1';
 
   return (
     <html lang="en" suppressHydrationWarning>
@@ -30,9 +33,11 @@ export default function RootLayout({ children }) {
         <StyledComponentsRegistry>
           <GlobalStyles />
           <MobileGate />
-          <ClerkAuthProvider>
-            {children}
-          </ClerkAuthProvider>
+          {isSmokeRoute ? children : (
+            <ClerkAuthProvider>
+              {children}
+            </ClerkAuthProvider>
+          )}
         </StyledComponentsRegistry>
       </body>
     </html>

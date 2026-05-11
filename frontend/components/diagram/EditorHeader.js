@@ -1,8 +1,25 @@
 'use client';
 
-import { AnimatePresence, motion } from 'framer-motion';
 import Link from 'next/link';
 import styled from 'styled-components';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  Hexagon, 
+  ChevronDown, 
+  History, 
+  MousePointer2, 
+  Activity, 
+  Trash2, 
+  Save, 
+  Share2, 
+  Download, 
+  ArrowLeft,
+  Search,
+  LayoutGrid,
+  Bot,
+  CheckCircle2,
+  Cloud
+} from 'lucide-react';
 import {
   Header, HeaderLeft, Logo, LogoIcon, DiagramNameWrap, DiagramName,
   HeaderCenter, HeaderRight
@@ -10,104 +27,97 @@ import {
 import { ActionButton } from './editorStyles';
 
 const CenterStack = styled(HeaderCenter)`
-  flex-direction: column;
-  align-items: flex-start;
+  flex-direction: row;
+  align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 12px;
+  flex: 2;
 `;
 
 const StatusRail = styled.div`
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
   gap: 8px;
-  width: 100%;
 `;
 
-const FocusChip = styled.div`
+const FocusChip = styled(motion.div)`
   display: flex;
   align-items: center;
-  gap: 10px;
-  min-width: 0;
-  max-width: min(100%, 440px);
-  padding: 8px 12px;
-  border: 2px solid #000000;
-  background: #f6f6f6;
+  gap: 8px;
+  padding: 6px 12px;
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 999px;
+  border: 1px solid rgba(0, 0, 0, 0.05);
 `;
 
 const FocusLabel = styled.div`
-  font-family: var(--font-mono);
-  font-size: 10px;
-  font-weight: 900;
-  color: #6b7280;
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 700;
+  color: #666;
   text-transform: uppercase;
-  flex-shrink: 0;
+  letter-spacing: 0.02em;
 `;
 
 const FocusValue = styled.div`
-  font-size: 12px;
-  font-weight: 900;
-  color: #000000;
-  text-transform: uppercase;
-  line-height: 1.2;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 700;
+  color: #000;
 `;
 
-const StatusChip = styled.div`
+const StatusChip = styled(motion.div)`
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
-  border: 2px solid #000000;
-  background: ${props => props.$tone === 'alert' ? '#fff4db' : '#ffffff'};
-  color: #000000;
-  font-family: var(--font-mono);
-  font-size: 11px;
-  font-weight: 900;
-  text-transform: uppercase;
-  line-height: 1;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: ${props => props.$tone === 'alert' ? '#FFFBEB' : '#F0F9FF'};
+  color: ${props => props.$tone === 'alert' ? '#B45309' : '#0369A1'};
+  border: 1px solid ${props => props.$tone === 'alert' ? 'rgba(180, 83, 9, 0.1)' : 'rgba(3, 105, 161, 0.1)'};
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 700;
 `;
 
-const StatusDot = styled.span`
-  width: 8px;
-  height: 8px;
-  border-radius: 999px;
-  background: ${props => props.$tone === 'alert' ? '#f59e0b' : '#000000'};
-  flex-shrink: 0;
+const SaveStatus = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #999;
+  margin-top: -2px;
 `;
 
 const ActionRail = styled(HeaderRight)`
   gap: 12px;
-  flex-wrap: wrap;
+  flex: 1;
   justify-content: flex-end;
 `;
 
 const PrimaryGroup = styled.div`
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 4px;
   padding: 4px;
-  border: 2px solid #000000;
-  background: #f3f3f3;
-  flex-wrap: wrap;
+  background: rgba(0, 0, 0, 0.03);
+  border-radius: 12px;
 `;
 
 const PrimaryAction = styled(ActionButton)`
-  border-width: 2px;
-  padding: 10px 14px;
-  min-height: 40px;
+  border: none;
   background: ${props => props.$active ? '#000000' : 'transparent'};
-  color: ${props => props.$active ? '#ffffff' : '#000000'};
+  color: ${props => props.$active ? '#ffffff' : '#444'};
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-weight: 700;
 
   &:hover {
+    background: ${props => props.$active ? '#000000' : 'rgba(0, 0, 0, 0.05)'};
+    color: ${props => props.$active ? '#ffffff' : '#000'};
     transform: none;
-    background: ${props => props.$active ? '#000000' : '#ffffff'};
-  }
-
-  &:active {
-    transform: none;
+    box-shadow: none;
   }
 `;
 
@@ -133,75 +143,66 @@ const UtilityWrapper = styled.div`
 `;
 
 const UtilityTrigger = styled(ActionButton)`
-  border-width: 2px;
-  padding: 10px 14px;
-  min-height: 40px;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
   background: #ffffff;
-  transform: none !important;
-
-  &:hover {
-    transform: none;
-    background: #f3f3f3;
-  }
-
-  &:active {
-    transform: none;
-  }
+  padding: 8px 14px;
+  font-weight: 700;
 `;
 
-const UtilityDropdownShell = styled.div`
+const UtilityDropdownShell = styled(motion.div)`
   position: absolute;
-  top: calc(100% + 6px);
+  top: calc(100% + 8px);
   right: 0;
   z-index: 1000;
-  min-width: 250px;
+  min-width: 220px;
 `;
 
-const UtilityDropdown = styled(motion.div)`
+const UtilityDropdown = styled.div`
   background: #ffffff;
-  border: 2px solid #000000;
-  width: 100%;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 12px;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
   overflow: hidden;
+  padding: 6px;
 `;
 
 const UtilityItem = styled.div`
-  padding: 12px 14px;
+  padding: 10px 12px;
   cursor: pointer;
-  font-family: var(--font-mono);
-  font-size: 11px;
-  font-weight: 900;
-  text-transform: uppercase;
-  border-bottom: 1px solid #e5e7eb;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
-  text-align: left;
-  background: ${props => props.$danger ? '#fff7f7' : '#ffffff'};
-  color: ${props => props.$danger ? '#b42318' : '#000000'};
+  gap: 12px;
+  background: ${props => props.$danger ? 'transparent' : 'transparent'};
+  color: ${props => props.$danger ? '#DC2626' : '#444'};
+  transition: all 0.2s;
 
   &:hover {
-    background: ${props => props.$danger ? '#ffecec' : '#f3f4f6'};
+    background: ${props => props.$danger ? '#FEF2F2' : '#F9F9F9'};
+    color: ${props => props.$danger ? '#B91C1C' : '#000'};
+  }
+
+  svg {
+    width: 16px;
+    height: 16px;
+    opacity: 0.7;
   }
 `;
 
 const Divider = styled.div`
   height: 1px;
-  background: #d1d5db;
-`;
-
-const FieldLabel = styled.span`
-  font-size: 10px;
-  font-weight: 900;
-  color: #999;
+  background: rgba(0, 0, 0, 0.05);
+  margin: 4px 0;
 `;
 
 const UtilityMeta = styled.span`
-  color: #6b7280;
+  color: #999;
   font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
 `;
 
 export default function EditorHeader({
@@ -214,7 +215,6 @@ export default function EditorHeader({
   historyPanelOpen, onToggleHistoryPanel,
   showExportMenu, onToggleExportMenu,
   onSave, onExportPNG, onExportJSON,
-  connectMode, onToggleConnectMode,
   simulateFlow, onToggleSimulateFlow,
   onOpenInvite,
 }) {
@@ -222,32 +222,30 @@ export default function EditorHeader({
     {
       label: historyPanelOpen ? 'Hide history' : 'Open history',
       meta: historyPanelOpen ? 'Active' : null,
+      icon: <History />,
       onClick: onToggleHistoryPanel
     },
     {
-      label: connectMode ? 'Disable connect mode' : 'Enable connect mode',
-      meta: connectMode ? 'Active' : null,
-      onClick: onToggleConnectMode
-    },
-    {
-      label: simulateFlow ? 'Disable live flow' : 'Enable live flow',
+      label: simulateFlow ? 'Disable flow' : 'Enable flow',
       meta: simulateFlow ? 'Active' : null,
+      icon: <Activity />,
       onClick: onToggleSimulateFlow
     },
     hasSelection
       ? {
-          label: 'Remove selection',
+          label: 'Delete selection',
+          icon: <Trash2 />,
           onClick: onDeleteSelection,
           danger: true
         }
       : null,
     { divider: true },
-    { label: 'Save changes', onClick: () => onSave(true) },
-    { label: 'Invite collaborator', onClick: onOpenInvite },
-    { label: 'Export PNG', onClick: onExportPNG },
-    { label: 'Export JSON', onClick: onExportJSON },
+    { label: 'Save changes', icon: <Save />, onClick: () => onSave(true) },
+    { label: 'Invite collaborator', icon: <Share2 />, onClick: onOpenInvite },
+    { label: 'Export image', icon: <Download />, onClick: onExportPNG },
+    { label: 'Export JSON', icon: <Cloud />, onClick: onExportJSON },
     { divider: true },
-    { label: 'Return to dashboard', onClick: () => { window.location.href = '/dashboard'; } }
+    { label: 'Exit', icon: <ArrowLeft />, onClick: () => { window.location.href = '/dashboard'; } }
   ].filter(Boolean);
 
   return (
@@ -255,81 +253,113 @@ export default function EditorHeader({
       <HeaderLeft>
         <Link href="/dashboard">
           <Logo>
-            <LogoIcon>⬡</LogoIcon>
+            <LogoIcon>
+              <Hexagon size={16} strokeWidth={3} fill="currentColor" />
+            </LogoIcon>
             Archflow
           </Logo>
         </Link>
         <DiagramNameWrap>
-          <FieldLabel>DIAGRAM</FieldLabel>
-          <DiagramName value={diagramName} onChange={onDiagramNameChange} onBlur={onDiagramNameBlur} />
+          <DiagramName 
+            value={diagramName} 
+            onChange={onDiagramNameChange} 
+            onBlur={onDiagramNameBlur}
+            placeholder="Untitled Diagram"
+          />
+          <SaveStatus>
+            <CheckCircle2 size={10} />
+            Saved to cloud
+          </SaveStatus>
         </DiagramNameWrap>
       </HeaderLeft>
+
       <CenterStack>
-        <StatusRail>
+        <AnimatePresence mode="popLayout">
           {hasSelection && (
-            <FocusChip>
+            <FocusChip
+              initial={{ opacity: 0, y: -10, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 10, scale: 0.95 }}
+              key="focus"
+            >
+              <MousePointer2 size={12} fill="currentColor" />
               <FocusLabel>{selectionKind || 'Selection'}</FocusLabel>
               <FocusValue>{selectionLabel}</FocusValue>
             </FocusChip>
           )}
-          {connectMode && (
-            <StatusChip>
-              <StatusDot />
-              Connect mode on
-            </StatusChip>
-          )}
+
           {simulateFlow && (
-            <StatusChip>
-              <StatusDot />
-              Live flow on
+            <StatusChip
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              key="flow"
+            >
+              <Activity size={12} />
+              Live Flow
             </StatusChip>
           )}
+
           {reviewSuggestionCount > 0 && (
-            <StatusChip $tone="alert">
-              <StatusDot $tone="alert" />
-              {reviewSuggestionCount} staged in review
+            <StatusChip 
+              $tone="alert"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              key="review"
+            >
+              <Bot size={12} />
+              {reviewSuggestionCount} Review Pending
             </StatusChip>
           )}
-        </StatusRail>
+        </AnimatePresence>
       </CenterStack>
+
       <ActionRail>
         <PrimaryGroup>
           <PrimaryAction $active={assistantPanelOpen} onClick={onToggleAssistantPanel}>
-            Assistant
+            <Bot size={16} />
+            AI Assistant
           </PrimaryAction>
           <PrimaryAction $active={reviewPanelOpen} onClick={onToggleReviewPanel}>
+            <Search size={16} />
             Review
             {reviewSuggestionCount > 0 && (
               <ReviewCount $active={reviewPanelOpen}>{reviewSuggestionCount}</ReviewCount>
             )}
           </PrimaryAction>
           <PrimaryAction $active={rightPanelOpen} onClick={onToggleRightPanel}>
+            <LayoutGrid size={16} />
             Library
           </PrimaryAction>
         </PrimaryGroup>
+
         <UtilityWrapper>
           <UtilityTrigger onClick={onToggleExportMenu}>
-            Actions {showExportMenu ? '↑' : '↓'}
+            Actions
+            <ChevronDown size={14} style={{ transform: showExportMenu ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
           </UtilityTrigger>
           <AnimatePresence>
             {showExportMenu && (
-              <UtilityDropdownShell>
-                <UtilityDropdown
-                  initial={{ opacity: 0, y: -10, scaleY: 0.96 }}
-                  animate={{ opacity: 1, y: 0, scaleY: 1 }}
-                  exit={{ opacity: 0, y: -8, scaleY: 0.97 }}
-                  transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
-                  style={{ transformOrigin: 'top right' }}
-                >
+              <UtilityDropdownShell
+                initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                transition={{ duration: 0.15 }}
+              >
+                <UtilityDropdown>
                   {utilityItems.map((item, idx) => item.divider ? (
-                    <Divider key={idx} />
+                    <Divider key={idx} style={{ margin: '4px 0' }} />
                   ) : (
                     <UtilityItem
                       key={idx}
                       $danger={item.danger}
-                      onClick={() => { item.onClick(); onToggleExportMenu(); }}
+                      onClick={() => { onToggleExportMenu(); item.onClick(); }}
                     >
-                      <span>{item.label}</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        {item.icon}
+                        <span>{item.label}</span>
+                      </div>
                       {item.meta ? <UtilityMeta>{item.meta}</UtilityMeta> : null}
                     </UtilityItem>
                   ))}

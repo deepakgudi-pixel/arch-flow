@@ -24,16 +24,19 @@ const UserChip = styled.div`
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 8px 12px;
-  border-radius: var(--radius-pill);
-  background: rgba(255, 255, 255, 0.88);
-  border: 1px solid var(--color-line);
+  padding: 6px 14px 6px 6px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  background: #ffffff;
+  border-radius: 999px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 `;
 
 const UserAvatar = styled.img`
-  width: 36px;
-  height: 36px;
-  border-radius: 14px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  object-fit: cover;
 `;
 
 const UserCopy = styled.div`
@@ -42,13 +45,19 @@ const UserCopy = styled.div`
 `;
 
 const UserName = styled.strong`
-  font-size: 0.92rem;
-  color: var(--color-ink);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 700;
+  color: #000;
+  line-height: 1;
 `;
 
 const UserMeta = styled.span`
-  font-size: 0.78rem;
-  color: var(--color-ink-soft);
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 500;
+  color: #999;
+  line-height: 1;
 `;
 
 const Grid = styled.div`

@@ -21,7 +21,10 @@ const TerminalContainer = styled.div`
   width: 100%;
   max-width: 800px;
   background: #000000;
-  border: 4px solid #000000;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
   display: flex;
   flex-direction: column;
   height: 60vh;

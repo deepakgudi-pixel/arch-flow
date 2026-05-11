@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect, useRef } from 'react';
 import styled from 'styled-components';
 import { Bot, MessageSquareText, Send, Sparkles } from 'lucide-react';
 import { Badge } from '@/components/ui/Badge';
@@ -15,7 +16,7 @@ const Panel = styled.div`
 
 const PanelHeader = styled.div`
   padding: 24px;
-  border-bottom: 3px solid #000000;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
   display: grid;
   gap: 16px;
 `;
@@ -34,14 +35,15 @@ const TitleCluster = styled.div`
 `;
 
 const Title = styled.h3`
-  font-family: var(--font-mono);
-  font-size: 14px;
-  font-weight: 900;
-  text-transform: uppercase;
+  font-family: var(--font-sans);
+  font-size: 15px;
+  font-weight: 700;
+  color: #000;
 `;
 
 const IntroCard = styled.div`
-  border: 3px solid #000000;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 12px;
   background: linear-gradient(180deg, #f7fbff 0%, #ffffff 100%);
   padding: 16px;
   display: grid;
@@ -52,10 +54,12 @@ const IntroTitle = styled.div`
   display: flex;
   align-items: center;
   gap: 10px;
-  font-family: var(--font-mono);
+  font-family: var(--font-sans);
   font-size: 11px;
-  font-weight: 900;
+  font-weight: 700;
+  color: #0369a1;
   text-transform: uppercase;
+  letter-spacing: 0.05em;
 `;
 
 const PromptRow = styled.div`
@@ -65,18 +69,21 @@ const PromptRow = styled.div`
 `;
 
 const PromptChip = styled.button`
-  border: 2px solid #000000;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 8px;
   background: #ffffff;
-  padding: 8px 10px;
-  font-family: var(--font-mono);
-  font-size: 10px;
-  font-weight: 900;
-  text-transform: uppercase;
+  padding: 6px 10px;
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 600;
+  color: #444;
   cursor: pointer;
+  transition: all 0.2s;
 
   &:hover {
-    transform: translate(-1px, -1px);
-    background: #f5f5f5;
+    border-color: rgba(0, 0, 0, 0.15);
+    background: #f9f9f9;
+    transform: translateY(-1px);
   }
 `;
 
@@ -92,24 +99,17 @@ const MessageList = styled.div`
     #fafafa;
 `;
 
-const EmptyConversation = styled.div`
-  border: 2px dashed #000000;
-  background: rgba(255, 255, 255, 0.92);
-  padding: 18px;
-  font-size: 12px;
-  line-height: 1.6;
-  color: #444444;
-`;
-
 const MessageCard = styled.div`
   align-self: ${props => props.$role === 'user' ? 'flex-end' : 'flex-start'};
   max-width: 92%;
-  border: 3px solid #000000;
+  border-radius: 16px;
+  border: 1px solid ${props => props.$role === 'user' ? 'transparent' : 'rgba(0, 0, 0, 0.05)'};
   background: ${props => props.$role === 'user' ? '#000000' : '#ffffff'};
   color: ${props => props.$role === 'user' ? '#ffffff' : '#000000'};
   padding: 14px 16px;
   display: grid;
   gap: 10px;
+  box-shadow: ${props => props.$role === 'user' ? '0 4px 12px rgba(0,0,0,0.1)' : '0 2px 8px rgba(0,0,0,0.02)'};
 `;
 
 const MessageMeta = styled.div`
@@ -123,11 +123,10 @@ const MessageRole = styled.div`
   display: flex;
   align-items: center;
   gap: 8px;
-  font-family: var(--font-mono);
-  font-size: 10px;
-  font-weight: 900;
-  text-transform: uppercase;
-  opacity: 0.82;
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 700;
+  opacity: 0.6;
 `;
 
 const MessageText = styled.div`
@@ -138,18 +137,26 @@ const MessageText = styled.div`
 
 const Composer = styled.div`
   padding: 18px;
-  border-top: 3px solid #000000;
+  border-top: 1px solid rgba(0, 0, 0, 0.05);
   display: grid;
   gap: 12px;
   background: #ffffff;
 `;
 
 const ComposerBox = styled.div`
-  border: 3px solid #000000;
-  background: #f8f8f8;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 16px;
+  background: #fcfcfc;
   padding: 12px;
   display: grid;
   gap: 10px;
+  transition: all 0.2s;
+
+  &:focus-within {
+    border-color: #000;
+    background: #fff;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+  }
 `;
 
 const ComposerInput = styled.textarea`
@@ -202,6 +209,12 @@ export default function DiagramAssistantPanel({
   pendingSuggestionCount = 0,
   onClose
 }) {
+  const messagesEndRef = useRef(null);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
   return (
     <Panel>
       <PanelHeader>
@@ -243,11 +256,7 @@ export default function DiagramAssistantPanel({
       </PanelHeader>
 
       <MessageList>
-        {messages.length === 0 ? (
-          <EmptyConversation>
-            The assistant will answer against the current diagram, not just the text prompt. That lets it spot missing layers like backend, auth, storage, queues, or observability based on what is already on the canvas.
-          </EmptyConversation>
-        ) : (
+        {messages.length > 0 && (
           messages.map(message => (
             <MessageCard key={message.id} $role={message.role}>
               <MessageMeta>
@@ -265,6 +274,7 @@ export default function DiagramAssistantPanel({
             </MessageCard>
           ))
         )}
+        <div ref={messagesEndRef} />
       </MessageList>
 
       <Composer>

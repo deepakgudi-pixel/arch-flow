@@ -3,6 +3,21 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
 let authToken = null;
 let tokenProvider = null;
 
+async function parseResponseBody(response) {
+  if (response.status === 204) {
+    return null;
+  }
+
+  const contentType = response.headers.get('Content-Type') || '';
+
+  if (contentType.includes('application/json')) {
+    return response.json().catch(() => null);
+  }
+
+  const text = await response.text().catch(() => '');
+  return text || null;
+}
+
 function getStoredToken() {
   if (typeof window === 'undefined') {
     return null;
@@ -13,7 +28,6 @@ function getStoredToken() {
 
 export function setToken(token) {
   authToken = token;
-  console.log('Token set, length:', token?.length);
 }
 
 export function setTokenProvider(provider) {
@@ -47,22 +61,29 @@ async function resolveAuthToken() {
 }
 
 async function fetchAPI(endpoint, options = {}, retry = true) {
+  const {
+    suppressErrorLog = false,
+    ...fetchOptions
+  } = options;
   const token = await resolveAuthToken();
   const headers = {
     'Content-Type': 'application/json',
     ...(token && { Authorization: `Bearer ${token}` }),
-    ...options.headers
+    ...fetchOptions.headers
   };
-
-  console.log('Fetching:', `${API_URL}${endpoint}`, 'Auth header present:', !!token);
   
   const response = await fetch(`${API_URL}${endpoint}`, {
-    ...options,
+    ...fetchOptions,
     headers
   });
 
+  const responseBody = await parseResponseBody(response);
+
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: 'Request failed' }));
+    const error =
+      responseBody && typeof responseBody === 'object'
+        ? responseBody
+        : { error: typeof responseBody === 'string' && responseBody ? responseBody : 'Request failed' };
 
     if (
       retry &&
@@ -75,11 +96,17 @@ async function fetchAPI(endpoint, options = {}, retry = true) {
       return fetchAPI(endpoint, options, false);
     }
 
-    console.error('API error:', response.status, error);
-    throw new Error(error.error || 'Request failed');
+    if (!suppressErrorLog) {
+      console.error('API error:', response.status, error);
+    }
+
+    const apiError = new Error(error.error || 'Request failed');
+    apiError.status = response.status;
+    apiError.payload = error;
+    throw apiError;
   }
 
-  return response.json();
+  return responseBody;
 }
 
 export const api = {
@@ -113,32 +140,44 @@ export const api = {
       });
 
       if (!response.ok) {
-        const error = await response.json().catch(() => ({ error: 'Request failed' }));
+        const errorBody = await parseResponseBody(response);
+        const error =
+          errorBody && typeof errorBody === 'object'
+            ? errorBody
+            : { error: typeof errorBody === 'string' && errorBody ? errorBody : 'Request failed' };
         throw new Error(error.error || 'Request failed');
       }
 
       // If it's a cached response, it might return a direct JSON
       const contentType = response.headers.get('Content-Type');
       if (contentType && contentType.includes('application/json')) {
-        const result = await response.json();
+        const result = await parseResponseBody(response);
         onResult(result);
         return;
       }
 
+      if (!response.body) {
+        throw new Error('Stream response body missing');
+      }
+
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
+      let pendingChunk = '';
+      let currentEvent = null;
 
       while (true) {
         const { done, value } = await reader.read();
-        if (done) break;
+        const chunk = value ? decoder.decode(value, { stream: !done }) : '';
+        pendingChunk += chunk;
 
-        const chunk = decoder.decode(value, { stream: true });
-        const lines = chunk.split('\n');
+        const lines = pendingChunk.split(/\r?\n/);
+        pendingChunk = done ? '' : lines.pop() ?? '';
 
-        let currentEvent = null;
         for (const line of lines) {
           if (line.startsWith('event: ')) {
             currentEvent = line.slice(7).trim();
+          } else if (line === '') {
+            currentEvent = null;
           } else if (line.startsWith('data: ')) {
             const dataStr = line.slice(6).trim();
             if (!dataStr) continue;
@@ -157,6 +196,10 @@ export const api = {
             }
           }
         }
+
+        if (done) {
+          break;
+        }
       }
     } catch (err) {
       onError(err.message);
@@ -173,7 +216,7 @@ export const api = {
   getCollaborators: (id) => fetchAPI(`/diagrams/${id}/collaborators`),
   removeCollaborator: (id, userId) => fetchAPI(`/diagrams/${id}/collaborators/${userId}`, { method: 'DELETE' }),
 
-  syncUser: () => fetchAPI('/users/sync', { method: 'POST' })
+  syncUser: (options = {}) => fetchAPI('/users/sync', { method: 'POST', ...options })
 };
 
 export default api;

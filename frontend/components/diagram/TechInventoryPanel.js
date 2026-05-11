@@ -1,6 +1,7 @@
 'use client';
 
 import styled from 'styled-components';
+import { Trash2 } from 'lucide-react';
 import {
   RightPanel, PanelContent, SidebarTitle, SearchInput, CloseBtn,
   SectionTitle, ActionButton, TechChip, TechCategory, CategoryLabel
@@ -11,12 +12,16 @@ const GenerateSection = styled.div`
 `;
 
 const AiBadge = styled.span`
-  font-size: 8px;
-  background: #000;
-  color: #fff;
-  padding: 2px 4px;
+  font-family: var(--font-sans);
+  font-size: 9px;
+  font-weight: 800;
+  background: rgba(0, 0, 0, 0.05);
+  color: #666;
+  padding: 2px 6px;
+  border-radius: 4px;
   margin-left: 8px;
-  vertical-align: middle;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
 `;
 
 const DeleteBtn = styled.button`
@@ -24,25 +29,39 @@ const DeleteBtn = styled.button`
   background: none;
   border: none;
   cursor: pointer;
-  font-size: 10px;
+  padding: 4px;
+  color: #ccc;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  
+  &:hover {
+    color: #ef4444;
+  }
 `;
 
 const EmptyState = styled.div`
   text-align: center;
-  padding: 20px;
-  border: 2px dashed #ccc;
+  padding: 32px 24px;
+  border: 1px dashed rgba(0, 0, 0, 0.1);
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.01);
 `;
 
 const EmptyStateLabel = styled.div`
-  font-size: 10px;
-  font-weight: 900;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 600;
   color: #999;
-  margin-bottom: 12px;
+  margin-bottom: 16px;
 `;
 
 const WideButton = styled(ActionButton)`
   width: 100%;
-  font-size: 11px;
+  justify-content: center;
+  padding: 10px;
+  font-size: 12px;
 `;
 
 export default function TechInventoryPanel({
@@ -56,21 +75,21 @@ export default function TechInventoryPanel({
       {open && (
         <PanelContent>
           <SidebarTitle>
-            MODULES
+            Modules
             <CloseBtn type="button" onClick={onClose} aria-label="Close tech library">
               ×
             </CloseBtn>
           </SidebarTitle>
           <SearchInput
-            placeholder="FILTER_TECH..."
+            placeholder="Filter modules..."
             value={searchTerm}
             onChange={e => onSearchTermChange(e.target.value)}
           />
 
-          <SectionTitle>GENERATE_MODULE</SectionTitle>
+          <SectionTitle>Custom Generation</SectionTitle>
           <GenerateSection>
             <SearchInput
-              placeholder="DESCRIBE_CUSTOM_TECH..."
+              placeholder="Describe custom tech..."
               value={customTechPrompt}
               onChange={e => onCustomTechPromptChange(e.target.value)}
               style={{ marginBottom: '12px' }}
@@ -80,13 +99,13 @@ export default function TechInventoryPanel({
               onClick={onGenerateTech}
               disabled={generatingTech || !customTechPrompt.trim()}
             >
-              {generatingTech ? 'SYNTHESIZING...' : 'INITIATE_TECH_GEN'}
+              {generatingTech ? 'Synthesizing...' : 'Generate Module'}
             </WideButton>
           </GenerateSection>
 
           {inventory.community && inventory.community.length > 0 && (
             <TechCategory>
-              <CategoryLabel>COMMUNITY_MODULES</CategoryLabel>
+              <CategoryLabel>Community Modules</CategoryLabel>
               {inventory.community
                 .filter(tech => !searchTerm || tech.name.toLowerCase().includes(searchTerm.toLowerCase()))
                 .map(tech => (
@@ -99,7 +118,7 @@ export default function TechInventoryPanel({
                   {tech.name}
                   {tech.isOwner && (
                     <DeleteBtn onClick={(e) => { e.stopPropagation(); onDeleteFromInventory(tech.id); }}>
-                      🗑️
+                      <Trash2 size={12} />
                     </DeleteBtn>
                   )}
                 </TechChip>
@@ -117,7 +136,7 @@ export default function TechInventoryPanel({
 
             return (
               <TechCategory key={category}>
-                <CategoryLabel>{category}</CategoryLabel>
+                <CategoryLabel>{category.replace('_', ' ')}</CategoryLabel>
                 {allItems.map((tech, idx) => (
                   <TechChip
                     key={idx}
@@ -133,37 +152,10 @@ export default function TechInventoryPanel({
             );
           })}
 
-          {inventory.custom && inventory.custom.some(item => !inventory.builtIn[item.category]) && (
-            inventory.custom
-              .filter(item => !inventory.builtIn[item.category])
-              .reduce((acc, item) => {
-                if (!acc.includes(item.category)) acc.push(item.category);
-                return acc;
-              }, [])
-              .map(category => (
-                <TechCategory key={category}>
-                  <CategoryLabel>{category}</CategoryLabel>
-                  {inventory.custom
-                    .filter(item => item.category === category && item.name.toLowerCase().includes(searchTerm.toLowerCase()))
-                    .map((tech, idx) => (
-                      <TechChip
-                        key={idx}
-                        $category={category}
-                        draggable
-                        onDragStart={e => onDragStart(e, tech)}
-                      >
-                        {tech.name}
-                        <AiBadge>AI</AiBadge>
-                      </TechChip>
-                    ))}
-                </TechCategory>
-              ))
-          )}
-
           {searchTerm && !Object.values(inventory.builtIn || {}).some(cat => cat.some(t => t.name.toLowerCase().includes(searchTerm.toLowerCase()))) &&
            !inventory.custom?.some(t => t.name.toLowerCase().includes(searchTerm.toLowerCase())) && (
             <EmptyState>
-              <EmptyStateLabel>NO_LOCAL_MATCH_FOUND</EmptyStateLabel>
+              <EmptyStateLabel>No local modules found</EmptyStateLabel>
               <WideButton
                 onClick={() => {
                   onSearchTermChange(searchTerm);
@@ -171,7 +163,7 @@ export default function TechInventoryPanel({
                 }}
                 disabled={generatingTech}
               >
-                {generatingTech ? 'SYNTHESIZING...' : `SYNTHESIZE_${searchTerm.toUpperCase()}`}
+                {generatingTech ? 'Synthesizing...' : `Synthesize ${searchTerm}`}
               </WideButton>
             </EmptyState>
           )}

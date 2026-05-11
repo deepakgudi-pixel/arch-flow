@@ -1,14 +1,20 @@
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
+import { NextResponse } from 'next/server';
 
 const isPublicRoute = createRouteMatcher([
   '/', 
   '/sign-in(.*)', 
   '/sign-up(.*)', 
-  '/health'
+  '/health',
+  '/editor-smoke-probe'
 ]);
 
 const isAuthSmokeRoute = createRouteMatcher([
   '/auth-smoke-probe'
+]);
+
+const isEditorSmokeRoute = createRouteMatcher([
+  '/editor-smoke-probe'
 ]);
 
 const AUTH_SMOKE_HEADER = 'x-archflow-auth-smoke';
@@ -32,7 +38,30 @@ function canUseAuthSmokeBypass(request) {
 }
 
 export default clerkMiddleware(async (auth, request) => {
+  if (isEditorSmokeRoute(request)) {
+    const requestHeaders = new Headers(request.headers);
+    requestHeaders.set('x-archflow-smoke-route', '1');
+
+    return NextResponse.next({
+      request: {
+        headers: requestHeaders
+      }
+    });
+  }
+
   if (canUseAuthSmokeBypass(request)) {
+    const requestHeaders = new Headers(request.headers);
+    requestHeaders.set('x-archflow-smoke-route', '1');
+
+    return NextResponse.next({
+      request: {
+        headers: requestHeaders
+      }
+    });
+  }
+
+  if (isAuthSmokeRoute(request)) {
+    await auth.protect();
     return;
   }
 

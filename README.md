@@ -31,27 +31,59 @@ That means Archflow optimizes for trust, inspectability, presentability, and ite
 
 ## User-Facing Features
 
-- AI diagram generation from free-form prompts
-- AI architecture assistant chat that can explain the current diagram, call out missing layers, and stage additions for review
-- Auto-arrange that spaces nodes into cleaner category lanes
-- Node details sidebar with:
-  - why this was chosen
-  - assumptions
-  - review risks
-  - connected incoming and outgoing flows
-  - same-category replacement suggestions
-- Connection details sidebar for selected flows
-- Flow visibility modes:
-  - `FLOW_CONTEXT` for focused inspection
-  - `FLOW_ALL` for full connection labeling
-  - `FLOW_HIDE` for a cleaner canvas
-- Architecture review drawer with findings, all-clear state, staged assistant suggestions, and accept-or-decline control
-- Accept-and-connect review flow that adds approved technologies directly into the diagram without breaking connection rules
-- Version history with snapshot restore and diff-aware context
-- Refresh-safe draft persistence for assistant chat and pending review suggestions
-- PNG and JSON export
-- Tech inventory with built-in and generated modules
-- Collaboration and invite support
+### AI Diagram Generation
+- Generate complete system architecture diagrams from free-form natural language prompts
+- AI auto-infers missing layers (auth, storage, queues, etc.) and suggests appropriate technologies
+- Surgical editing — replace individual nodes without regenerating the entire diagram
+- Auto-layout spaces nodes into clean category lanes for readability
+
+### AI Architecture Assistant
+- Chat-based assistant that understands the full diagram context (nodes, edges, rules)
+- Explains why specific technologies were chosen and flags gaps, risks, or missing layers
+- Stages proposed additions into Architectural Review instead of mutating the diagram directly
+- Chat history survives page refreshes via draft persistence
+
+### Architectural Review System
+- Dedicated review drawer showing deterministic architecture findings
+- Review signals use `SOLID` / `CHECK` / `RISK` labels (not HIGH/MEDIUM/LOW)
+- Staged suggestions can be accepted or declined individually
+- Accept-and-connect flow — approved suggestions are added to the diagram with rule-aware connection sanitization
+- Connection rules engine validates every edge against canonical category rules (e.g. frontend→database is blocked)
+
+### Interactive Diagram Canvas
+- Full React Flow-powered canvas with zoom, pan, snap-to-grid
+- Flow visibility modes: `FLOW_CONTEXT` (focused), `FLOW_ALL` (full labels), `FLOW_HIDE` (clean)
+- Protocol-labeled edges with animated flow simulation
+- Selected connections are emphasized visually on the canvas
+- Drag-and-drop tech from the library panel directly onto the canvas
+
+### Node Details Sidebar
+- Displays role, reason, and category for each selected node
+- Lists assumptions and review risks
+- Shows incoming and outgoing connected flows
+- Suggests same-category replacement technologies
+
+### Connection Details Sidebar
+- Shows source → target endpoints with protocol and category badges
+- Displays connection spec, why it fits, assumptions, and review risks
+- Confidence signals derived from deterministic rule checks
+- One-click disconnect button to delete the connection
+
+### Version History
+- Full version snapshots stored as the diagram evolves
+- Restore any previous version with a single click
+- Diff-aware context preserved for architecture assistant queries
+
+### Tech Inventory
+- Built-in technology catalog organized by category (frontend, backend, database, queue, auth, storage, external, devops)
+- User-registered custom technologies
+- Drag-and-drop from inventory onto the canvas
+
+### Export & Sharing
+- PNG export with high-resolution (2x) pixel rendering
+- JSON export for programmatic use
+- Real-time cloud save with autosave
+- Collaboration via email invite with shared diagram access
 
 ## Architecture Assistant Flow
 
@@ -170,73 +202,78 @@ cd backend
 npm run eval:harness -- --max-prompts 12 --runs 2
 ```
 
-## Local Auth Verification
+## Smoke Tests
 
-Archflow also includes a maintainer auth smoke check for local development. This is meant to catch auth regressions early without needing to manually click through sign-in every time.
+Archflow includes automated smoke checks to catch regressions in critical flows without manual clicking.
 
-What it verifies:
+### Editor Smoke Test (Playwright)
 
-- `/sign-in` renders
-- `/sign-up` renders
-- a protected probe route blocks logged-out access
-- the same protected probe can render under a tightly scoped local development bypass
-
-Important files:
-
-- [frontend/scripts/auth-smoke.mjs](/Users/deepak/Downloads/arch/frontend/scripts/auth-smoke.mjs)
-- [frontend/middleware.js](/Users/deepak/Downloads/arch/frontend/middleware.js)
-- [frontend/app/auth-smoke-probe/page.js](/Users/deepak/Downloads/arch/frontend/app/auth-smoke-probe/page.js)
-
-Important safety note:
-
-- the bypass is development-only
-- it only applies to `/auth-smoke-probe`
-- it only works on local hostnames
-- it requires a specific header token
-- production does not expose this path as a usable bypass
-
-Run it with the frontend dev server active:
+A Playwright browser test that verifies the core editor panels open and close correctly — AI Assistant, Review, Library, History, and the Actions menu.
 
 ```bash
 cd frontend
-npm run dev
+npm run smoke:editor
 ```
 
-In another terminal:
+This starts the app automatically for the test run. Covers:
+- AI Assistant panel opens and closes
+- Review panel opens, suggestion accept-and-connect works, panel closes
+- Library panel opens and closes
+- Actions menu → History panel flow
+
+### Auth Smoke Check
+
+Verifies auth boundaries without copying browser session state by hand:
+
+- `/sign-in` and `/sign-up` render correctly
+- Protected routes block unauthenticated access
+- A scoped dev bypass allows the probe page to render locally
 
 ```bash
 cd frontend
 npm run auth:smoke
 ```
 
-By default it targets `http://127.0.0.1:3000`.
-
-If you want to point the smoke test at a different local port:
+Targets `http://127.0.0.1:3000` by default. Override with:
 
 ```bash
-cd frontend
 AUTH_SMOKE_BASE_URL=http://127.0.0.1:3010 npm run auth:smoke
 ```
 
-If you ever want to test a real authenticated page instead of the built-in probe, you can still override the target path or provide a real auth cookie through environment variables. The probe exists so the default check works out of the box without copying browser session state by hand.
+### Full Smoke Pass
+
+```bash
+cd frontend
+npm run test:smoke
+```
+
+Runs auth smoke check first, then the editor smoke test.
+
+**Practical rule:** use `npm run dev` for everyday work, `npm run smoke:editor` after meaningful editor/panel/AI/review changes, `npm run test:smoke` before shipping or merging.
 
 ## Tech Stack
 
 ### Frontend
 
-- Next.js 14
-- React 18
-- React Flow
-- styled-components
-- Framer Motion
+- Next.js 15 (App Router)
+- React 19
+- React Flow 11
+- styled-components 6
+- Framer Motion 12
+- html-to-image (PNG export)
+- Lucide React (icons)
+- Playwright (smoke tests — editor flow)
 
 ### Backend
 
-- Node.js
+- Node.js 22
 - Express
-- PostgreSQL / Neon
-- Redis / Upstash
-- Clerk
+- PostgreSQL / Neon (serverless Postgres)
+- Redis / Upstash (caching, rate limiting)
+- Clerk (authentication)
+- OpenRouter (AI model access)
+- Rate limiting with Redis-backed store
+- 2-layer cache (local in-memory + Redis)
 ### Desktop (Mac App)
 
 - Electron
@@ -345,6 +382,15 @@ cd frontend && npm run dev
 ```
 
 Then open [http://localhost:3000](http://localhost:3000).
+
+### Dev Server
+
+```bash
+cd frontend
+npm run dev
+```
+
+Starts the Next.js development server on port 3000.
 
 ## Project Structure
 

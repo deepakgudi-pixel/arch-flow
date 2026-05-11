@@ -17,31 +17,28 @@ const DetailHeader = styled.div`
 `;
 
 const NodeLabel = styled.div`
-  font-size: 2.2rem;
-  font-weight: 900;
-  line-height: 1;
-  margin-bottom: 16px;
-  text-transform: uppercase;
+  font-family: var(--font-sans);
+  font-size: 1.8rem;
+  font-weight: 700;
+  line-height: 1.1;
+  margin-bottom: 12px;
+  color: #000;
   overflow-wrap: break-word;
-  word-break: normal; /* Don't break in middle of letters if possible */
-  letter-spacing: -0.04em;
-  hyphens: none;
+  word-break: normal;
+  letter-spacing: -0.02em;
   
-  /* Scale down earlier and more aggressively for long names */
   ${props => props.$isLong && `
-    font-size: 1.6rem;
-    letter-spacing: -0.02em;
+    font-size: 1.4rem;
   `}
 `;
 
 const NodeRoleLabel = styled.div`
-  font-family: var(--font-mono);
-  font-size: 11px;
-  font-weight: 700;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 600;
   color: #666;
   margin-bottom: 32px;
-  text-transform: uppercase;
-  word-break: break-word;
+  opacity: 0.8;
 `;
 
 const InsightList = styled.div`
@@ -51,12 +48,13 @@ const InsightList = styled.div`
 `;
 
 const InsightItem = styled.div`
-  padding: 14px 16px;
-  border: 2px solid #000000;
-  background: #f8f8f8;
+  padding: 12px 16px;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  border-radius: 10px;
+  background: #f9f9f9;
   font-size: 12px;
-  line-height: 1.5;
-  color: #333;
+  line-height: 1.6;
+  color: #444;
 `;
 
 const ReplaceStack = styled.div`
@@ -65,11 +63,18 @@ const ReplaceStack = styled.div`
 `;
 
 const ReplaceCard = styled.div`
-  padding: 14px 16px;
-  border: 2px solid #000000;
+  padding: 16px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 12px;
   background: #ffffff;
   display: grid;
-  gap: 10px;
+  gap: 12px;
+  transition: all 0.2s;
+
+  &:hover {
+    border-color: rgba(0, 0, 0, 0.15);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+  }
 `;
 
 const ReplaceTitle = styled.div`
@@ -80,18 +85,19 @@ const ReplaceTitle = styled.div`
 `;
 
 const ReplaceName = styled.div`
-  font-weight: 900;
+  font-family: var(--font-sans);
+  font-weight: 700;
   font-size: 0.95rem;
-  text-transform: uppercase;
   color: #000000;
 `;
 
 const ReplaceMeta = styled.div`
-  font-family: var(--font-mono);
+  font-family: var(--font-sans);
   font-size: 10px;
-  font-weight: 800;
-  color: #666;
+  font-weight: 700;
+  color: #999;
   text-transform: uppercase;
+  letter-spacing: 0.02em;
 `;
 
 const ReplaceDescription = styled.div`
@@ -108,36 +114,38 @@ const ConnectionStack = styled.div`
 
 const ConnectionCard = styled.div`
   padding: 14px 16px;
-  border: 2px solid #000000;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 12px;
   background: #ffffff;
   display: grid;
-  gap: 8px;
+  gap: 10px;
   cursor: pointer;
-  transition: transform 0.12s ease, background 0.12s ease;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 
   &:hover {
-    transform: translate(-2px, -2px);
-    background: #fffaf6;
+    transform: translateY(-1px);
+    border-color: rgba(0, 0, 0, 0.15);
+    background: #fcfcfc;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
   }
 `;
 
 const ConnectionRoute = styled.div`
-  font-family: var(--font-mono);
+  font-family: var(--font-sans);
   font-size: 10px;
-  font-weight: 800;
-  color: #666666;
+  font-weight: 700;
+  color: #999;
   text-transform: uppercase;
   line-height: 1.4;
-  word-break: break-word;
+  letter-spacing: 0.02em;
 `;
 
 const ConnectionLabel = styled.div`
-  font-weight: 900;
-  font-size: 0.9rem;
-  text-transform: uppercase;
+  font-family: var(--font-sans);
+  font-weight: 700;
+  font-size: 0.95rem;
   color: #000000;
   line-height: 1.35;
-  word-break: break-word;
 `;
 
 const ConnectionMeta = styled.div`
@@ -148,13 +156,15 @@ const ConnectionMeta = styled.div`
 `;
 
 const EmptyHint = styled.div`
-  padding: 14px 16px;
-  border: 2px dashed #bdbdbd;
-  font-family: var(--font-mono);
-  font-size: 10px;
-  font-weight: 800;
-  color: #777;
-  text-transform: uppercase;
+  padding: 20px;
+  border: 1px dashed rgba(0, 0, 0, 0.1);
+  border-radius: 12px;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 500;
+  color: #999;
+  text-align: center;
+  background: rgba(0, 0, 0, 0.01);
 `;
 
 export default function NodeDetailsSidebar({
@@ -169,7 +179,7 @@ export default function NodeDetailsSidebar({
       {open && (
         <SidebarContent>
           <SidebarTitle>
-            UNIT_DETAILS
+            Unit Details
             <CloseBtn onClick={onClose}>×</CloseBtn>
           </SidebarTitle>
 

@@ -94,22 +94,23 @@ const GlobalStyle = createGlobalStyle`
   }
 
   .react-flow__controls {
-    box-shadow: none !important;
-    border: 3px solid #000000 !important;
-    border-radius: 0 !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+    border: 1px solid rgba(0, 0, 0, 0.08) !important;
+    border-radius: 8px !important;
     overflow: hidden;
-  }
-
-  .react-flow__controls-button {
-    border-bottom: 2px solid #000000 !important;
     background: #ffffff !important;
+  }
+  .react-flow__controls-button {
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05) !important;
+    background: transparent !important;
     &:last-child { border-bottom: none !important; }
-    &:hover { background: #f0f0f0 !important; }
+    &:hover { background: #f9f9f9 !important; }
   }
   .react-flow__minimap {
-    border: 3px solid #000000 !important;
-    border-radius: 0 !important;
+    border: 1px solid rgba(0, 0, 0, 0.08) !important;
+    border-radius: 12px !important;
     background: #ffffff !important;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1) !important;
   }
 
   .react-flow__attribution {
@@ -793,8 +794,6 @@ export default function DiagramPage() {
   const [leftSidebarOpen, setLeftSidebarOpen] = useState(false);
   const [rightPanelOpen, setRightPanelOpen] = useState(true);
   const [selectedNode, setSelectedNode] = useState(null);
-  const [connectMode, setConnectMode] = useState(false);
-  const [connectSource, setConnectSource] = useState(null);
   const [prompt, setPrompt] = useState('');
   const [template, setTemplate] = useState('blank');
   const [loading, setLoading] = useState(false);
@@ -1389,9 +1388,6 @@ export default function DiagramPage() {
         setReviewSuggestions(current => mergeReviewSuggestions(current, suggestions));
         setToast({ message: `ARCH_REVIEW_UPDATED: ${suggestions.length}_ITEMS`, warning: true });
         setTimeout(() => setToast(null), 2500);
-      } else {
-        setToast({ message: 'AI_REVIEW_COMPLETE', error: false });
-        setTimeout(() => setToast(null), 2000);
       }
     } catch (err) {
       console.error('Assistant review failed:', err);
@@ -2053,6 +2049,7 @@ export default function DiagramPage() {
         width: exportWidth,
         height: exportHeight,
         pixelRatio: 2, // High-resolution upscale
+        skipFonts: true, // Avoid cross-origin cssRules error from external stylesheets
         style: {
           width: exportWidth,
           height: exportHeight,
@@ -2359,8 +2356,6 @@ export default function DiagramPage() {
           onSave={() => saveDiagram({ showToast: true, recordVersion: true })}
           onExportPNG={exportPNG}
           onExportJSON={exportJSON}
-          connectMode={connectMode}
-          onToggleConnectMode={() => { setConnectMode(!connectMode); setConnectSource(null); }}
           simulateFlow={simulateFlow}
           onToggleSimulateFlow={() => setSimulateFlow(!simulateFlow)}
           onOpenInvite={() => setShowInviteModal(true)}
@@ -2376,6 +2371,7 @@ export default function DiagramPage() {
               }}
               selectedEdge={selectedEdge}
               connectionProfile={selectedConnectionProfile}
+              onDeleteEdge={deleteSelected}
             />
           ) : (
             <NodeDetailsSidebar
@@ -2461,6 +2457,15 @@ export default function DiagramPage() {
                 <EmptyText>INITIALIZE_SYSTEM_PROMPT_BELOW</EmptyText>
               </EmptyCanvas>
             )}
+
+            <PromptBar
+              prompt={prompt}
+              onPromptChange={setPrompt}
+              template={template}
+              onTemplateChange={setTemplate}
+              loading={loading}
+              onGenerate={handleGenerate}
+            />
           </CanvasWrapper>
 
           <TechInventoryPanel
@@ -2493,7 +2498,7 @@ export default function DiagramPage() {
                   width: activeUtilityPanel.width,
                   background: '#fff',
                   zIndex: 1000,
-                  borderLeft: '4px solid #000',
+                  borderLeft: '1px solid rgba(0, 0, 0, 0.08)',
                   boxShadow: '10px 0px 20px rgba(0,0,0,0.1)'
                 }}
               >
@@ -2503,14 +2508,6 @@ export default function DiagramPage() {
           </AnimatePresence>
         </MainArea>
 
-        <PromptBar
-          prompt={prompt}
-          onPromptChange={setPrompt}
-          template={template}
-          onTemplateChange={setTemplate}
-          loading={loading}
-          onGenerate={handleGenerate}
-        />
       </Container>
 
       <InviteModal
@@ -2525,7 +2522,7 @@ export default function DiagramPage() {
 
       {toast && (
         <Toast $tone={toast.error ? 'error' : toast.warning ? 'warning' : 'success'}>
-          <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 900 }}>[{toast.message}]</span>
+          {toast.message}
         </Toast>
       )}
 

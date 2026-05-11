@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import styled from 'styled-components';
+import { Hexagon } from 'lucide-react';
 
 const Shell = styled.div`
   min-height: 100vh;
@@ -12,17 +13,13 @@ const Ambient = styled.div`
 `;
 
 const Topbar = styled.header`
-  position: sticky;
-  top: 0;
-  z-index: 50;
-  background: #ffffff;
-  border-bottom: 4px solid #000000;
+  position: relative;
 `;
 
 const TopbarInner = styled.div`
   max-width: var(--page-width);
   margin: 0 auto;
-  padding: 24px var(--spacing-md);
+  padding: 14px var(--spacing-md);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -41,15 +38,16 @@ const Brand = styled(Link)`
 `;
 
 const BrandMark = styled.span`
-  width: 48px;
-  height: 48px;
-  border: 3px solid #000000;
-  display: grid;
-  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background: #000000;
   color: white;
-  box-shadow: 4px 4px 0px #000000;
-  font-size: 1.2rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  font-size: 1.1rem;
   font-weight: 800;
 `;
 
@@ -59,18 +57,20 @@ const BrandText = styled.div`
 `;
 
 const BrandTitle = styled.span`
-  font-weight: 900;
-  font-size: 1.4rem;
-  letter-spacing: -0.04em;
-  text-transform: uppercase;
+  font-family: var(--font-sans);
+  font-weight: 800;
+  font-size: 1.2rem;
+  letter-spacing: -0.02em;
+  color: #000;
 `;
 
 const BrandSubtitle = styled.span`
-  font-family: var(--font-mono);
-  font-size: 0.7rem;
+  font-family: var(--font-sans);
+  font-size: 0.65rem;
   font-weight: 700;
   text-transform: uppercase;
-  color: var(--color-ink-soft);
+  color: #999;
+  letter-spacing: 0.05em;
 `;
 
 const Nav = styled.nav`
@@ -80,19 +80,20 @@ const Nav = styled.nav`
 `;
 
 const NavLink = styled(Link)`
-  padding: 12px 20px;
-  color: ${props => props.$active ? '#ffffff' : '#000000'};
-  background: ${props => props.$active ? '#000000' : 'transparent'};
-  border: 3px solid ${props => props.$active ? '#000000' : 'transparent'};
-  font-family: var(--font-mono);
-  font-size: 0.85rem;
-  font-weight: 800;
-  text-transform: uppercase;
+  padding: 6px 14px;
+  color: ${props => props.$active ? '#000000' : '#666'};
+  background: ${props => props.$active ? 'rgba(0,0,0,0.05)' : 'transparent'};
+  border-radius: 8px;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 700;
   transition: all 0.2s ease;
 
   &:hover {
-    border-color: #000000;
+    color: #000000;
+    background: rgba(0,0,0,0.04);
     text-decoration: none;
+    transform: translateY(-1px);
   }
 `;
 
@@ -117,7 +118,9 @@ export default function AppShell({ children, navItems = [], actions, userSlot })
         <TopbarInner>
           <Right>
             <Brand href="/dashboard">
-              <BrandMark>⬡</BrandMark>
+              <BrandMark>
+                <Hexagon size={20} strokeWidth={3} fill="currentColor" />
+              </BrandMark>
               <BrandText>
                 <BrandTitle>Archflow</BrandTitle>
                 <BrandSubtitle>AI system design workspace</BrandSubtitle>

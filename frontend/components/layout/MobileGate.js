@@ -1,6 +1,7 @@
 'use client';
 
 import styled, { createGlobalStyle } from 'styled-components';
+import { usePathname } from 'next/navigation';
 
 const MobileLockStyle = createGlobalStyle`
   @media (max-width: 1024px) {
@@ -85,6 +86,13 @@ const BlockerStatus = styled.div`
 `;
 
 export default function MobileGate() {
+  const pathname = usePathname();
+  const bypassGate = pathname === '/auth-smoke-probe' || pathname === '/editor-smoke-probe';
+
+  if (bypassGate) {
+    return null;
+  }
+
   return (
     <>
       <MobileLockStyle />

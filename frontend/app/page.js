@@ -20,7 +20,7 @@ const Nav = styled.header`
   position: relative;
   max-width: var(--page-width);
   margin: 0 auto;
-  padding: 32px var(--spacing-md);
+  padding: 24px var(--spacing-md);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -30,12 +30,8 @@ const Nav = styled.header`
 const Brand = styled(Link)`
   display: inline-flex;
   align-items: center;
-  gap: 12px;
-  font-family: var(--font-mono);
-  font-weight: 900;
-  font-size: 1.5rem;
-  text-transform: uppercase;
-  color: var(--color-ink);
+  gap: 16px;
+  color: #000;
   
   &:hover {
     text-decoration: none;
@@ -43,14 +39,17 @@ const Brand = styled(Link)`
 `;
 
 const BrandMark = styled.span`
-  width: 52px;
-  height: 52px;
-  border: 4px solid #000000;
-  display: grid;
-  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background: #000000;
   color: white;
-  box-shadow: 6px 6px 0px #000000;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  font-size: 1.1rem;
+  font-weight: 800;
 `;
 
 const NavLinks = styled.nav`
@@ -61,18 +60,19 @@ const NavLinks = styled.nav`
 `;
 
 const NavLink = styled.a`
-  padding: 12px 20px;
-  font-family: var(--font-mono);
-  font-size: 0.85rem;
-  font-weight: 800;
-  text-transform: uppercase;
-  color: var(--color-ink);
-  border: 3px solid transparent;
+  padding: 8px 16px;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 700;
+  color: #666;
+  border-radius: 8px;
   transition: all 0.2s ease;
 
   &:hover {
-    border-color: #000000;
+    color: #000;
+    background: rgba(0, 0, 0, 0.04);
     text-decoration: none;
+    transform: translateY(-1px);
   }
 `;
 
@@ -315,7 +315,10 @@ export default function HomePage() {
       <Nav>
         <Brand href="/">
           <BrandMark>⬡</BrandMark>
-          Archflow
+          <div style={{ display: 'grid', gap: '2px' }}>
+            <span style={{ fontFamily: 'var(--font-sans)', fontWeight: 800, fontSize: '1.2rem', letterSpacing: '-0.02em', color: '#000' }}>Archflow</span>
+            <span style={{ fontFamily: 'var(--font-sans)', fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', color: '#999', letterSpacing: '0.05em' }}>AI system design workspace</span>
+          </div>
         </Brand>
         <NavLinks>
           <NavLink href="#product">Product</NavLink>

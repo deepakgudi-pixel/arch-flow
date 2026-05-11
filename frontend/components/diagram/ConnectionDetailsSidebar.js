@@ -2,6 +2,7 @@
 
 import styled from 'styled-components';
 import { Badge } from '@/components/ui/Badge';
+import { Trash2 } from 'lucide-react';
 import {
   LeftSidebar,
   SidebarContent,
@@ -21,11 +22,13 @@ const DetailHeader = styled.div`
 `;
 
 const RouteCard = styled.div`
-  padding: 18px;
-  border: 3px solid #000000;
+  padding: 20px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 16px;
   background: #ffffff;
   display: grid;
-  gap: 14px;
+  gap: 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
 `;
 
 const RouteMeta = styled.div`
@@ -36,17 +39,19 @@ const RouteMeta = styled.div`
 `;
 
 const Arrow = styled.span`
-  font-family: var(--font-mono);
-  font-size: 14px;
-  font-weight: 900;
-  color: #666666;
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 700;
+  color: #bbb;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 `;
 
 const EndpointName = styled.div`
-  font-size: 1.35rem;
-  font-weight: 900;
-  line-height: 1.1;
-  text-transform: uppercase;
+  font-family: var(--font-sans);
+  font-size: 1.2rem;
+  font-weight: 700;
+  line-height: 1.2;
   color: #000000;
   overflow-wrap: break-word;
 `;
@@ -55,15 +60,15 @@ const ProtocolHero = styled.div`
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: fit-content;
-  padding: 10px 14px;
-  border: 2px solid #000000;
-  background: #f6f6f6;
-  font-family: var(--font-mono);
-  font-size: 12px;
-  font-weight: 900;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  background: #f0f0f0;
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: #444;
 `;
 
 const InsightList = styled.div`
@@ -73,36 +78,64 @@ const InsightList = styled.div`
 `;
 
 const InsightItem = styled.div`
-  padding: 14px 16px;
-  border: 2px solid #000000;
-  background: #f8f8f8;
+  padding: 12px 16px;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  border-radius: 10px;
+  background: #f9f9f9;
   font-size: 12px;
-  line-height: 1.5;
-  color: #333333;
+  line-height: 1.6;
+  color: #444;
 `;
 
 const EmptyHint = styled.div`
-  padding: 14px 16px;
-  border: 2px dashed #bdbdbd;
-  font-family: var(--font-mono);
-  font-size: 10px;
-  font-weight: 800;
-  color: #777777;
-  text-transform: uppercase;
+  padding: 20px;
+  border: 1px dashed rgba(0, 0, 0, 0.1);
+  border-radius: 12px;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 500;
+  color: #999;
+  text-align: center;
+  background: rgba(0, 0, 0, 0.01);
+`;
+
+const DangerButton = styled.button`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 12px;
+  margin-top: 24px;
+  border: 1px solid rgba(220, 38, 38, 0.2);
+  border-radius: 12px;
+  background: #fff;
+  color: #DC2626;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    background: #FEF2F2;
+    border-color: rgba(220, 38, 38, 0.4);
+  }
 `;
 
 export default function ConnectionDetailsSidebar({
   open,
   onClose,
   selectedEdge,
-  connectionProfile
+  connectionProfile,
+  onDeleteEdge
 }) {
   return (
     <LeftSidebar $open={open}>
       {open && (
         <SidebarContent>
           <SidebarTitle>
-            CONNECTION_DETAILS
+            Connection Details
             <CloseBtn onClick={onClose}>×</CloseBtn>
           </SidebarTitle>
 
@@ -173,6 +206,11 @@ export default function ConnectionDetailsSidebar({
                   <EmptyHint>No immediate connection-level review flags were raised.</EmptyHint>
                 </>
               )}
+
+              <DangerButton type="button" onClick={onDeleteEdge}>
+                <Trash2 size={15} />
+                Disconnect
+              </DangerButton>
             </>
           ) : null}
         </SidebarContent>

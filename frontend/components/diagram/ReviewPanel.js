@@ -15,7 +15,7 @@ const Panel = styled.div`
 
 const PanelHeader = styled.div`
   padding: 24px;
-  border-bottom: 3px solid #000000;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
   display: grid;
   gap: 16px;
 `;
@@ -34,10 +34,10 @@ const TitleCluster = styled.div`
 `;
 
 const Title = styled.h3`
-  font-family: var(--font-mono);
-  font-weight: 900;
-  font-size: 14px;
-  text-transform: uppercase;
+  font-family: var(--font-sans);
+  font-weight: 700;
+  font-size: 15px;
+  color: #000000;
 `;
 
 const SummaryGrid = styled.div`
@@ -47,7 +47,8 @@ const SummaryGrid = styled.div`
 `;
 
 const SummaryCard = styled.div`
-  border: 2px solid #000000;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 10px;
   padding: 12px;
   display: grid;
   gap: 6px;
@@ -55,16 +56,18 @@ const SummaryCard = styled.div`
 `;
 
 const SummaryLabel = styled.div`
-  font-family: var(--font-mono);
+  font-family: var(--font-sans);
   font-size: 10px;
-  font-weight: 900;
-  color: #666;
+  font-weight: 700;
+  color: #999;
   text-transform: uppercase;
+  letter-spacing: 0.05em;
 `;
 
 const SummaryValue = styled.div`
+  font-family: var(--font-sans);
   font-size: 1.2rem;
-  font-weight: 900;
+  font-weight: 800;
   color: #000000;
 `;
 
@@ -81,22 +84,25 @@ const FindingCard = styled.button`
   width: 100%;
   text-align: left;
   padding: 16px;
-  border: 3px solid #000000;
+  border-radius: 14px;
+  border: 1px solid rgba(0, 0, 0, 0.05);
   background: ${props =>
-    props.$severity === 'critical' ? '#FFF0EE' :
-    props.$severity === 'warning' ? '#FFF8E1' :
-    '#F5F5F5'};
+    props.$severity === 'critical' ? '#FFF5F5' :
+    props.$severity === 'warning' ? '#FFFAF0' :
+    '#F9F9F9'};
   cursor: pointer;
   display: grid;
   gap: 10px;
-  transition: transform 0.1s ease, background 0.1s ease;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 
   &:hover {
-    transform: translate(-2px, -2px);
+    transform: translateY(-1px);
+    border-color: rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
     background: ${props =>
-      props.$severity === 'critical' ? '#FFE4E0' :
-      props.$severity === 'warning' ? '#FFF1C9' :
-      '#ECECEC'};
+      props.$severity === 'critical' ? '#FFF0F0' :
+      props.$severity === 'warning' ? '#FFF5E6' :
+      '#F2F2F2'};
   }
 `;
 
@@ -108,11 +114,11 @@ const FindingTop = styled.div`
 `;
 
 const FindingTitle = styled.div`
-  font-family: var(--font-mono);
-  font-size: 11px;
-  font-weight: 900;
-  text-transform: uppercase;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 700;
   color: #000000;
+  letter-spacing: -0.01em;
 `;
 
 const FindingDetail = styled.p`
@@ -122,13 +128,13 @@ const FindingDetail = styled.p`
 `;
 
 const Footer = styled.div`
-  padding: 16px 24px;
-  border-top: 3px solid #000000;
-  font-family: var(--font-mono);
-  font-size: 10px;
-  font-weight: 800;
-  color: #666666;
-  text-transform: uppercase;
+  padding: 20px 24px;
+  border-top: 1px solid rgba(0, 0, 0, 0.05);
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 600;
+  color: #999;
+  line-height: 1.5;
 `;
 
 const EmptyState = styled.div`
@@ -140,7 +146,8 @@ const EmptyState = styled.div`
 `;
 
 const EmptyHero = styled.div`
-  border: 3px solid #000000;
+  border: 1px solid rgba(16, 185, 129, 0.1);
+  border-radius: 16px;
   background: #F3FFF7;
   padding: 20px;
   display: grid;
@@ -151,11 +158,10 @@ const EmptyTitle = styled.div`
   display: flex;
   align-items: center;
   gap: 10px;
-  font-family: var(--font-mono);
-  font-size: 12px;
-  font-weight: 900;
-  text-transform: uppercase;
-  color: #000000;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 700;
+  color: #065f46;
 `;
 
 const EmptyDescription = styled.p`
@@ -171,7 +177,8 @@ const CoverageGrid = styled.div`
 `;
 
 const CoverageCard = styled.div`
-  border: 2px solid #000000;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 12px;
   background: #ffffff;
   padding: 14px;
   display: grid;
@@ -198,7 +205,8 @@ const CheckList = styled.div`
 `;
 
 const CheckItem = styled.div`
-  border: 2px solid #000000;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  border-radius: 10px;
   background: #ffffff;
   padding: 14px;
   display: flex;
@@ -206,7 +214,7 @@ const CheckItem = styled.div`
   gap: 10px;
   font-size: 12px;
   line-height: 1.5;
-  color: #333333;
+  color: #666;
 `;
 
 const ReviewSection = styled.div`
@@ -224,11 +232,13 @@ const SectionHeading = styled.div`
 `;
 
 const SuggestionCard = styled.div`
-  border: 3px solid #000000;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 16px;
   background: linear-gradient(180deg, #f2f8ff 0%, #ffffff 100%);
   padding: 16px;
   display: grid;
   gap: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
 `;
 
 const SuggestionTop = styled.div`
@@ -239,10 +249,9 @@ const SuggestionTop = styled.div`
 `;
 
 const SuggestionName = styled.div`
-  font-family: var(--font-mono);
-  font-size: 11px;
-  font-weight: 900;
-  text-transform: uppercase;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: 700;
   color: #000000;
 `;
 
@@ -258,7 +267,8 @@ const ConnectionList = styled.div`
 `;
 
 const ConnectionItem = styled.div`
-  border: 2px solid #000000;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  border-radius: 8px;
   background: rgba(255, 255, 255, 0.82);
   padding: 10px 12px;
   display: grid;
@@ -266,10 +276,9 @@ const ConnectionItem = styled.div`
 `;
 
 const ConnectionRoute = styled.div`
-  font-family: var(--font-mono);
-  font-size: 10px;
-  font-weight: 900;
-  text-transform: uppercase;
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 700;
   color: #000000;
 `;
 
@@ -287,17 +296,20 @@ const SuggestionActions = styled.div`
 const SuggestionButton = styled.button`
   flex: 1;
   padding: 10px 12px;
-  border: 3px solid #000000;
+  border-radius: 10px;
+  border: 1px solid ${props => props.$tone === 'primary' ? 'transparent' : 'rgba(0, 0, 0, 0.1)'};
   background: ${props => props.$tone === 'primary' ? '#000000' : '#ffffff'};
   color: ${props => props.$tone === 'primary' ? '#ffffff' : '#000000'};
   cursor: pointer;
-  font-family: var(--font-mono);
-  font-size: 11px;
-  font-weight: 900;
-  text-transform: uppercase;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 700;
+  transition: all 0.2s;
 
   &:hover {
-    transform: translate(-1px, -1px);
+    background: ${props => props.$tone === 'primary' ? '#1a1a1a' : '#f9f9f9'};
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
   }
 `;
 

@@ -16,18 +16,21 @@ const Copy = styled.div`
 `;
 
 const Eyebrow = styled.span`
-  font-size: 0.78rem;
-  font-weight: 800;
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.05em;
   color: var(--color-ink-soft);
 `;
 
 const Title = styled.h1`
+  font-family: var(--font-sans);
   font-size: clamp(2rem, 4vw, 3.4rem);
   line-height: 0.98;
-  font-weight: 850;
+  font-weight: 800;
   color: var(--color-ink);
+  letter-spacing: -0.02em;
 `;
 
 const Subtitle = styled.p`

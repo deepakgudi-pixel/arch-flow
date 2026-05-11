@@ -4,88 +4,83 @@ const variantStyles = {
   primary: css`
     background: #000000;
     color: #ffffff;
-    border: 3px solid #000000;
-    box-shadow: 4px 4px 0px #000000;
+    border: 1px solid transparent;
 
     &:hover:not(:disabled) {
-      background: #262626;
-      transform: translate(-2px, -2px);
-      box-shadow: 6px 6px 0px #000000;
+      background: #1a1a1a;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     }
 
     &:active:not(:disabled) {
-      transform: translate(0, 0);
-      box-shadow: 2px 2px 0px #000000;
+      transform: translateY(0);
     }
   `,
   secondary: css`
     background: #ffffff;
     color: #000000;
-    border: 3px solid #000000;
-    box-shadow: 4px 4px 0px #000000;
+    border: 1px solid rgba(0, 0, 0, 0.1);
 
     &:hover:not(:disabled) {
-      background: #F2F2F2;
-      transform: translate(-2px, -2px);
-      box-shadow: 6px 6px 0px #000000;
+      background: #f9f9f9;
+      border-color: rgba(0, 0, 0, 0.15);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
     }
 
     &:active:not(:disabled) {
-      transform: translate(0, 0);
-      box-shadow: 2px 2px 0px #000000;
+      transform: translateY(0);
     }
   `,
   ghost: css`
     background: transparent;
     color: #000000;
-    border: 3px solid transparent;
+    border: 1px solid transparent;
 
     &:hover:not(:disabled) {
-      background: #F2F2F2;
-      border-color: #000000;
+      background: rgba(0, 0, 0, 0.03);
     }
   `,
   danger: css`
-    background: #FFEFEE;
-    color: #D50000;
-    border: 3px solid #000000;
-    box-shadow: 4px 4px 0px #000000;
+    background: #ffffff;
+    color: #ef4444;
+    border: 1px solid rgba(239, 68, 68, 0.2);
 
     &:hover:not(:disabled) {
-      background: #FFDEDC;
-      transform: translate(-2px, -2px);
-      box-shadow: 6px 6px 0px #000000;
+      background: #fff5f5;
+      border-color: #ef4444;
+      transform: translateY(-1px);
     }
   `,
   accent: css`
-    background: #F2F2F2;
+    background: rgba(0, 0, 0, 0.03);
     color: #000000;
-    border: 3px solid #000000;
-    box-shadow: 4px 4px 0px #000000;
+    border: 1px solid transparent;
 
     &:hover:not(:disabled) {
-      background: #E5E5E5;
-      transform: translate(-2px, -2px);
-      box-shadow: 6px 6px 0px #000000;
+      background: rgba(0, 0, 0, 0.05);
     }
   `
 };
 
 const sizeStyles = {
   sm: css`
-    height: 40px;
-    padding: 0 16px;
-    font-size: 0.85rem;
+    height: 36px;
+    padding: 0 14px;
+    font-size: 13px;
+    border-radius: 8px;
   `,
   md: css`
-    height: 52px;
-    padding: 0 24px;
-    font-size: 0.92rem;
+    height: 44px;
+    padding: 0 20px;
+    font-size: 14px;
+    border-radius: 10px;
   `,
   lg: css`
-    height: 64px;
-    padding: 0 32px;
-    font-size: 1rem;
+    height: 52px;
+    padding: 0 28px;
+    font-size: 15px;
+    border-radius: 12px;
   `
 };
 
@@ -95,15 +90,13 @@ export const Button = styled.button.attrs(props => ({
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 12px;
-  font-family: var(--font-mono);
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.02em;
+  gap: 8px;
+  font-family: var(--font-sans);
+  font-weight: 600;
   cursor: pointer;
-  transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   width: ${props => props.$fullWidth ? '100%' : 'auto'};
-  border-radius: 0;
+  white-space: nowrap;
 
   ${props => sizeStyles[props.$size || 'md']}
   ${props => variantStyles[props.$variant || 'secondary']}
@@ -111,8 +104,8 @@ export const Button = styled.button.attrs(props => ({
   &:disabled {
     cursor: not-allowed;
     opacity: 0.5;
-    box-shadow: none;
-    transform: none;
+    box-shadow: none !important;
+    transform: none !important;
   }
 `;
 
@@ -120,6 +113,7 @@ export const ButtonIcon = styled.span`
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 `;
 
 export default Button;

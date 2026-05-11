@@ -12,15 +12,15 @@ export const Header = styled.header`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 14px 20px;
-  padding: 14px 24px;
+  flex-wrap: nowrap;
+  gap: 14px 32px;
+  padding: 12px 24px;
+  position: relative;
   background: #ffffff;
-  border-bottom: 3px solid #000000;
-  z-index: 100;
 
   @media (max-width: 1180px) {
-    padding: 14px 18px;
+    padding: 12px 18px;
+    gap: 14px 20px;
   }
 `;
 
@@ -34,47 +34,66 @@ export const HeaderLeft = styled.div`
 `;
 
 export const Logo = styled.div`
-  font-family: var(--font-mono);
-  font-size: 1.25rem;
-  font-weight: 900;
-  text-transform: uppercase;
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
   color: #000000;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
+  cursor: pointer;
+  transition: opacity 0.2s;
+
+  &:hover {
+    opacity: 0.7;
+  }
 `;
 
-export const LogoIcon = styled.span`
-  width: 32px;
-  height: 32px;
+export const LogoIcon = styled.div`
+  width: 28px;
+  height: 28px;
   background: #000000;
   color: white;
-  display: grid;
-  place-items: center;
-  border: 2px solid #000000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  font-size: 14px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 `;
 
 export const DiagramNameWrap = styled.div`
   display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 8px 14px;
-  border: 2px solid #000000;
-  background: #fafafa;
-  min-width: 290px;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: background 0.2s;
+
+  &:hover {
+    background: rgba(0, 0, 0, 0.03);
+  }
 `;
 
 export const DiagramName = styled.input`
-  font-family: var(--font-mono);
+  font-family: var(--font-sans);
   font-size: 14px;
-  font-weight: 800;
+  font-weight: 700;
   color: #000000;
   border: none;
   background: transparent;
-  width: min(280px, 38vw);
-  text-transform: uppercase;
+  width: 240px;
+  padding: 0;
+  margin: 0;
+
   &:focus {
     outline: none;
+  }
+
+  &::placeholder {
+    color: #999;
   }
 `;
 
@@ -86,24 +105,33 @@ export const HeaderCenter = styled.div`
 `;
 
 export const ActionButton = styled.button`
-  padding: 10px 20px;
-  font-family: var(--font-mono);
-  font-size: 12px;
-  font-weight: 900;
-  text-transform: uppercase;
+  padding: 8px 16px;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 600;
   white-space: nowrap;
   cursor: pointer;
-  border: 3px solid #000000;
+  border: 1px solid ${props => props.$active ? '#000000' : 'rgba(0, 0, 0, 0.1)'};
+  border-radius: 8px;
   background: ${props => props.$active ? '#000000' : '#ffffff'};
   color: ${props => props.$active ? '#ffffff' : '#000000'};
-  transition: all 0.1s;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
   &:hover {
-    transform: translate(-1px, -1px);
+    background: ${props => props.$active ? '#1a1a1a' : '#f9f9f9'};
+    border-color: ${props => props.$active ? '#000000' : 'rgba(0, 0, 0, 0.2)'};
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
   }
+
   &:active {
-    transform: translate(1px, 1px);
+    transform: translateY(0);
     box-shadow: none;
   }
+
   &:disabled {
     opacity: 0.5;
     cursor: not-allowed;
@@ -128,8 +156,9 @@ export const MainArea = styled.div`
 export const LeftSidebar = styled.div`
   width: ${props => props.$open ? '400px' : '0'};
   background: #ffffff;
-  border-right: 4px solid #000000;
-  transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  border-right: 1px solid rgba(0, 0, 0, 0.08);
+  border-right-width: ${props => props.$open ? '1px' : '0'};
+  transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1), border-right-width 0.3s;
   overflow: hidden;
   flex-shrink: 0;
   z-index: 50;
@@ -143,65 +172,68 @@ export const SidebarContent = styled.div`
 `;
 
 export const SidebarTitle = styled.h2`
-  font-family: var(--font-mono);
-  font-size: 1.5rem;
-  font-weight: 900;
+  font-family: var(--font-sans);
+  font-size: 1.2rem;
+  font-weight: 700;
   color: #000000;
   margin-bottom: 24px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  text-transform: uppercase;
-  word-break: break-word;
+  letter-spacing: -0.01em;
 `;
 
 export const CloseBtn = styled.button`
-  background: #000000;
+  background: rgba(0, 0, 0, 0.05);
   border: none;
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0 0 2px;
-  color: white;
-  font-family: Arial, sans-serif;
-  font-size: 22px;
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border-radius: 50%;
+  color: #000000;
+  font-size: 18px;
   line-height: 1;
+  font-family: Arial, sans-serif;
   cursor: pointer;
+  transition: all 0.2s;
 
   &:hover {
-    background: #333;
+    background: rgba(0, 0, 0, 0.1);
+    transform: scale(1.1);
   }
 `;
 
 export const TechBadge = styled.span`
   display: inline-block;
-  padding: 6px 12px;
-  border: 2px solid #000000;
-  font-family: var(--font-mono);
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-family: var(--font-sans);
   font-size: 11px;
-  font-weight: 900;
-  text-transform: uppercase;
-  background: ${props => categoryColors[props.$category] || '#000000'};
-  color: white;
+  font-weight: 700;
+  background: ${props => categoryColors[props.$category] || '#000000'}15;
+  color: ${props => categoryColors[props.$category] || '#000000'};
+  border: 1px solid ${props => categoryColors[props.$category] || '#000000'}30;
 `;
 
 export const SectionTitle = styled.h3`
-  font-family: var(--font-mono);
-  font-size: 12px;
-  font-weight: 900;
-  color: #666;
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 700;
+  color: #999;
   text-transform: uppercase;
-  margin: 32px 0 16px;
+  margin: 24px 0 12px;
   display: flex;
   align-items: center;
   gap: 8px;
+  letter-spacing: 0.05em;
+
   &::after {
     content: '';
     flex: 1;
-    height: 2px;
-    background: #e5e5e5;
+    height: 1px;
+    background: rgba(0, 0, 0, 0.05);
   }
 `;
 
@@ -213,14 +245,19 @@ export const Description = styled.p`
 `;
 
 export const ProductCard = styled.div`
-  padding: 16px;
+  padding: 14px;
   background: #ffffff;
-  border: 3px solid #000000;
-  margin-bottom: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 12px;
+  margin-bottom: 10px;
   cursor: pointer;
-  transition: all 0.1s;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+
   &:hover {
-    transform: translate(-2px, -2px);
+    border-color: rgba(0, 0, 0, 0.15);
+    background: #fcfcfc;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+    transform: translateY(-1px);
   }
 `;
 
@@ -248,8 +285,9 @@ export const CanvasWrapper = styled.div`
 export const RightPanel = styled.div`
   width: ${props => props.$open ? '320px' : '0'};
   background: #ffffff;
-  border-left: 4px solid #000000;
-  transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  border-left: 1px solid rgba(0, 0, 0, 0.08);
+  border-left-width: ${props => props.$open ? '1px' : '0'};
+  transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1), border-left-width 0.3s;
   overflow: hidden;
   flex-shrink: 0;
   z-index: 50;
@@ -264,15 +302,25 @@ export const PanelContent = styled.div`
 
 export const SearchInput = styled.input`
   width: 100%;
-  padding: 12px 16px;
-  border: 3px solid #000000;
-  font-family: var(--font-mono);
+  padding: 10px 14px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 10px;
+  font-family: var(--font-sans);
   font-size: 13px;
-  margin-bottom: 24px;
-  background: #f8f8f8;
+  font-weight: 500;
+  margin-bottom: 20px;
+  background: rgba(0, 0, 0, 0.02);
+  transition: all 0.2s;
+
   &:focus {
     outline: none;
     background: #ffffff;
+    border-color: #000000;
+    box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.03);
+  }
+
+  &::placeholder {
+    color: #999;
   }
 `;
 
@@ -280,24 +328,31 @@ export const TechChip = styled.div`
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 10px 16px;
+  padding: 8px 12px;
   background: #ffffff;
-  border: 2px solid #000000;
-  font-family: var(--font-mono);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 8px;
+  font-family: var(--font-sans);
   font-size: 12px;
-  font-weight: 800;
-  text-transform: uppercase;
+  font-weight: 600;
   color: #000000;
   cursor: grab;
   margin-bottom: 8px;
-  transition: all 0.1s;
+  transition: all 0.2s;
+
   &:hover {
-    background: #f0f0f0;
+    background: #f9f9f9;
+    border-color: rgba(0, 0, 0, 0.15);
     transform: translateX(4px);
   }
+
   &::before {
-    content: '::';
-    color: ${props => categoryColors[props.$category] || '#000000'};
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: ${props => categoryColors[props.$category] || '#000000'};
+    flex-shrink: 0;
   }
 `;
 
@@ -306,59 +361,71 @@ export const TechCategory = styled.div`
 `;
 
 export const CategoryLabel = styled.div`
-  font-family: var(--font-mono);
-  font-size: 11px;
-  font-weight: 900;
-  color: #999;
+  font-family: var(--font-sans);
+  font-size: 10px;
+  font-weight: 700;
+  color: #bbb;
   text-transform: uppercase;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
+  letter-spacing: 0.05em;
 `;
 
 export const BottomBar = styled.div`
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 24px 32px;
-  background: #ffffff;
-  border-top: 4px solid #000000;
+  gap: 12px;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(16px) saturate(180%);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 20px;
+  box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.15), 0 12px 16px -8px rgba(0, 0, 0, 0.1);
 `;
 
 export const PromptInput = styled.input`
   flex: 1;
-  padding: 16px 24px;
-  border: 3px solid #000000;
+  padding: 14px 20px;
+  border: none;
   font-family: var(--font-sans);
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 500;
-  background: #f8f8f8;
+  background: transparent;
+  color: #000;
+
   &:focus {
     outline: none;
-    background: #ffffff;
+  }
+
+  &::placeholder {
+    color: #999;
+    letter-spacing: 0.01em;
   }
 `;
 
 export const TemplateSelect = styled.select`
-  padding: 16px 40px 16px 20px;
-  border: 3px solid #000000;
-  font-family: var(--font-mono);
-  font-size: 13px;
-  font-weight: 900;
-  text-transform: uppercase;
-  background: #ffffff;
+  padding: 10px 32px 10px 14px;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  border-radius: 12px;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 700;
+  color: #666;
+  background: rgba(0, 0, 0, 0.03);
   cursor: pointer;
   appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='4' stroke-linecap='square' stroke-linejoin='inherit'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
-  background-position: right 16px center;
-  transition: all 0.1s;
+  background-position: right 12px center;
+  transition: all 0.2s;
+
   &:focus {
     outline: none;
-    background-color: #f8f8f8;
+    background-color: rgba(0, 0, 0, 0.05);
   }
+
   &:hover {
-    background-color: #f0f0f0;
-    transform: translate(-1px, -1px);
-    box-shadow: 2px 2px 0px #000000;
+    background-color: rgba(0, 0, 0, 0.06);
+    color: #000;
   }
 `;
 
@@ -370,20 +437,25 @@ export const EmptyCanvas = styled.div`
   text-align: center;
   pointer-events: none;
   z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
 `;
 
 export const EmptyIcon = styled.div`
-  font-size: 80px;
-  filter: grayscale(100%);
-  margin-bottom: 24px;
-  opacity: 0.1;
+  font-size: 64px;
+  color: #000;
+  opacity: 0.04;
+  filter: drop-shadow(0 0 10px rgba(0,0,0,0.1));
 `;
 
 export const EmptyText = styled.p`
-  font-family: var(--font-mono);
+  font-family: var(--font-sans);
   font-size: 14px;
-  font-weight: 900;
+  font-weight: 700;
+  color: #000;
+  opacity: 0.15;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
-  color: #000000;
-  letter-spacing: 0.1em;
 `;

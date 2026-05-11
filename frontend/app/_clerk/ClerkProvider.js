@@ -2,6 +2,7 @@
 
 import { ClerkProvider, useAuth } from '@clerk/nextjs';
 import { useEffect } from 'react';
+import { usePathname } from 'next/navigation';
 import api, { clearToken, setToken, setTokenProvider } from '@/lib/api';
 
 const publishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY;
@@ -47,8 +48,12 @@ function ClerkTokenBridge({ children }) {
 
         localStorage.setItem('archflow_token', token);
         setToken(token);
-        await api.syncUser();
+        await api.syncUser({ suppressErrorLog: true });
       } catch (err) {
+        if (err?.status === 401) {
+          return;
+        }
+
         console.error('Failed to sync user:', err);
       }
     };
@@ -60,6 +65,23 @@ function ClerkTokenBridge({ children }) {
 }
 
 export default function ClerkAuthProvider({ children }) {
+  const pathname = usePathname();
+  const bypassAuthBootstrap = pathname === '/auth-smoke-probe' || pathname === '/editor-smoke-probe';
+
+  useEffect(() => {
+    if (!bypassAuthBootstrap) {
+      return undefined;
+    }
+
+    clearToken();
+    setTokenProvider(null);
+    return undefined;
+  }, [bypassAuthBootstrap]);
+
+  if (bypassAuthBootstrap) {
+    return children;
+  }
+
   if (!publishableKey) {
     return (
       <div style={{

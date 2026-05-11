@@ -16,7 +16,7 @@ const Panel = styled.div`
 
 const PanelHeader = styled.div`
   padding: 24px;
-  border-bottom: 3px solid #000000;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -30,10 +30,10 @@ const TitleCluster = styled.div`
 `;
 
 const Title = styled.h3`
-  font-family: var(--font-mono);
-  font-weight: 900;
-  font-size: 14px;
-  text-transform: uppercase;
+  font-family: var(--font-sans);
+  font-weight: 700;
+  font-size: 15px;
+  color: #000;
 `;
 
 const VersionList = styled.div`
@@ -47,19 +47,17 @@ const VersionList = styled.div`
 
 const VersionCard = styled.div`
   padding: 16px;
-  border: 3px solid #000000;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 12px;
   background: #ffffff;
   cursor: pointer;
-  transition: all 0.1s;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   
   &:hover {
-    transform: translate(-2px, -2px);
-    box-shadow: 4px 4px 0px #000000;
-  }
-  
-  &:active {
-    transform: translate(0, 0);
-    box-shadow: none;
+    transform: translateY(-1px);
+    border-color: rgba(0, 0, 0, 0.15);
+    background: #fcfcfc;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
   }
 `;
 
@@ -67,12 +65,11 @@ const VersionMeta = styled.div`
   display: flex;
   align-items: center;
   gap: 6px;
-  font-family: var(--font-mono);
-  font-size: 10px;
-  font-weight: 800;
-  color: #666;
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 600;
+  color: #999;
   margin-bottom: 8px;
-  text-transform: uppercase;
 `;
 
 const VersionPrompt = styled.div`
@@ -87,48 +84,49 @@ const VersionPrompt = styled.div`
 
 const VersionDiff = styled.div`
   margin-top: 10px;
-  font-family: var(--font-mono);
+  font-family: var(--font-sans);
   font-size: 10px;
-  font-weight: 800;
-  color: #666;
+  font-weight: 700;
+  color: #bbb;
   text-transform: uppercase;
+  letter-spacing: 0.02em;
 `;
 
 const EmptyState = styled.div`
   padding: 40px 20px;
   text-align: center;
   color: #999;
-  font-family: var(--font-mono);
-  font-size: 11px;
-  font-weight: 800;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 500;
 `;
 
 const Footer = styled.div`
   padding: 16px;
-  border-top: 3px solid #000000;
+  border-top: 1px solid rgba(0, 0, 0, 0.05);
 `;
 
 const ClearButton = styled.button`
   width: 100%;
   padding: 12px;
-  background: #ff4444;
-  color: #fff;
-  border: 3px solid #000000;
-  font-family: var(--font-mono);
-  font-weight: 900;
-  font-size: 11px;
+  background: #ffffff;
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: 12px;
+  font-family: var(--font-sans);
+  font-weight: 700;
+  font-size: 12px;
   cursor: pointer;
-  box-shadow: 4px 4px 0px #000000;
-  transition: all 0.1s;
+  transition: all 0.2s;
 
   &:hover {
-    transform: translate(-2px, -2px);
-    box-shadow: 6px 6px 0px #000000;
+    background: #fff5f5;
+    border-color: #ef4444;
+    transform: translateY(-1px);
   }
 
   &:active {
-    transform: translate(2px, 2px);
-    box-shadow: none;
+    transform: translateY(0);
   }
 `;
 
@@ -138,7 +136,7 @@ export default function HistoryPanel({ versions, currentNodes, currentEdges, onS
       <PanelHeader>
         <TitleCluster>
           <History size={18} />
-          <Title>SYSTEM_HISTORY</Title>
+          <Title>System History</Title>
         </TitleCluster>
         <CloseBtn type="button" onClick={onClose} aria-label="Close history">
           ×
@@ -146,7 +144,7 @@ export default function HistoryPanel({ versions, currentNodes, currentEdges, onS
       </PanelHeader>
       <VersionList>
         {versions.length === 0 ? (
-          <EmptyState>NO_SNAPSHOTS_FOUND</EmptyState>
+          <EmptyState>No snapshots found</EmptyState>
         ) : (
           versions.map((v) => (
             <VersionCard key={v.id} onClick={() => onSelectVersion(v)}>
@@ -155,7 +153,7 @@ export default function HistoryPanel({ versions, currentNodes, currentEdges, onS
                 {formatDistanceToNow(new Date(v.created_at), { addSuffix: true })}
               </VersionMeta>
               <VersionPrompt>
-                {v.prompt_text || 'GENERATE_REQUEST'}
+                {v.prompt_text || 'Synthesized Architecture'}
               </VersionPrompt>
               {(() => {
                 const diff = buildVersionDiff(currentNodes, currentEdges, v.nodes || [], v.edges || []);
@@ -172,7 +170,7 @@ export default function HistoryPanel({ versions, currentNodes, currentEdges, onS
       {versions.length > 0 && (
         <Footer>
           <ClearButton onClick={onClearHistory}>
-            CLEAR_ALL_HISTORY
+            Clear All History
           </ClearButton>
         </Footer>
       )}
