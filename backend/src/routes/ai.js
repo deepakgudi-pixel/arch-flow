@@ -48,6 +48,7 @@ const aiLimiter = rateLimit({
   message: { error: 'Too many requests. Please slow down and synchronize with the mainframe later.' },
   standardHeaders: true,
   legacyHeaders: false,
+  validate: false,
   store: (redis.isAvailable() && redis.getClient()) ? new RedisStore({
     sendCommand: (...args) => redis.getClient().sendCommand(args),
     prefix: 'rl:ai:',
