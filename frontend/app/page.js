@@ -6,6 +6,7 @@ import { useUser } from '@clerk/nextjs';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { GitBranch, Sparkles } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/Button';
 import { Card, CardEyebrow, CardText, CardTitle } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
@@ -20,7 +21,7 @@ const Nav = styled.header`
   position: relative;
   max-width: var(--page-width);
   margin: 0 auto;
-  padding: 24px var(--spacing-md);
+  padding: 32px var(--spacing-xl);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -80,11 +81,11 @@ const Hero = styled.section`
   position: relative;
   max-width: var(--page-width);
   margin: 0 auto;
-  padding: var(--spacing-xl) var(--spacing-md);
+  padding: var(--spacing-xxl) var(--spacing-xl);
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 64px;
-  align-items: center;
+  gap: var(--spacing-xl);
+  align-items: stretch;
 
   @media (max-width: 1024px) {
     grid-template-columns: 1fr;
@@ -93,8 +94,10 @@ const Hero = styled.section`
 `;
 
 const HeroCopy = styled.div`
-  display: grid;
-  gap: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+  height: 100%;
 `;
 
 const HeroTitle = styled.h1`
@@ -117,12 +120,19 @@ const HeroText = styled.p`
   line-height: 1.5;
   color: var(--color-ink-muted);
   max-width: 600px;
+  margin-top: auto;
 `;
 
 const HeroActions = styled.div`
   display: flex;
   flex-wrap: wrap;
-  gap: 20px;
+  gap: var(--spacing-sm);
+  padding-top: var(--spacing-lg);
+  
+  a {
+    display: inline-block;
+    width: 200px;
+  }
 `;
 
 const Preview = styled(Card)`
@@ -135,14 +145,13 @@ const Section = styled.section`
   position: relative;
   max-width: var(--page-width);
   margin: 0 auto;
-  padding: var(--spacing-xl) var(--spacing-md);
-  border-top: 4px solid #000000;
+  padding: var(--spacing-xxl) var(--spacing-xl);
 `;
 
 const SectionHeader = styled.div`
   max-width: 900px;
   display: grid;
-  gap: 24px;
+  gap: var(--spacing-md);
   margin-bottom: 64px;
 `;
 
@@ -172,7 +181,7 @@ const SectionTitle = styled.h2`
 const FeatureGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(12, 1fr);
-  gap: 32px;
+  gap: var(--spacing-md);
 
   @media (max-width: 1024px) {
     grid-template-columns: 1fr;
@@ -182,7 +191,7 @@ const FeatureGrid = styled.div`
 const FeatureCard = styled(Card)`
   grid-column: span ${props => props.$span || 4};
   display: grid;
-  gap: 24px;
+  gap: var(--spacing-md);
 
   @media (max-width: 1024px) {
     grid-column: span 1;
@@ -192,13 +201,14 @@ const FeatureCard = styled(Card)`
 const DesktopSection = styled.section`
   max-width: var(--page-width);
   margin: 64px auto;
-  padding: 80px var(--spacing-md);
+  padding: var(--spacing-xxl) var(--spacing-xl);
   background: #000;
   color: #fff;
   border: 8px solid #000;
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 64px;
+  grid-template-columns: minmax(0, 600px) minmax(0, 600px);
+  justify-content: center;
+  gap: var(--spacing-xl);
   align-items: center;
   position: relative;
   overflow: hidden;
@@ -211,7 +221,7 @@ const DesktopSection = styled.section`
 
 const DesktopCopy = styled.div`
   display: grid;
-  gap: 24px;
+  gap: var(--spacing-md);
   position: relative;
   z-index: 2;
 `;
@@ -245,6 +255,13 @@ const TechLabel = styled.div`
   letter-spacing: 2px;
   margin-bottom: 8px;
 `;
+
+const fadeUp = {
+  initial: { opacity: 0, y: 30 },
+  whileInView: { opacity: 1, y: 0 },
+  viewport: { once: true, margin: "-50px" },
+  transition: { duration: 0.6, ease: [0.16, 1, 0.3, 1] }
+};
 
 export default function HomePage() {
   const { isLoaded, isSignedIn } = useUser();
@@ -340,8 +357,7 @@ export default function HomePage() {
       </Nav>
 
       <Hero>
-        <HeroCopy>
-          <Badge $tone="brand">SYSTEM_ID: ARCH-V1</Badge>
+        <HeroCopy as={motion.div} {...fadeUp}>
           <HeroTitle>
             Architecture
             <span>That Ships.</span>
@@ -351,31 +367,31 @@ export default function HomePage() {
           </HeroText>
           <HeroActions>
             <Link href={isSignedIn ? '/dashboard' : '/sign-up'}>
-              <Button $variant="primary" $size="lg">Start workspace</Button>
+              <Button $variant="primary" $size="lg" $fullWidth>Start workspace</Button>
             </Link>
             <Link href="#product">
-              <Button $variant="secondary" $size="lg">System specs</Button>
+              <Button $variant="secondary" $size="lg" $fullWidth>System specs</Button>
             </Link>
           </HeroActions>
         </HeroCopy>
 
-        <Preview $elevated>
+        <Preview as={motion.div} $elevated {...fadeUp} transition={{ ...fadeUp.transition, delay: 0.1 }}>
           <div style={{ padding: '32px', borderBottom: '3px solid #000000', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 800 }}>WORKSPACE_PREVIEW_01</span>
             <Badge $tone="accent">LIVE_DRAFT</Badge>
           </div>
           <div style={{ padding: '32px', display: 'grid', gap: '32px' }}>
              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
-                <Card style={{ background: '#F2F2F2' }}>
+                <Card style={{ background: '#F2F2F2', boxShadow: 'none', borderRadius: '12px' }}>
                    <CardEyebrow>FRONTEND_V3</CardEyebrow>
                    <CardTitle $size="1.2rem">React Dashboard</CardTitle>
                 </Card>
-                <Card style={{ background: '#F2F2F2' }}>
+                <Card style={{ background: '#F2F2F2', boxShadow: 'none', borderRadius: '12px' }}>
                    <CardEyebrow>BACKEND_V3</CardEyebrow>
                    <CardTitle $size="1.2rem">Go Microservice</CardTitle>
                 </Card>
              </div>
-             <Card style={{ background: '#F2F2F2' }}>
+             <Card style={{ background: '#F2F2F2', boxShadow: 'none', borderRadius: '12px' }}>
                 <CardEyebrow>PERSISTENCE_LAYER</CardEyebrow>
                 <CardTitle $size="1.2rem">Multi-Region RDS + ElasticCache</CardTitle>
              </Card>
@@ -384,7 +400,7 @@ export default function HomePage() {
       </Hero>
 
       <Section id="product">
-        <SplitSectionHeader>
+        <SplitSectionHeader as={motion.div} {...fadeUp}>
           <SectionTitle>Engineered for the messy middle of design.</SectionTitle>
           <SectionBodyText>
             Archflow bridges the gap between rough sketches and implementation specs with a workspace that carries engineering context into every node, every connection, and every AI-assisted review step.
@@ -392,7 +408,7 @@ export default function HomePage() {
         </SplitSectionHeader>
 
         <FeatureGrid>
-          <FeatureCard $span={6} $elevated style={{ overflow: 'hidden' }}>
+          <FeatureCard as={motion.div} $span={6} $elevated style={{ overflow: 'hidden' }} {...fadeUp}>
             {verifying && (
               <div style={{
                 position: 'absolute',
@@ -433,7 +449,20 @@ export default function HomePage() {
             </div>
           </FeatureCard>
           
-          <FeatureCard $span={6} $elevated>
+          <FeatureCard as={motion.div} $span={6} $elevated style={{ overflow: 'hidden' }} {...fadeUp} transition={{ ...fadeUp.transition, delay: 0.15 }}>
+            {tracing && (
+              <div style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                bottom: 0,
+                width: `${progress2}%`,
+                background: 'linear-gradient(90deg, #67E8F9 0%, #22D3EE 100%)',
+                opacity: 0.15,
+                transition: 'width 0.2s ease-out',
+                zIndex: 0
+              }} />
+            )}
             <div style={{ position: 'relative', zIndex: 1, height: '100%', display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div>
                 <Badge $tone="neutral">MODULE_02</Badge>
@@ -450,7 +479,7 @@ export default function HomePage() {
                   disabled={tracing}
                   style={{ minWidth: '180px' }}
                 >
-                  {tracing ? 'STAGING...' : 'Stage AI Suggestions'}
+                  {tracing ? 'STAGING...' : 'Accept & Connect'}
                 </Button>
                 {tracing && (
                   <span style={{ fontFamily: 'var(--font-mono)', fontSize: '10px', fontWeight: 900 }}>
@@ -461,29 +490,27 @@ export default function HomePage() {
             </div>
           </FeatureCard>
 
-          <FeatureCard $span={12} $elevated>
+          <FeatureCard as={motion.div} $span={12} $elevated {...fadeUp}>
             <div style={{ display: 'grid', gap: '18px' }}>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', alignItems: 'center' }}>
                 <Badge $tone="neutral">MODULE_03</Badge>
-                <Badge $tone="brand"><Sparkles size={12} /> REFRESH_SAFE_AI_DRAFTS</Badge>
-                <Badge $tone="warning"><GitBranch size={12} /> ACCEPT_AND_CONNECT</Badge>
               </div>
               <CardTitle>Built for iterative architecture work, not one-shot generation.</CardTitle>
               <CardText>
                 Pending AI chat and staged review items survive refreshes, accepted suggestions connect into the diagram, and the review layer uses rule-aware checks so users can grow complex systems without losing clarity or control.
               </CardText>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '16px' }}>
-                <Card style={{ background: '#F8F8F8', padding: '20px' }}>
+                <Card style={{ background: '#F8F8F8', padding: '20px', boxShadow: 'none', borderRadius: '12px' }}>
                   <CardEyebrow>FLOW_01</CardEyebrow>
                   <CardTitle $size="1.1rem">Ask AI</CardTitle>
                   <CardText>Question the diagram in context.</CardText>
                 </Card>
-                <Card style={{ background: '#F8F8F8', padding: '20px' }}>
+                <Card style={{ background: '#F8F8F8', padding: '20px', boxShadow: 'none', borderRadius: '12px' }}>
                   <CardEyebrow>FLOW_02</CardEyebrow>
                   <CardTitle $size="1.1rem">Review</CardTitle>
                   <CardText>Stage additions before they change the architecture.</CardText>
                 </Card>
-                <Card style={{ background: '#F8F8F8', padding: '20px' }}>
+                <Card style={{ background: '#F8F8F8', padding: '20px', boxShadow: 'none', borderRadius: '12px' }}>
                   <CardEyebrow>FLOW_03</CardEyebrow>
                   <CardTitle $size="1.1rem">Connect</CardTitle>
                   <CardText>Accept and wire new tech into the diagram safely.</CardText>
@@ -495,7 +522,7 @@ export default function HomePage() {
       </Section>
 
       <DesktopSection>
-        <DesktopCopy>
+        <DesktopCopy as={motion.div} {...fadeUp}>
           <TechLabel>SYSTEM_HARDWARE // MACOS_SILICON_READY</TechLabel>
           <DesktopTitle>The Elite <br/>Desktop Engine.</DesktopTitle>
           <HeroText style={{ color: '#aaa' }}>
@@ -511,7 +538,7 @@ export default function HomePage() {
             </div>
           )}
         </DesktopCopy>
-        <DesktopPreview>
+        <DesktopPreview as={motion.div} {...fadeUp} transition={{ ...fadeUp.transition, delay: 0.1 }}>
            <img 
              src="/images/processor.png" 
              alt="Archflow Engine"

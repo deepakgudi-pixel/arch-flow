@@ -2362,32 +2362,29 @@ export default function DiagramPage() {
         />
 
         <MainArea>
-          {selectedEdge ? (
-            <ConnectionDetailsSidebar
-              open={leftSidebarOpen}
-              onClose={() => {
-                setLeftSidebarOpen(false);
-                setSelectedEdge(null);
-              }}
-              selectedEdge={selectedEdge}
-              connectionProfile={selectedConnectionProfile}
-              onDeleteEdge={deleteSelected}
-            />
-          ) : (
-            <NodeDetailsSidebar
-              open={leftSidebarOpen && Boolean(selectedNode)}
-              onClose={() => {
-                setLeftSidebarOpen(false);
-                setSelectedNode(null);
-              }}
-              selectedNode={selectedNode}
-              trustProfile={selectedNodeTrustProfile}
-              replacementOptions={replacementCandidates}
-              connectedFlows={selectedNodeConnectedFlows}
-              onSelectFlow={handleSelectNodeFlow}
-              onReplaceNode={handleReplaceNode}
-            />
-          )}
+          <ConnectionDetailsSidebar
+            open={leftSidebarOpen && Boolean(selectedEdge)}
+            onClose={() => {
+              setLeftSidebarOpen(false);
+              setSelectedEdge(null);
+            }}
+            selectedEdge={selectedEdge}
+            connectionProfile={selectedConnectionProfile}
+            onDeleteEdge={deleteSelected}
+          />
+          <NodeDetailsSidebar
+            open={leftSidebarOpen && Boolean(selectedNode) && !selectedEdge}
+            onClose={() => {
+              setLeftSidebarOpen(false);
+              setSelectedNode(null);
+            }}
+            selectedNode={selectedNode}
+            trustProfile={selectedNodeTrustProfile}
+            replacementOptions={replacementCandidates}
+            connectedFlows={selectedNodeConnectedFlows}
+            onSelectFlow={handleSelectNodeFlow}
+            onReplaceNode={handleReplaceNode}
+          />
 
           <CanvasWrapper onDrop={handleDrop} onDragOver={handleDragOver}>
             <ReactFlow

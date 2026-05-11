@@ -209,10 +209,15 @@ export default function DiagramAssistantPanel({
   pendingSuggestionCount = 0,
   onClose
 }) {
-  const messagesEndRef = useRef(null);
+  const messageListRef = useRef(null);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (messageListRef.current) {
+      messageListRef.current.scrollTo({
+        top: messageListRef.current.scrollHeight,
+        behavior: 'smooth'
+      });
+    }
   }, [messages]);
 
   return (
@@ -255,7 +260,7 @@ export default function DiagramAssistantPanel({
         </IntroCard>
       </PanelHeader>
 
-      <MessageList>
+      <MessageList ref={messageListRef}>
         {messages.length > 0 && (
           messages.map(message => (
             <MessageCard key={message.id} $role={message.role}>
@@ -274,7 +279,6 @@ export default function DiagramAssistantPanel({
             </MessageCard>
           ))
         )}
-        <div ref={messagesEndRef} />
       </MessageList>
 
       <Composer>

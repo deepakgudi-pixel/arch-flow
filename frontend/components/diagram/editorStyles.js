@@ -158,7 +158,7 @@ export const LeftSidebar = styled.div`
   background: #ffffff;
   border-right: 1px solid rgba(0, 0, 0, 0.08);
   border-right-width: ${props => props.$open ? '1px' : '0'};
-  transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1), border-right-width 0.3s;
+  transition: width 0.5s ease-in-out, border-right-width 0.5s ease-in-out;
   overflow: hidden;
   flex-shrink: 0;
   z-index: 50;
@@ -287,7 +287,7 @@ export const RightPanel = styled.div`
   background: #ffffff;
   border-left: 1px solid rgba(0, 0, 0, 0.08);
   border-left-width: ${props => props.$open ? '1px' : '0'};
-  transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1), border-left-width 0.3s;
+  transition: width 0.5s ease-in-out, border-left-width 0.5s ease-in-out;
   overflow: hidden;
   flex-shrink: 0;
   z-index: 50;
