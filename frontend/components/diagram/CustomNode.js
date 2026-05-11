@@ -9,8 +9,8 @@ const NodeWrapper = styled.div`
   padding: 0;
   background: #ffffff;
   border: 3px solid #000000;
-  width: 220px;
-  min-width: 220px;
+  width: 240px;
+  min-width: 240px;
   min-height: 96px;
   display: flex;
   flex-direction: column;
@@ -55,8 +55,20 @@ const NodeName = styled.div`
   font-size: 15px;
   text-transform: uppercase;
   line-height: 1.2;
-  overflow-wrap: anywhere;
+  word-break: keep-all;
+  overflow-wrap: break-word;
+  letter-spacing: -0.02em;
   margin-bottom: 4px;
+`;
+
+const IconContainer = styled.div`
+  padding: 6px;
+  border: 2px solid #000;
+  background: #f5f5f5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 `;
 
 import * as LucideIcons from 'lucide-react';
@@ -78,11 +90,11 @@ export function CustomNode({ data, selected }) {
           <NodeCategoryLabel>{data.category}</NodeCategoryLabel>
         </NodeTopBar>
         <NodeBody>
-          <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
-            <div style={{ padding: '6px', border: '2px solid #000', background: '#f5f5f5' }}>
+          <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start', width: '100%' }}>
+            <IconContainer>
               <IconComponent size={16} strokeWidth={3} />
-            </div>
-            <div>
+            </IconContainer>
+            <div style={{ flex: 1, minWidth: 0 }}>
               <NodeName style={{ marginBottom: 0 }}>{displayLabel}</NodeName>
             </div>
           </div>
