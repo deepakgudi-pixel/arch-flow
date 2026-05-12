@@ -13,6 +13,7 @@
   <img src="https://img.shields.io/badge/PostgreSQL-Neon-4169E1?style=flat-square&logo=postgresql" alt="PostgreSQL">
   <img src="https://img.shields.io/badge/Redis-Upstash-FF4438?style=flat-square&logo=redis" alt="Redis">
   <img src="https://img.shields.io/badge/Electron-Mac-47848F?style=flat-square&logo=electron" alt="Electron">
+  <img src="https://img.shields.io/badge/version-1.5-00ff9d?style=flat-square" alt="Version 1.5">
   <img src="https://img.shields.io/badge/status-active-00ff9d?style=flat-square" alt="Status: Active">
 </p>
 
