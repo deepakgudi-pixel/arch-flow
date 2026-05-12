@@ -16,7 +16,7 @@ const ProbeCard = styled.section`
   padding: 32px;
   display: grid;
   gap: 16px;
-  box-shadow: 10px 10px 0 #000000;
+  box-shadow: none;
 `;
 
 const ProbeEyebrow = styled.div`

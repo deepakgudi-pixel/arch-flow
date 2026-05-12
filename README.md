@@ -1,17 +1,109 @@
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://img.shields.io/badge/archflow-cyberpunk%20system%20design-00ff9d?style=for-the-badge&labelColor=0a0a0a">
+    <img alt="Archflow" src="https://img.shields.io/badge/archflow-cyberpunk%20system%20design-00ff9d?style=for-the-badge&labelColor=0a0a0a">
+  </picture>
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/license-MIT-blue?style=flat-square" alt="License">
+  <img src="https://img.shields.io/badge/Next.js-15-black?style=flat-square&logo=next.js" alt="Next.js 15">
+  <img src="https://img.shields.io/badge/React-19-61DAFB?style=flat-square&logo=react" alt="React 19">
+  <img src="https://img.shields.io/badge/Node-22-339933?style=flat-square&logo=node.js" alt="Node.js 22">
+  <img src="https://img.shields.io/badge/PostgreSQL-Neon-4169E1?style=flat-square&logo=postgresql" alt="PostgreSQL">
+  <img src="https://img.shields.io/badge/Redis-Upstash-FF4438?style=flat-square&logo=redis" alt="Redis">
+  <img src="https://img.shields.io/badge/Electron-Mac-47848F?style=flat-square&logo=electron" alt="Electron">
+  <img src="https://img.shields.io/badge/status-active-00ff9d?style=flat-square" alt="Status: Active">
+</p>
+
+---
+
 # Archflow
 
-Archflow is an AI-assisted system architecture workspace for people who want to learn, understand, and iterate on software diagrams without needing to be perfect at system design on day one.
+**Archflow** is an AI-assisted system architecture workspace for people who want to learn, understand, and iterate on software diagrams — without needing to be perfect at system design on day one.
 
-The product is built around one core idea:
+> users should leave with a clearer mental model of the system, not just a pretty AI output
 
-- users should leave with a clearer mental model of the system, not just a pretty AI output
+Archflow optimizes for **trust**, **inspectability**, **presentability**, and **iteration speed**.
 
-That means Archflow optimizes for trust, inspectability, presentability, and iteration speed.
+---
+
+## System Architecture
+
+```mermaid
+flowchart TB
+  subgraph Client["Client Layer"]
+    WEB["Web Browser"]
+    DESKTOP["Mac Desktop (Electron)"]
+  end
+
+  subgraph Frontend["Frontend (Next.js 15 / React 19)"]
+    UI["React Flow Canvas<br/>Diagram Editor"]
+    PANELS["AI Assistant Panel<br/>Review Panel<br/>Library Panel<br/>History Panel"]
+    RENDER["styled-components<br/>Framer Motion<br/>html-to-image"]
+  end
+
+  subgraph Backend["Backend (Express / Node.js 22)"]
+    API["REST API Routes"]
+    GEN["Diagram Generator<br/>(OpenRouter AI)"]
+    RULES["Connection Rules Engine<br/>Review Signals (SOLID/CHECK/RISK)"]
+    EVAL["Internal Eval Harness"]
+  end
+
+  subgraph Data["Data Layer"]
+    DB[(("PostgreSQL<br/>(Neon)"))]
+    CACHE[("Redis<br/>(Upstash)")]
+  end
+
+  subgraph Auth["Auth"]
+    CLERK["Clerk<br/>Authentication"]
+  end
+
+  subgraph AI["AI"]
+    OR["OpenRouter<br/>AI Model Access"]
+  end
+
+  WEB --> UI
+  DESKTOP --> UI
+  UI --> PANELS
+  PANELS --> API
+  API --> GEN
+  API --> RULES
+  API --> CLERK
+  API --> DB
+  API --> CACHE
+  GEN --> OR
+  EVAL --> GEN
+  RULES --> EVAL
+```
+
+---
+
+## Table of Contents
+
+- [What Archflow Helps With](#what-archflow-helps-with)
+- [Product Principles](#product-principles)
+- [User-Facing Features](#user-facing-features)
+- [Architecture Assistant Flow](#architecture-assistant-flow)
+- [Architecture Assistant Reliability](#architecture-assistant-reliability)
+- [Connection Clarity](#connection-clarity)
+- [Review Language](#review-language)
+- [What We Intentionally Avoid](#what-we-intentionally-avoid)
+- [Internal Quality Loop](#internal-quality-loop)
+- [Smoke Tests](#smoke-tests)
+- [Tech Stack](#tech-stack)
+- [Mac Desktop Application](#mac-desktop-application)
+- [Getting Started](#getting-started)
+- [Project Structure](#project-structure)
+- [Why This Direction Matters](#why-this-direction-matters)
+- [License](#license)
+
+---
 
 ## What Archflow Helps With
 
 - turn a natural-language product idea into a visual system diagram
-- understand why a technology was chosen
+- understand **why** a technology was chosen
 - understand which units are connected, in which direction, and through which named flow
 - ask the architecture assistant what is missing, weak, or worth verifying in the current diagram
 - stage suggested technologies into Architectural Review before they touch the live diagram
@@ -21,24 +113,35 @@ That means Archflow optimizes for trust, inspectability, presentability, and ite
 - compare versions and continue improving the same system over time
 - export diagrams for sharing and documentation
 
+---
+
 ## Product Principles
 
-- Trust over novelty: the app should feel dependable, not magical-but-random
-- Learning over scoring: users should understand the architecture, not chase a number
-- Surgical iteration over full regeneration: changing one part of the system should not blow away the rest
-- Internal evaluation for us, review language for users: quality control belongs behind the scenes, not as a gamified user score
-- Flow clarity over label overload: connections should be understandable without turning the canvas into a wall of overlapping text
+- **Trust over novelty** — the app should feel dependable, not magical-but-random
+- **Learning over scoring** — users should understand the architecture, not chase a number
+- **Surgical iteration over full regeneration** — changing one part of the system should not blow away the rest
+- **Internal evaluation for us, review language for users** — quality control belongs behind the scenes, not as a gamified user score
+- **Flow clarity over label overload** — connections should be understandable without turning the canvas into a wall of overlapping text
+
+---
 
 ## User-Facing Features
 
+### Premium Technical Design Language
+- **High-Fidelity Visual Excellence:** A beautiful cyberpunk-inspired, monochrome interface designed for serious system thinking.
+- **Flat UI/UX System:** Completely shadowless components (`box-shadow` and `drop-shadow` fully excised globally) paired with crisp borders, rounded corners, and native typography.
+- **Optimized Landing Pathways:** Direct access pathways to web sandboxes or standalone macOS workstation binaries (`Archflow.zip`).
+
 ### AI Diagram Generation
 - Generate complete system architecture diagrams from free-form natural language prompts
+- **Streaming Stability Engine:** Hardened OpenRouter API integration with extended timeout windows (up to 3 minutes) ensuring massive distributed system topologies stream smoothly without premature abortion.
 - AI auto-infers missing layers (auth, storage, queues, etc.) and suggests appropriate technologies
 - Surgical editing — replace individual nodes without regenerating the entire diagram
 - Auto-layout spaces nodes into clean category lanes for readability
 
 ### AI Architecture Assistant
 - Chat-based assistant that understands the full diagram context (nodes, edges, rules)
+- **Context Budget Guard:** Intelligent serialization monitoring prevents token overflow by validating review/chat context payloads (capped gracefully at 28,000 characters) with clear human-readable feedback.
 - Explains why specific technologies were chosen and flags gaps, risks, or missing layers
 - Stages proposed additions into Architectural Review instead of mutating the diagram directly
 - Chat history survives page refreshes via draft persistence
@@ -85,9 +188,28 @@ That means Archflow optimizes for trust, inspectability, presentability, and ite
 - Real-time cloud save with autosave
 - Collaboration via email invite with shared diagram access
 
+---
+
 ## Architecture Assistant Flow
 
 The architecture assistant is meant to feel helpful without becoming a black-box auto-editor.
+
+```
+ User asks a question (what's missing, how strong, why a technology)
+        │
+        ▼
+ Assistant answers in chat
+        │
+        ▼
+ Assistant stages additions into ARCHITECTURAL_REVIEW
+        │
+        ▼
+ User reviews — accept or decline each suggestion
+        │
+        ▼
+ Accepted suggestions are added to the diagram
+ via sanitized, rule-aware connection flow
+```
 
 - users ask questions in chat such as what is missing, how strong the diagram is, or why a specific technology belongs
 - the assistant answers in chat first, then stages any proposed additions into `ARCHITECTURAL_REVIEW`
@@ -97,17 +219,21 @@ The architecture assistant is meant to feel helpful without becoming a black-box
 
 This keeps the product collaborative: the assistant can move fast, but the user still stays in control of what becomes part of the architecture.
 
+---
+
 ## Architecture Assistant Reliability
 
 Archflow does not treat architecture review as pure chat.
 
-The assistant works through a layered reliability model:
+The assistant works through a **layered reliability model**:
 
 - deterministic review checks catch concrete issues like invalid edge direction, missing app layers, isolated units, queue topology gaps, generic protocols, and review-safe signed storage flows
 - the architecture assistant receives those review findings as structured context before it answers
 - staged suggestions are sanitized before they are accepted so invalid connections can be dropped or reversed instead of blindly added
 
 This means the assistant is strong on mainstream system patterns, but it is still an AI-assisted reviewer rather than a perfect verifier. The goal is trustworthy guidance, not false certainty.
+
+---
 
 ## Connection Clarity
 
@@ -123,6 +249,8 @@ Archflow now handles flow understanding in a layered way:
 
 This is intentional. The goal is not to make the canvas say everything at once. The goal is to make the right relationship obvious at the right moment.
 
+---
+
 ## Review Language
 
 Archflow avoids score-heavy wording in the product UI.
@@ -133,7 +261,9 @@ Instead of confidence labels like `HIGH`, `MEDIUM`, and `LOW`, the editor uses:
 - `CHECK`
 - `RISK`
 
-These are review signals, not grades. They exist to help users understand where a unit or flow feels well-supported and where it deserves another look.
+These are **review signals**, not grades. They exist to help users understand where a unit or flow feels well-supported and where it deserves another look.
+
+---
 
 ## What We Intentionally Avoid
 
@@ -155,9 +285,11 @@ Instead, the product surfaces:
 
 That keeps the app educational and useful without turning it into a black-box evaluator.
 
+---
+
 ## Internal Quality Loop
 
-Archflow now includes an internal evaluation harness for maintainers. This is not a user-facing scoring system.
+Archflow now includes an internal evaluation harness for maintainers. This is **not** a user-facing scoring system.
 
 The harness exists to help us answer questions like:
 
@@ -174,33 +306,36 @@ It works by:
 - scoring results with deterministic architecture checks
 - writing both JSON and Markdown reports for quick review
 
-Important files:
+### Important Files
 
-- [backend/evals/matrix.json](/Users/deepak/Downloads/arch/backend/evals/matrix.json)
-- [backend/evals/README.md](/Users/deepak/Downloads/arch/backend/evals/README.md)
-- [backend/src/scripts/eval-harness.js](/Users/deepak/Downloads/arch/backend/src/scripts/eval-harness.js)
-- [backend/src/lib/evalHarness.js](/Users/deepak/Downloads/arch/backend/src/lib/evalHarness.js)
-- [backend/src/lib/diagramGenerator.js](/Users/deepak/Downloads/arch/backend/src/lib/diagramGenerator.js)
+| File | Purpose |
+|------|---------|
+| `backend/evals/matrix.json` | Prompt matrix configuration |
+| `backend/evals/README.md` | Eval system documentation |
+| `backend/src/scripts/eval-harness.js` | CLI workflow entry point |
+| `backend/src/lib/evalHarness.js` | Core eval harness logic |
+| `backend/src/lib/diagramGenerator.js` | Diagram generation logic |
 
-Useful commands:
+### Useful Commands
 
+Generate eval prompts (no API calls):
 ```bash
 cd backend
 npm run eval:harness -- --generate-only
 ```
 
 This creates:
-
 - `backend/evals/generated-prompts.json`
 - `backend/evals/latest-report.json`
 - `backend/evals/latest-report.md`
 
-To run a real evaluation pass:
-
+Run a real evaluation pass:
 ```bash
 cd backend
 npm run eval:harness -- --max-prompts 12 --runs 2
 ```
+
+---
 
 ## Smoke Tests
 
@@ -249,35 +384,44 @@ npm run test:smoke
 
 Runs auth smoke check first, then the editor smoke test.
 
-**Practical rule:** use `npm run dev` for everyday work, `npm run smoke:editor` after meaningful editor/panel/AI/review changes, `npm run test:smoke` before shipping or merging.
+> **Practical rule:** use `npm run dev` for everyday work, `npm run smoke:editor` after meaningful editor/panel/AI/review changes, `npm run test:smoke` before shipping or merging.
+
+---
 
 ## Tech Stack
 
 ### Frontend
 
-- Next.js 15 (App Router)
-- React 19
-- React Flow 11
-- styled-components 6
-- Framer Motion 12
-- html-to-image (PNG export)
-- Lucide React (icons)
-- Playwright (smoke tests — editor flow)
+| Technology | Purpose |
+|------------|---------|
+| Next.js 15 (App Router) | Framework |
+| React 19 | UI library |
+| React Flow 11 | Diagram canvas |
+| styled-components 6 | Styling |
+| Framer Motion 12 | Animations |
+| html-to-image | PNG export |
+| Lucide React | Icons |
+| Playwright | Smoke tests |
 
 ### Backend
 
-- Node.js 22
-- Express
-- PostgreSQL / Neon (serverless Postgres)
-- Redis / Upstash (caching, rate limiting)
-- Clerk (authentication)
-- OpenRouter (AI model access)
-- Rate limiting with Redis-backed store
-- 2-layer cache (local in-memory + Redis)
+| Technology | Purpose |
+|------------|---------|
+| Node.js 22 | Runtime |
+| Express | HTTP framework |
+| PostgreSQL / Neon | Database |
+| Redis / Upstash | Caching & rate limiting |
+| Clerk | Authentication |
+| OpenRouter | AI model access |
+
 ### Desktop (Mac App)
 
-- Electron
-- electron-builder (for DMG/distribution)
+| Technology | Purpose |
+|------------|---------|
+| Electron | Desktop shell |
+| electron-builder | DMG distribution |
+
+---
 
 ## Mac Desktop Application
 
@@ -286,6 +430,7 @@ Archflow includes a native Mac application built with Electron. The desktop vers
 ### How it works
 
 The desktop app is a specialized shell that:
+
 1. Loads the production URL (`https://arch-flow.vercel.app`).
 2. Injects a native bridge (`archflowDesktopStorage`) through a preload script.
 3. Automatically switches the interface to "Desktop Mode" (e.g., normal cursor behavior, removed download prompts).
@@ -321,12 +466,14 @@ This will generate an `Archflow.dmg` and a `.zip` file in the `desktop/dist/` di
 
 Because early development builds are not yet notarized by Apple, you may see a warning when opening the `.dmg` or the `.app`.
 
-1. **Gatekeeper Bypass**: If you see a "damaged" or "cannot be opened" message, run this in your terminal:
+1. **Gatekeeper Bypass:** If you see a "damaged" or "cannot be opened" message, run this in your terminal:
    ```bash
    sudo xattr -cr /Applications/Archflow.app
    ```
-2. **Right-Click Open**: Instead of double-clicking, **Right-Click** the app and choose **Open**. This allows you to bypass the security block.
-3. **Security Settings**: Alternatively, go to **System Settings > Privacy & Security** and click **"Open Anyway"** near the bottom of the page.
+2. **Right-Click Open:** Instead of double-clicking, **Right-Click** the app and choose **Open**. This allows you to bypass the security block.
+3. **Security Settings:** Alternatively, go to **System Settings > Privacy & Security** and click **"Open Anyway"** near the bottom of the page.
+
+---
 
 ## Getting Started
 
@@ -392,6 +539,8 @@ npm run dev
 
 Starts the Next.js development server on port 3000.
 
+---
+
 ## Project Structure
 
 ```text
@@ -412,6 +561,8 @@ archflow/
 └── OPTIMIZATION_LOG.md     # Product reasoning and implementation history
 ```
 
+---
+
 ## Why This Direction Matters
 
 Archflow gets stronger when it behaves like a clear architecture copilot:
@@ -423,6 +574,8 @@ Archflow gets stronger when it behaves like a clear architecture copilot:
 - internal evaluation helps us improve quality without guessing
 
 That combination is the real moat, not a flashy score.
+
+---
 
 ## License
 

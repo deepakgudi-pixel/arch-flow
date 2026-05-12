@@ -18,7 +18,7 @@ const NodeWrapper = styled.div`
   overflow: hidden;
   opacity: ${props => props.$dimmed ? 0.32 : 1};
   filter: ${props => props.$dimmed ? 'grayscale(0.16)' : 'none'};
-  box-shadow: ${props => props.$highlighted ? '0 0 0 4px rgba(255, 122, 69, 0.18)' : 'none'};
+  box-shadow: none;
   ${props => props.$selected && `
     transform: translate(-2px, -2px);
     border-width: 4px;

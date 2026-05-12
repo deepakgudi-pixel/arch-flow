@@ -28,7 +28,7 @@ const RouteCard = styled.div`
   background: #ffffff;
   display: grid;
   gap: 16px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
+  box-shadow: none;
 `;
 
 const RouteMeta = styled.div`

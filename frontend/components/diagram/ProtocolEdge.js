@@ -23,17 +23,17 @@ const edgePulse = keyframes`
 
 const chipPulse = keyframes`
   0% {
-    box-shadow: 0 0 0 7px #fff6f2, 0 0 0 0 rgba(255, 61, 0, 0.22);
+    box-shadow: none;
     transform: translate(-50%, -50%) scale(1.04);
   }
 
   50% {
-    box-shadow: 0 0 0 7px #fff6f2, 0 0 0 8px rgba(255, 61, 0, 0.08);
+    box-shadow: none;
     transform: translate(-50%, -50%) scale(1.06);
   }
 
   100% {
-    box-shadow: 0 0 0 7px #fff6f2, 0 0 0 0 rgba(255, 61, 0, 0.22);
+    box-shadow: none;
     transform: translate(-50%, -50%) scale(1.04);
   }
 `;
@@ -58,7 +58,7 @@ const ProtocolChip = styled.div`
   gap: 4px;
   min-width: 156px;
   max-width: 220px;
-  box-shadow: 0 0 0 7px #ffffff;
+  box-shadow: none;
   z-index: 30;
   opacity: 1;
   transition: transform 0.18s ease, opacity 0.18s ease, background 0.18s ease;

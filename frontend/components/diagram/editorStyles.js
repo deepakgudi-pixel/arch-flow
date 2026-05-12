@@ -60,7 +60,7 @@ export const LogoIcon = styled.div`
   justify-content: center;
   border-radius: 8px;
   font-size: 14px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: none;
 `;
 
 export const DiagramNameWrap = styled.div`
@@ -124,7 +124,7 @@ export const ActionButton = styled.button`
     background: ${props => props.$active ? '#1a1a1a' : '#f9f9f9'};
     border-color: ${props => props.$active ? '#000000' : 'rgba(0, 0, 0, 0.2)'};
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    box-shadow: none;
   }
 
   &:active {
@@ -256,7 +256,7 @@ export const ProductCard = styled.div`
   &:hover {
     border-color: rgba(0, 0, 0, 0.15);
     background: #fcfcfc;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+    box-shadow: none;
     transform: translateY(-1px);
   }
 `;
@@ -316,7 +316,7 @@ export const SearchInput = styled.input`
     outline: none;
     background: #ffffff;
     border-color: #000000;
-    box-shadow: 0 0 0 4px rgba(0, 0, 0, 0.03);
+    box-shadow: none;
   }
 
   &::placeholder {
@@ -379,7 +379,7 @@ export const BottomBar = styled.div`
   backdrop-filter: blur(16px) saturate(180%);
   border: 1px solid rgba(0, 0, 0, 0.08);
   border-radius: 20px;
-  box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.15), 0 12px 16px -8px rgba(0, 0, 0, 0.1);
+  box-shadow: none;
 `;
 
 export const PromptInput = styled.input`
@@ -447,7 +447,7 @@ export const EmptyIcon = styled.div`
   font-size: 64px;
   color: #000;
   opacity: 0.04;
-  filter: drop-shadow(0 0 10px rgba(0,0,0,0.1));
+  filter: drop-shadow(0 0 0 rgba(0,0,0,0));
 `;
 
 export const EmptyText = styled.p`

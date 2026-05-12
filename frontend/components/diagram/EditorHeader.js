@@ -160,7 +160,7 @@ const UtilityDropdown = styled.div`
   background: #ffffff;
   border: 1px solid rgba(0, 0, 0, 0.08);
   border-radius: 12px;
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  box-shadow: none;
   overflow: hidden;
   padding: 6px;
 `;
@@ -349,10 +349,10 @@ export default function EditorHeader({
               >
                 <UtilityDropdown>
                   {utilityItems.map((item, idx) => item.divider ? (
-                    <Divider key={idx} style={{ margin: '4px 0' }} />
+                    <Divider key={`divider_${idx}`} style={{ margin: '4px 0' }} />
                   ) : (
                     <UtilityItem
-                      key={idx}
+                      key={item.label}
                       $danger={item.danger}
                       onClick={() => { onToggleExportMenu(); item.onClick(); }}
                     >

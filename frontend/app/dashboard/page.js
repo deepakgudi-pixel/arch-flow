@@ -31,12 +31,12 @@ const UserChip = styled.div`
   border: 1px solid rgba(0, 0, 0, 0.08);
   background: #ffffff;
   border-radius: 999px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  box-shadow: none;
   transition: all 0.2s;
 
   &:hover {
     border-color: rgba(0, 0, 0, 0.15);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    box-shadow: none;
   }
 `;
 

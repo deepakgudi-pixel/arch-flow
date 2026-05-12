@@ -20,7 +20,7 @@ const Modal = styled.div`
   width: 400px;
   background: #ffffff;
   border: 4px solid #000000;
-  box-shadow: 12px 12px 0px #000000;
+  box-shadow: none;
   padding: 32px;
   position: relative;
 `;
@@ -74,11 +74,11 @@ const Button = styled.button`
   transition: all 0.1s;
   background: ${props => props.$primary ? '#000' : '#fff'};
   color: ${props => props.$primary ? '#fff' : '#000'};
-  box-shadow: 4px 4px 0px #000000;
+  box-shadow: none;
 
   &:hover {
     transform: translate(-2px, -2px);
-    box-shadow: 6px 6px 0px #000000;
+    box-shadow: none;
     background: ${props => props.$primary ? '#ff4444' : '#f0f0f0'};
     color: ${props => props.$primary ? '#fff' : '#000'};
   }

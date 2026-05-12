@@ -5,7 +5,7 @@ export const Card = styled.div`
   background: #FFFFFF;
   border: 3px solid #000000;
   border-radius: 0;
-  box-shadow: ${props => props.$elevated ? '8px 8px 0px #000000' : '4px 4px 0px #000000'};
+  box-shadow: none;
   padding: ${props => props.$padding || '32px'};
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 
@@ -14,13 +14,13 @@ export const Card = styled.div`
 
     &:hover {
       transform: translate(-4px, -4px);
-      box-shadow: 12px 12px 0px #000000;
+      box-shadow: none;
       background: #FAFAFA;
     }
 
     &:active {
       transform: translate(0, 0);
-      box-shadow: 2px 2px 0px #000000;
+      box-shadow: none;
     }
   ` : ''}
 `;

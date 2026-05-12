@@ -99,6 +99,34 @@ const MessageList = styled.div`
     #fafafa;
 `;
 
+const ThinkingCard = styled.div`
+  align-self: flex-start;
+  max-width: 92%;
+  border-radius: 16px;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  background: #ffffff;
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  box-shadow: none;
+`;
+
+const ThinkingDot = styled.span`
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #aaa;
+  display: inline-block;
+  animation: thinking-pulse 1.2s ease-in-out infinite;
+  animation-delay: ${props => props.$delay || '0s'};
+
+  @keyframes thinking-pulse {
+    0%, 80%, 100% { opacity: 0.3; transform: scale(0.85); }
+    40% { opacity: 1; transform: scale(1.1); }
+  }
+`;
+
 const MessageCard = styled.div`
   align-self: ${props => props.$role === 'user' ? 'flex-end' : 'flex-start'};
   max-width: 92%;
@@ -109,7 +137,7 @@ const MessageCard = styled.div`
   padding: 14px 16px;
   display: grid;
   gap: 10px;
-  box-shadow: ${props => props.$role === 'user' ? '0 4px 12px rgba(0,0,0,0.1)' : '0 2px 8px rgba(0,0,0,0.02)'};
+  box-shadow: none;
 `;
 
 const MessageMeta = styled.div`
@@ -155,7 +183,7 @@ const ComposerBox = styled.div`
   &:focus-within {
     border-color: #000;
     background: #fff;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+    box-shadow: none;
   }
 `;
 
@@ -260,7 +288,7 @@ export default function DiagramAssistantPanel({
         </IntroCard>
       </PanelHeader>
 
-      <MessageList ref={messageListRef}>
+      <MessageList ref={messageListRef} aria-live="polite" aria-label="AI assistant conversation">
         {messages.length > 0 && (
           messages.map(message => (
             <MessageCard key={message.id} $role={message.role}>
@@ -278,6 +306,14 @@ export default function DiagramAssistantPanel({
               <MessageText>{message.content}</MessageText>
             </MessageCard>
           ))
+        )}
+        {loading && (
+          <ThinkingCard aria-label="AI is thinking">
+            <Bot size={12} style={{ opacity: 0.4 }} />
+            <ThinkingDot $delay="0s" />
+            <ThinkingDot $delay="0.2s" />
+            <ThinkingDot $delay="0.4s" />
+          </ThinkingCard>
         )}
       </MessageList>
 

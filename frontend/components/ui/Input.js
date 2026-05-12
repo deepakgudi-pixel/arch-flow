@@ -31,7 +31,7 @@ const controlStyles = `
   &:focus {
     outline: none;
     border-color: rgba(37, 99, 235, 0.45);
-    box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
+    box-shadow: none;
     background: white;
   }
 

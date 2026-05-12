@@ -94,7 +94,7 @@ const GlobalStyle = createGlobalStyle`
   }
 
   .react-flow__controls {
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+    box-shadow: none;
     border: 1px solid rgba(0, 0, 0, 0.08) !important;
     border-radius: 8px !important;
     overflow: hidden;
@@ -110,7 +110,7 @@ const GlobalStyle = createGlobalStyle`
     border: 1px solid rgba(0, 0, 0, 0.08) !important;
     border-radius: 12px !important;
     background: #ffffff !important;
-    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1) !important;
+    box-shadow: none;
   }
 
   .react-flow__attribution {
@@ -1391,15 +1391,19 @@ export default function DiagramPage() {
       }
     } catch (err) {
       console.error('Assistant review failed:', err);
+      const isContextTooLarge = err?.status === 400 || /too large/i.test(err?.message);
+      const errorContent = isContextTooLarge
+        ? 'The diagram is too large to review in a single pass. Try breaking it into smaller sections, or remove some nodes and connections first.'
+        : `I couldn't review the diagram right now. ${err.message}`;
       setAssistantMessages(current => [
         ...current,
         {
           id: createReviewSuggestionId(),
           role: 'assistant',
-          content: `I couldn't review the diagram right now. ${err.message}`
+          content: errorContent
         }
       ]);
-      setToast({ message: 'AI_REVIEW_FAILED', error: true });
+      setToast({ message: isContextTooLarge ? 'DIAGRAM_TOO_LARGE_FOR_REVIEW' : 'AI_REVIEW_FAILED', error: true });
       setTimeout(() => setToast(null), 3000);
     } finally {
       setReviewAssistantLoading(false);

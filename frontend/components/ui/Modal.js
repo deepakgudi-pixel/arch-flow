@@ -20,7 +20,7 @@ const Dialog = styled.div`
   overflow: auto;
   background: #ffffff;
   border: 3px solid #000000;
-  box-shadow: 8px 8px 0px #000000;
+  box-shadow: none;
   padding: 40px;
   border-radius: 0;
 `;

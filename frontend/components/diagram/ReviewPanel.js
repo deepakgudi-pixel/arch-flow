@@ -98,7 +98,7 @@ const FindingCard = styled.button`
   &:hover {
     transform: translateY(-1px);
     border-color: rgba(0, 0, 0, 0.1);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+    box-shadow: none;
     background: ${props =>
       props.$severity === 'critical' ? '#FFF0F0' :
       props.$severity === 'warning' ? '#FFF5E6' :
@@ -238,7 +238,7 @@ const SuggestionCard = styled.div`
   padding: 16px;
   display: grid;
   gap: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.02);
+  box-shadow: none;
 `;
 
 const SuggestionTop = styled.div`
@@ -309,7 +309,7 @@ const SuggestionButton = styled.button`
   &:hover {
     background: ${props => props.$tone === 'primary' ? '#1a1a1a' : '#f9f9f9'};
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    box-shadow: none;
   }
 `;
 

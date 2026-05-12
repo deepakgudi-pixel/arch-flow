@@ -1,5 +1,54 @@
 # Archflow Optimization Log
 
+**log:** 2026-05-12 14:00:00 IST (+0530)
+
+## Overview
+High-Fidelity Polish and AI Stability Pass. Focus areas: completing the premium flat aesthetic, hardening the OpenRouter API streaming integration, and protecting the token window with a new Context Budget Guard.
+
+---
+
+## 1. Excising Shadows for a Premium "Flat" Aesthetic
+**Why:** The UI was straddling the line between a modern flat interface and legacy "webby" card styles with various box shadows. For a "Premium Technical" and cyberpunk-inspired aesthetic, the design language needs to be brutally flat, crisp, and shadowless, relying on contrast, borders, and typography instead of elevation.
+
+**What changed:**
+- scoured all frontend component files (`Card`, `Button`, `Modal`, `DiagramAssistantPanel`, `ReviewPanel`, etc.)
+- globally set all instances of `box-shadow` and `drop-shadow` to `none`
+- removed secondary, visually distracting buttons from the landing page hero
+
+**How this helps Archflow:**
+- achieves absolute visual consistency across the app
+- creates an industrial, premium "workstation" feel rather than a typical SaaS dashboard
+
+---
+
+## 2. Hardening the Streaming Stability Engine
+**Why:** When users requested massive distributed system topologies (e.g., "Netflix architecture"), the OpenRouter API took longer than 60 seconds to stream the massive JSON response. This caused the internal `AbortController` to forcefully kill the stream midway, resulting in a cryptic `[CRITICAL_FAILURE]: This operation was aborted` error on the frontend.
+
+**What changed:**
+- increased the primary `AbortController` timeout in `backend/src/lib/openRouter.js` from 60,000ms (1 minute) to 180,000ms (3 minutes)
+- increased the fallback model timeout from 45,000ms to 120,000ms
+
+**How this helps Archflow:**
+- allows complex, high-node-count systems to generate successfully without timing out
+- drastically improves user trust in the AI's generation capabilities
+
+---
+
+## 3. The Context Budget Guard
+**Why:** With the ability to generate massive diagrams, users naturally wanted to chat with the AI Architectural Consultant about them. However, passing a massive 100+ node diagram into the chat context would blow up the token window, causing silent model failures or exorbitant costs.
+
+**What changed:**
+- added a Context Budget Guard in `backend/src/routes/ai.js` specifically for the `/review-diagram` endpoint
+- the guard intercepts serialized diagram payloads and throws a clean 400 error if the context exceeds 28,000 characters
+- the frontend now catches this specific 400 error and surfaces a human-readable toast `DIAGRAM_TOO_LARGE_FOR_REVIEW`
+
+**How this helps Archflow:**
+- protects against LLM token limits and system crashes
+- provides immediate, actionable feedback to the user ("simplify the diagram") instead of hanging or returning a vague error
+- clearly separates the *generation* capability (which is unaffected) from the *review* context limits
+
+---
+
 **log:** 2026-05-11 02:05:00 IST (+0530)
 
 ## Overview

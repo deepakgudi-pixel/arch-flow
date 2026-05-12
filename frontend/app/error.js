@@ -19,7 +19,7 @@ const Card = styled.section`
   padding: 36px;
   border: 3px solid #000000;
   background: #ffffff;
-  box-shadow: 10px 10px 0 #000000;
+  box-shadow: none;
 `;
 
 const Eyebrow = styled.div`

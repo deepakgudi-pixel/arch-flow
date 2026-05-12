@@ -60,13 +60,13 @@ const Brand = styled(Link)`
   padding: 8px 16px;
   border: 3px solid var(--color-ink);
   background: #ffffff;
-  box-shadow: 4px 4px 0px var(--color-ink);
+  box-shadow: none;
   width: fit-content;
   margin-bottom: 48px;
 
   &:hover {
     transform: translate(-2px, -2px);
-    box-shadow: 6px 6px 0px var(--color-ink);
+    box-shadow: none;
     text-decoration: none;
   }
 `;

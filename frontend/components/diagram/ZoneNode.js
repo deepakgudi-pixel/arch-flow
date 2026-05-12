@@ -16,7 +16,7 @@ const ZoneContainer = styled.div`
       rgba(0, 0, 0, 0.035) 39px
     );
   border: 2px dashed rgba(0, 0, 0, 0.18);
-  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.04);
+  box-shadow: none;
   display: flex;
   flex-direction: column;
   justify-content: flex-start;

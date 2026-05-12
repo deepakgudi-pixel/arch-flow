@@ -76,38 +76,51 @@ async function autoRegisterTech(user, nodes) {
   const userId = user.id;
   await ensureUserExists(user);
 
-  const allBuiltInNames = Object.values(builtInTech)
-    .flat()
-    .map(t => t.name.toLowerCase());
+  const allBuiltInNames = new Set(
+    Object.values(builtInTech)
+      .flat()
+      .map(t => t.name.toLowerCase())
+  );
 
-  for (const node of nodes) {
-    const nodeName = node.name.trim();
-    if (!nodeName) continue;
+  // Filter to only nodes that aren't built-ins and have a name
+  const newNodes = nodes.filter(node => {
+    const nodeName = String(node.name || '').trim();
+    return nodeName && !allBuiltInNames.has(nodeName.toLowerCase());
+  });
 
-    const lowerName = nodeName.toLowerCase();
+  if (newNodes.length === 0) return;
 
-    // Skip if built-in
-    if (allBuiltInNames.includes(lowerName)) continue;
+  // Build a single bulk upsert
+  const values = [];
+  const params = [];
+  let paramIndex = 1;
 
-    try {
-      const id = crypto.randomUUID();
-      await pool.query(
-        `INSERT INTO user_inventory (id, user_id, name, category, description, products, icon) 
-         VALUES ($1, $2, $3, $4, $5, $6, $7)
-         ON CONFLICT (user_id, name) DO NOTHING`,
-        [
-          id, 
-          userId, 
-          nodeName, 
-          node.category || 'backend', 
-          node.role || `Automated technical module for ${nodeName}`,
-          JSON.stringify(node.products || []),
-          node.icon || 'tech'
-        ]
-      );
-    } catch (err) {
-      console.error(`Failed to auto-register tech ${nodeName}:`, err);
-    }
+  for (const node of newNodes) {
+    const nodeName = String(node.name || '').trim();
+    const id = crypto.randomUUID();
+    params.push(
+      id,
+      userId,
+      nodeName,
+      node.category || 'backend',
+      node.role || `Automated technical module for ${nodeName}`,
+      JSON.stringify(node.products || []),
+      node.icon || 'tech'
+    );
+    values.push(
+      `($${paramIndex++}, $${paramIndex++}, $${paramIndex++}, $${paramIndex++}, $${paramIndex++}, $${paramIndex++}, $${paramIndex++})`
+    );
+  }
+
+  try {
+    await pool.query(
+      `INSERT INTO user_inventory (id, user_id, name, category, description, products, icon)
+       VALUES ${values.join(', ')}
+       ON CONFLICT (user_id, name) DO NOTHING`,
+      params
+    );
+  } catch (err) {
+    logger.error('TECH_AUTO_REGISTER_FAILED', { error: err.message, nodeCount: newNodes.length });
   }
 }
 
@@ -356,6 +369,19 @@ router.post('/review-diagram', aiLimiter, clerkAuth, validate({
       edges,
       reviewFindings
     });
+
+    // Guard: check serialized context size before sending to AI.
+    // The context prompt already caps nodes (60) and edges (80), but
+    // with a large built-in catalog and long labels this can still grow.
+    // 28 000 chars leaves headroom for the system prompt + conversation history.
+    const diagramContextJson = JSON.stringify(diagramContext, null, 2);
+    if (diagramContextJson.length > 28_000) {
+      return res.status(400).json({
+        error: 'Diagram context is too large to review in a single pass. Simplify the diagram or reduce the number of nodes and connections, then try again.',
+        contextCharacters: diagramContextJson.length
+      });
+    }
+
     const validNodeIds = new Set(diagramContext.nodes.map(node => node.id).filter(Boolean));
     const conversationMessages = Array.isArray(messages)
       ? messages

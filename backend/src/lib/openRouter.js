@@ -162,7 +162,7 @@ export async function callOpenRouter(messages, primaryModel, onChunk) {
   }
 
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 60000);
+  const timeoutId = setTimeout(() => controller.abort(), 180000);
 
   try {
     return await sendOpenRouterRequest(messages, primaryModel, controller.signal, onChunk);
@@ -173,7 +173,7 @@ export async function callOpenRouter(messages, primaryModel, onChunk) {
 
     console.warn(`OpenRouter model ${primaryModel} failed or timed out, retrying with ${FALLBACK_FREE_MODEL}`);
     const fallbackController = new AbortController();
-    const fallbackTimeoutId = setTimeout(() => fallbackController.abort(), 45000);
+    const fallbackTimeoutId = setTimeout(() => fallbackController.abort(), 120000);
 
     try {
       return await sendOpenRouterRequest(messages, FALLBACK_FREE_MODEL, fallbackController.signal, onChunk);

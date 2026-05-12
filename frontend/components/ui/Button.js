@@ -9,7 +9,7 @@ const variantStyles = {
     &:hover:not(:disabled) {
       background: #1a1a1a;
       transform: translateY(-1px);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      box-shadow: none;
     }
 
     &:active:not(:disabled) {
@@ -25,7 +25,7 @@ const variantStyles = {
       background: #f9f9f9;
       border-color: rgba(0, 0, 0, 0.15);
       transform: translateY(-1px);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+      box-shadow: none;
     }
 
     &:active:not(:disabled) {
@@ -104,7 +104,7 @@ export const Button = styled.button.attrs(props => ({
   &:disabled {
     cursor: not-allowed;
     opacity: 0.5;
-    box-shadow: none !important;
+    box-shadow: none;
     transform: none !important;
   }
 `;

@@ -73,7 +73,7 @@ const ReplaceCard = styled.div`
 
   &:hover {
     border-color: rgba(0, 0, 0, 0.15);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+    box-shadow: none;
   }
 `;
 
@@ -126,7 +126,7 @@ const ConnectionCard = styled.div`
     transform: translateY(-1px);
     border-color: rgba(0, 0, 0, 0.15);
     background: #fcfcfc;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+    box-shadow: none;
   }
 `;
 

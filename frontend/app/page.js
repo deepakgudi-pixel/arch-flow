@@ -1,20 +1,40 @@
 'use client';
 
-import styled from 'styled-components';
+import styled, { createGlobalStyle } from 'styled-components';
 import Link from 'next/link';
 import { useUser } from '@clerk/nextjs';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { GitBranch, Sparkles } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/Button';
 import { Card, CardEyebrow, CardText, CardTitle } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
+import ArchitectureDiagramSvg from '@/components/diagram/ArchitectureDiagramSvg';
 
 const Page = styled.div`
   min-height: 100vh;
   position: relative;
   background-color: var(--color-canvas);
+`;
+
+const DiagramAnimationStyles = createGlobalStyle`
+  @keyframes af-node-in {
+    from { opacity: 0; transform: translateY(8px) scale(0.96); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  @keyframes af-edge-draw {
+    from { stroke-dashoffset: 300; }
+    to   { stroke-dashoffset: 0; }
+  }
+  .af-node {
+    opacity: 0;
+    animation: af-node-in 0.45s cubic-bezier(0.16,1,0.3,1) forwards;
+  }
+  .af-edge {
+    stroke-dasharray: 300;
+    stroke-dashoffset: 300;
+    animation: af-edge-draw 0.8s cubic-bezier(0.16,1,0.3,1) forwards;
+  }
 `;
 
 const Nav = styled.header`
@@ -48,7 +68,7 @@ const BrandMark = styled.span`
   justify-content: center;
   background: #000000;
   color: white;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: none;
   font-size: 1.1rem;
   font-weight: 800;
 `;
@@ -243,7 +263,7 @@ const DesktopPreview = styled.div`
     max-width: 100%;
     height: auto;
     border: 4px solid #fff;
-    box-shadow: 12px 12px 0px rgba(255, 255, 255, 0.2);
+    box-shadow: none;
   }
 `;
 
@@ -329,6 +349,7 @@ export default function HomePage() {
 
   return (
     <Page>
+      <DiagramAnimationStyles />
       <Nav>
         <Brand href="/">
           <BrandMark>⬡</BrandMark>
@@ -369,32 +390,22 @@ export default function HomePage() {
             <Link href={isSignedIn ? '/dashboard' : '/sign-up'}>
               <Button $variant="primary" $size="lg" $fullWidth>Start workspace</Button>
             </Link>
-            <Link href="#product">
-              <Button $variant="secondary" $size="lg" $fullWidth>System specs</Button>
-            </Link>
           </HeroActions>
         </HeroCopy>
-
         <Preview as={motion.div} $elevated {...fadeUp} transition={{ ...fadeUp.transition, delay: 0.1 }}>
-          <div style={{ padding: '32px', borderBottom: '3px solid #000000', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 800 }}>WORKSPACE_PREVIEW_01</span>
-            <Badge $tone="accent">LIVE_DRAFT</Badge>
+          <div style={{ padding: '20px 24px', borderBottom: '1px solid rgba(0,0,0,0.06)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#22C55E' }} />
+              <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 800, fontSize: '11px' }}>E-COMMERCE_PLATFORM_V2</span>
+            </div>
+            <Badge $tone="accent">AI REVIEW PASS</Badge>
           </div>
-          <div style={{ padding: '32px', display: 'grid', gap: '32px' }}>
-             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
-                <Card style={{ background: '#F2F2F2', boxShadow: 'none', borderRadius: '12px' }}>
-                   <CardEyebrow>FRONTEND_V3</CardEyebrow>
-                   <CardTitle $size="1.2rem">React Dashboard</CardTitle>
-                </Card>
-                <Card style={{ background: '#F2F2F2', boxShadow: 'none', borderRadius: '12px' }}>
-                   <CardEyebrow>BACKEND_V3</CardEyebrow>
-                   <CardTitle $size="1.2rem">Go Microservice</CardTitle>
-                </Card>
-             </div>
-             <Card style={{ background: '#F2F2F2', boxShadow: 'none', borderRadius: '12px' }}>
-                <CardEyebrow>PERSISTENCE_LAYER</CardEyebrow>
-                <CardTitle $size="1.2rem">Multi-Region RDS + ElasticCache</CardTitle>
-             </Card>
+          <div style={{
+            padding: '35px',
+            borderRadius: '12px',
+            border: '1px solid rgba(255,255,255,0.08)',
+          }}>
+            <ArchitectureDiagramSvg />
           </div>
         </Preview>
       </Hero>
