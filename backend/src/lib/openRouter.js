@@ -73,8 +73,17 @@ function extractBalancedJsonCandidates(text) {
   return candidates;
 }
 
-async function sendOpenRouterRequest(messages, model, signal, onChunk) {
+async function sendOpenRouterRequest(messages, model, signal, onChunk, jsonMode) {
   const isStreaming = typeof onChunk === 'function';
+  const body = {
+    model,
+    messages,
+    temperature: jsonMode ? 0.2 : 0.7,
+    stream: isStreaming,
+  };
+  if (jsonMode) {
+    body.response_format = { type: 'json_object' };
+  }
   const response = await fetch(`${OPENROUTER_BASE}/chat/completions`, {
     method: 'POST',
     headers: {
@@ -83,12 +92,7 @@ async function sendOpenRouterRequest(messages, model, signal, onChunk) {
       'HTTP-Referer': 'https://archflow.app',
       'X-Title': 'Archflow'
     },
-    body: JSON.stringify({
-      model,
-      messages,
-      temperature: 0.7,
-      stream: isStreaming
-    }),
+    body: JSON.stringify(body),
     signal
   });
 
@@ -156,7 +160,7 @@ function shouldFallbackToFreeRouter(error) {
   );
 }
 
-export async function callOpenRouter(messages, primaryModel, onChunk, externalSignal) {
+export async function callOpenRouter(messages, primaryModel, onChunk, externalSignal, jsonMode) {
   if (!OPENROUTER_API_KEY) {
     throw new Error('Missing OPENROUTER_API_KEY');
   }
@@ -170,7 +174,7 @@ export async function callOpenRouter(messages, primaryModel, onChunk, externalSi
   }
 
   try {
-    return await sendOpenRouterRequest(messages, primaryModel, controller.signal, onChunk);
+    return await sendOpenRouterRequest(messages, primaryModel, controller.signal, onChunk, jsonMode);
   } catch (error) {
     if (!shouldFallbackToFreeRouter(error) || primaryModel === FALLBACK_FREE_MODEL) {
       throw error;
@@ -181,7 +185,7 @@ export async function callOpenRouter(messages, primaryModel, onChunk, externalSi
     const fallbackTimeoutId = setTimeout(() => fallbackController.abort(), 120000);
 
     try {
-      return await sendOpenRouterRequest(messages, FALLBACK_FREE_MODEL, fallbackController.signal, onChunk);
+      return await sendOpenRouterRequest(messages, FALLBACK_FREE_MODEL, fallbackController.signal, onChunk, jsonMode);
     } finally {
       clearTimeout(fallbackTimeoutId);
     }
@@ -213,7 +217,7 @@ export async function callOpenRouterForJSON({
   let resolvedModel = model;
 
   for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
-    const response = await callOpenRouter(currentMessages, model);
+    const response = await callOpenRouter(currentMessages, model, undefined, undefined, true);
     lastRawResponse = response.content;
     resolvedModel = response.model || model;
 
