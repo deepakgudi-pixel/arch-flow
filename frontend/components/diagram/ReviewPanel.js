@@ -1,7 +1,7 @@
 'use client';
 
 import styled from 'styled-components';
-import { AlertTriangle, CheckCircle2, Info, ShieldAlert, TrendingUp } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Info, ShieldAlert } from 'lucide-react';
 import { Badge } from '@/components/ui/Badge';
 import { CloseBtn } from './editorStyles';
 
@@ -418,6 +418,33 @@ export default function ReviewPanel({
   const hasSuggestions = suggestions.length > 0;
   const hasFindings = findings.length > 0;
   const score = architectureScore || { score: 0, grade: 'F', criticalCount, warningCount, infoCount, categoryCoverage: 0, coveragePct: 0 };
+
+  if (nodeCount === 0) {
+    return (
+      <Panel>
+        <PanelHeader>
+          <TitleRow>
+            <TitleCluster>
+              <ShieldAlert size={16} />
+              <Title>Architecture Review</Title>
+            </TitleCluster>
+            <CloseBtn type="button" onClick={onClose} aria-label="Close architecture review">×</CloseBtn>
+          </TitleRow>
+        </PanelHeader>
+        <EmptyState>
+          <EmptyHero>
+            <EmptyTitle>
+              <Info size={16} />
+              No components to review
+            </EmptyTitle>
+            <EmptyDescription>
+              Add technologies to your diagram to see architecture review signals, layer coverage, and improvement suggestions.
+            </EmptyDescription>
+          </EmptyHero>
+        </EmptyState>
+      </Panel>
+    );
+  }
 
   return (
     <Panel>
