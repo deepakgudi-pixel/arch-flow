@@ -138,6 +138,7 @@ flowchart TB
 - **Domain-specific patterns** — e-commerce, social media, video streaming, fintech, SaaS multi-tenant, realtime collaboration, IoT, healthcare, and analytics platforms each get appropriate tech choices
 - **Zero isolated node guarantee** — auto-fix layer ensures every generated node is connected with proper protocol labels
 - **Smart auto-wiring** — missing auth layer, observability stack, queue consumers, and cache layers are detected and connected automatically
+- **Deterministic generation engine** — temperature 0.2 with `response_format: json_object` ensures consistent, reproducible outputs instead of random tech selections
 - **JSON repair on failure** — if the AI returns malformed JSON, retries with the exact parse error for a corrected response
 - Surgical editing — replace individual nodes without regenerating the entire diagram
 - Auto-layout spaces nodes into clean category lanes for readability

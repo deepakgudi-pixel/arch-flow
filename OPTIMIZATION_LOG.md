@@ -911,3 +911,19 @@ Archflow now guarantees:
 - Timestamps display correctly for users outside UTC timezone
 - History panel doesn't flash empty state before data loads
 - Invite flow is clear about what action to take
+
+---
+
+## 10. Deterministic Generation & Consistency Pass
+**Why:** Claude reviewed the codebase and identified that temperature 0.7 was too high for structured JSON generation, causing unnecessary variation between runs of the same prompt. The same prompt could produce different tech selections and node counts.
+
+**What changed:**
+- **Temperature 0.2 for generation** — `callOpenRouter` now accepts a `jsonMode` flag. When true, temperature is set to 0.2 (deterministic). When false (chat/review), it stays at 0.7 for creativity.
+- **OpenRouter JSON mode** — `response_format: { type: 'json_object' }` is sent for all JSON generation requests. This tells the API to structurally guarantee JSON output at the model level, eliminating markdown fences, prose preambles, and most parse failures.
+- **VITESS typo fixed** — `VITESST` corrected to `VITESS` in system prompt, known architectures, and FIXTURE_MAP.
+- **Review catalog synced with generation catalog** — The review system prompt was running a smaller tech catalog (missing FLASK, GIN, RUST, HONO, TRPC, TIMESCALEDB, CLICKHOUSE, etc.). Now both prompts share the same 110+ technology catalog.
+
+**How this helps Archflow:**
+- Same prompt now produces consistent, reproducible outputs
+- JSON parse failures reduced further by API-level JSON enforcement
+- Review AI can recognize and suggest the same technologies the generator uses
