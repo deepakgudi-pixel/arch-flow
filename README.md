@@ -20,11 +20,11 @@
 
 # Archflow
 
-**Archflow** is an AI-assisted system architecture workspace for people who want to learn, understand, and iterate on software diagrams — without needing to be perfect at system design on day one.
+**Archflow** is a production-grade AI system design generator. Describe any application — Instagram, YouTube, fintech, e-commerce, IoT — and get an accurate, fully-connected architecture diagram with real technology names, proper protocols, and all layers wired.
 
-> users should leave with a clearer mental model of the system, not just a pretty AI output
+> from "build me Instagram" to a complete, production-ready system diagram in seconds
 
-Archflow optimizes for **trust**, **inspectability**, **presentability**, and **iteration speed**.
+Archflow optimizes for **accuracy**, **completeness**, and **zero friction** — every AI-generated diagram has all nodes connected with valid protocols, no warnings, and no isolated components.
 
 ---
 
@@ -117,10 +117,10 @@ flowchart TB
 
 ## Product Principles
 
-- **Trust over novelty** — the app should feel dependable, not magical-but-random
-- **Learning over scoring** — users should understand the architecture, not chase a number
+- **AI output is always clean** — every generated diagram has all nodes connected with valid protocols, zero warnings, zero isolated components
+- **Rules for manual editing, not AI policing** — connection mode (Strict/Guided/Sandbox) applies when users manually modify diagrams, not to AI output
 - **Surgical iteration over full regeneration** — changing one part of the system should not blow away the rest
-- **Internal evaluation for us, review language for users** — quality control belongs behind the scenes, not as a gamified user score
+- **Architecture score as a signal, not a grade** — the score helps gauge completeness, it's not a gamified ranking
 - **Flow clarity over label overload** — connections should be understandable without turning the canvas into a wall of overlapping text
 
 ---
@@ -133,9 +133,12 @@ flowchart TB
 - **Optimized Landing Pathways:** Direct access pathways to web sandboxes or standalone macOS workstation binaries (`Archflow.zip`).
 
 ### AI Diagram Generation
-- Generate complete system architecture diagrams from free-form natural language prompts
-- **Streaming Stability Engine:** Hardened OpenRouter API integration with extended timeout windows (up to 3 minutes) ensuring massive distributed system topologies stream smoothly without premature abortion.
-- AI auto-infers missing layers (auth, storage, queues, etc.) and suggests appropriate technologies
+- Generate production-grade system architecture from any prompt — famous companies (Instagram, Netflix, Uber, YouTube, WhatsApp, Twitter, Facebook, Slack, Amazon, Discord, Figma), application types (e-commerce, fintech, SaaS, realtime, IoT, healthcare, analytics), or custom descriptions
+- **Known architecture database** — 14+ famous company stacks with real technology names, not generic placeholders
+- **Domain-specific patterns** — e-commerce, social media, video streaming, fintech, SaaS multi-tenant, realtime collaboration, IoT, healthcare, and analytics platforms each get appropriate tech choices
+- **Zero isolated node guarantee** — auto-fix layer ensures every generated node is connected with proper protocol labels
+- **Smart auto-wiring** — missing auth layer, observability stack, queue consumers, and cache layers are detected and connected automatically
+- **JSON repair on failure** — if the AI returns malformed JSON, retries with the exact parse error for a corrected response
 - Surgical editing — replace individual nodes without regenerating the entire diagram
 - Auto-layout spaces nodes into clean category lanes for readability
 
@@ -147,11 +150,15 @@ flowchart TB
 - Chat history survives page refreshes via draft persistence
 
 ### Architectural Review System
-- Dedicated review drawer showing deterministic architecture findings
+- Dedicated review drawer with architecture score (0–100 with letter grade A–F), finding counts, and layer coverage stats
+- **Architecture score** — computed from critical/warning/info findings plus layer coverage (auth, cache, queue, observability, storage, etc.)
+- **Connection mode selector** — Strict (block invalid connections), Guided (flag unusual patterns), Sandbox (zero warnings for free sketching)
+  - Strict/Guided/Sandbox modes apply to manual diagram editing only — AI-generated output is always clean
 - Review signals use `SOLID` / `CHECK` / `RISK` labels (not HIGH/MEDIUM/LOW)
+- 20+ deterministic checks including: direct client-to-database, missing application/auth/observability layers, queue topology gaps, isolated nodes, generic protocols, single-datastore pressure, central backend choke points, missing CDN/traffic management, missing cache layer, missing async processing
 - Staged suggestions can be accepted or declined individually
 - Accept-and-connect flow — approved suggestions are added to the diagram with rule-aware connection sanitization
-- Connection rules engine validates every edge against canonical category rules (e.g. frontend→database is blocked)
+- Connection rules engine validates every edge against full 9×9 category matrix (81 rules covering all category pairs)
 
 ### Interactive Diagram Canvas
 - Full React Flow-powered canvas with zoom, pan, snap-to-grid
@@ -267,23 +274,13 @@ These are **review signals**, not grades. They exist to help users understand wh
 
 ## What We Intentionally Avoid
 
-Archflow does not aim to be a public "architecture grading" product.
+Archflow avoids the following design patterns:
 
-We intentionally avoid a user-facing score like `78/100` because that usually creates the wrong behavior:
-
-- people optimize for the score instead of understanding the system
-- the app feels rigid and judgey
-- AI starts looking like it is grading itself
-
-Instead, the product surfaces:
-
-- findings
-- assumptions
-- risks
-- suggested edits
-- clear flow context
-
-That keeps the app educational and useful without turning it into a black-box evaluator.
+- **Score-chasing behavior** — the architecture score (A–F) exists in the review panel as a quick health signal, not a gamified ranking. The focus stays on understanding the findings, not optimizing a number.
+- **Black-box AI mutations** — the AI never directly modifies your diagram. Everything it suggests goes through the Architectural Review panel for your approval.
+- **Generic placeholders** — the system uses real technology names (KAFKA, not GENERIC_QUEUE; POSTGRESQL, not USER_DATABASE).
+- **Protocols as nodes** — HTTP, HTTPS, gRPC, etc. are edge labels only, never generated as components.
+- **App-prefixed names** — REDIS, not INSTAGRAM_REDIS.
 
 ---
 
@@ -546,19 +543,33 @@ Starts the Next.js development server on port 3000.
 ```text
 archflow/
 ├── backend/
-│   ├── evals/              # Internal prompt matrix and eval outputs
+│   ├── evals/                  # Internal prompt matrix and eval outputs
 │   ├── src/
-│   │   ├── db/             # Schema, pool, initialization
-│   │   ├── lib/            # Shared generation, rules, logging, eval helpers
-│   │   ├── routes/         # AI, diagrams, inventory, settings, users
-│   │   └── scripts/        # Maintainer CLI workflows
+│   │   ├── config/             # Environment validation
+│   │   ├── db/                 # Schema, pool, initialization, migrations
+│   │   ├── lib/
+│   │   │   ├── diagramGenerator.js   # AI generation + auto-fix layer + known architectures
+│   │   │   ├── openRouter.js         # OpenRouter API client, streaming, JSON repair
+│   │   │   ├── reviewDiagram.js      # Review context building, suggestion normalization
+│   │   │   ├── connectionRules.js    # 81-rule category connection matrix
+│   │   │   ├── tech.js               # 110+ technology catalog + categorization
+│   │   │   ├── evalHarness.js        # Internal eval harness
+│   │   │   └── ...                   # Redis, logger, AI failure logging
+│   │   ├── middleware/          # Clerk auth, request validation
+│   │   ├── routes/              # AI generation/review, diagrams CRUD, inventory, settings
+│   │   └── scripts/             # CLI eval harness, DB migration
 ├── frontend/
-│   ├── app/                # Next.js App Router pages
+│   ├── app/                    # Next.js App Router (dashboard, diagram editor, settings)
 │   ├── components/
-│   │   ├── diagram/        # Editor, review, history, node UI
-│   │   └── ui/             # Shared UI components
-│   └── lib/                # API client, theme, diagram intelligence
-└── OPTIMIZATION_LOG.md     # Product reasoning and implementation history
+│   │   ├── diagram/            # Editor, review panel, prompt bar, synthesis terminal, node/edge UIs
+│   │   └── ui/                 # Shared components (toast, badge, modal, button, etc.)
+│   └── lib/
+│       ├── api.js              # API client + SSE streaming
+│       ├── diagramIntelligence.js  # 850+ line rules engine (20+ deterministic checks, trust profiles)
+│       ├── templates.js        # Template options (SaaS, e-commerce, mobile, realtime, microservices)
+│       └── ...                 # Theme, display names, edge layout
+├── desktop/                    # Electron Mac desktop shell
+└── README.md
 ```
 
 ---

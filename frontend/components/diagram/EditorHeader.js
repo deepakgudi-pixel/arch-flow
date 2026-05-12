@@ -18,6 +18,8 @@ import {
   LayoutGrid,
   Bot,
   CheckCircle2,
+  Loader2,
+  AlertCircle,
   Cloud
 } from 'lucide-react';
 import {
@@ -86,7 +88,7 @@ const SaveStatus = styled.div`
   gap: 4px;
   font-size: 11px;
   font-weight: 600;
-  color: #999;
+  color: ${props => props.$tone === 'error' ? '#dc2626' : '#999'};
   margin-top: -2px;
 `;
 
@@ -217,6 +219,7 @@ export default function EditorHeader({
   onSave, onExportPNG, onExportJSON,
   simulateFlow, onToggleSimulateFlow,
   onOpenInvite,
+  saveStatus = 'saved',
 }) {
   const utilityItems = [
     {
@@ -266,9 +269,9 @@ export default function EditorHeader({
             onBlur={onDiagramNameBlur}
             placeholder="Untitled Diagram"
           />
-          <SaveStatus>
-            <CheckCircle2 size={10} />
-            Saved to cloud
+          <SaveStatus $tone={saveStatus === 'error' ? 'error' : 'default'}>
+            {saveStatus === 'saving' ? <Loader2 size={10} /> : saveStatus === 'error' ? <AlertCircle size={10} /> : <CheckCircle2 size={10} />}
+            {saveStatus === 'saving' ? 'Saving...' : saveStatus === 'error' ? 'Save failed' : 'Saved to cloud'}
           </SaveStatus>
         </DiagramNameWrap>
       </HeaderLeft>

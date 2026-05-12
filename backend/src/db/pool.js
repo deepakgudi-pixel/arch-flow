@@ -24,6 +24,9 @@ const connectionString = normalizeConnectionString(process.env.NEON_DB_URL);
 
 const pool = new Pool({
   connectionString,
+  max: 5,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 10000,
   ssl: connectionString?.includes('sslmode=')
     ? undefined
     : { rejectUnauthorized: false }

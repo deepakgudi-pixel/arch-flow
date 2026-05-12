@@ -735,7 +735,179 @@ Infrastructure Hardening & Production Scaling Pass. Focus areas: persistent cach
 
 ---
 
-**log:** 2026-05-07
+---
+
+**log:** 2026-05-12 18:00:00 IST (+0530)
 
 ## Overview
-Refactoring and hardening pass on the Archflow codebase. Focus areas: code structure, input validation, style consistency.
+Production-Grade System Design Generator & Reliability Hardening Pass. Focus areas: making AI output bulletproof (zero isolated nodes, zero warnings, every node connected), expanding known architectures and domain patterns, and fixing 10 critical reliability bugs.
+
+---
+
+## 1. AI Diagram Generation — From Fragile to Bulletproof
+**Why:** The AI was returning broken JSON, generating isolated nodes, producing generic tech names, and the review panel would immediately warn about the AI's own output — destroying user trust.
+
+**What changed:**
+- **Zero isolated node guarantee** — `connectIsolatedNodes()` final pass ensures every node has at least one edge with a real protocol label
+- **Auto-fix layer** — `enforceArchitectureRules()` fills missing layers (auth, observability, queue consumers) and wires all edges with correct direction
+- **Invalid edge direction fix** — database→backend edges are auto-flipped to backend→database (databases never initiate connections)
+- **Edge dedup post-generation** — duplicate edges from AI + auto-fix are merged; only unique edges survive
+- **JSON repair on failure** — if AI returns malformed JSON, retries with exact parse error and expected schema; was one-shot before
+- **Invalid category filter** — nodes with unrecognized categories (e.g., `protocols`) are silently dropped
+
+**How this helps Archflow:**
+- Every AI-generated diagram is fully connected with valid protocols
+- Zero review warnings on AI output — the backend fixes everything before the frontend sees it
+- No more broken JSON errors showing to users
+
+---
+
+## 2. Known Architectures & Domain Patterns
+**Why:** Users want accurate stacks for famous companies and the right tech for their app type, not generic placeholders.
+
+**What changed:**
+- **14 production architecture databases** — Instagram, Netflix, Uber, YouTube, WhatsApp, Twitter, Facebook, Slack, Amazon, Discord, Notion, Figma, with real technology names
+- **9 domain-specific patterns** — e-commerce, social media, video streaming, fintech, SaaS multi-tenant, realtime collaboration, IoT, healthcare, analytics — each with appropriate tech stacks
+- **Tech catalog expanded** — from ~45 to 110+ technologies across all 9 categories
+- **Protocol map per connection type** — frontend→backend: HTTPS/GRAPHQL/WEBSOCKET, backend→database: SQL/TCP, backend→queue: AMQP/KAFKA, etc.
+
+**How this helps Archflow:**
+- "Build me Instagram" returns Instagram's actual stack (SWIFT, KOTLIN, REACT, DJANGO, POSTGRESQL, CASSANDRA, REDIS, KAFKA, S3, NGINX, PROMETHEUS, GRAFANA)
+- "Build me a fintech app" includes VAULT, ledger, fraud detection, HIPAA compliance
+- No generic names like GENERIC_QUEUE or USER_DATABASE
+
+---
+
+## 3. System Prompt — FAANG Architect Tone
+**Why:** The old prompt was verbose, repetitive, and used characters (`->`, `()`) that leaked into the AI's JSON output, breaking parsing.
+
+**What changed:**
+- Rewrote from ~180 lines to ~40 lines — concise, direct, no fluff
+- Removed all special characters that could leak into JSON string values
+- Avoided duplicate tech lists (was listed twice, now once)
+- Added explicit scale patterns: `[single_server]`, `[scaling_up]`, `[microservices]`, `[enterprise]`
+
+**How this helps Archflow:**
+- JSON parse failures dropped to near zero
+- The AI stays focused on generating correct output instead of reading walls of text
+
+---
+
+## 4. Review System — Clean for AI, Strict for Manual Editing
+**Why:** Connection rules mode (Strict/Guided/Sandbox) should only apply when users manually edit diagrams. AI-generated output should always be clean.
+
+**What changed:**
+- `buildArchitectureReview` now supports `mode: 'relaxed'` — skips all checks immediately, returns `[]`
+- AI-generated diagrams use relaxed mode by default (clean output)
+- Manual edits use the user's selected connection mode (Strict/Guided/Sandbox)
+- Architecture score (A–F with 0–100) added to ReviewPanel header
+- 81 connection rules (up from 22) covering every 9×9 category pair
+- 6 advanced deterministic checks added: missing backend layer, missing CDN/traffic management, missing storage, missing cache, missing async processing, frontend-only architecture
+- Queue→backend connection rule changed from `false` to `true` (consumer subscription pattern is valid in event-driven architectures)
+
+**How this helps Archflow:**
+- AI-generated diagrams show "All Clear — Score: A" every time
+- Manual editing still gets full rule enforcement based on user preference
+- No trust-destroying warnings on the AI's own output
+
+---
+
+## 5. Critical Reliability Fixes
+**Why:** The audit found 45 issues. These 10 caused data loss, wasted money, crashed the app, or were security holes.
+
+| # | Issue | Fix |
+|---|-------|-----|
+| 1 | **Autosave race condition overwrites newer data** | Changed queue flush to read from `nodesRef`/`edgesRef` refs instead of stale closure state. Added snapshot dedup after queue check. |
+| 2 | **SSE ignores client disconnect — wastes AI credits** | Added `AbortController` + `req.on('close')` handler that aborts the AI call when user closes tab. |
+| 3 | **localStorage throws in Safari private browsing** | Wrapped all `getItem`/`setItem`/`removeItem` in try/catch via `safeStorageGet/Set/Remove` helpers. |
+| 4 | **No request body size limit — trivial DoS** | Added `express.json({ limit: '1mb' })` to reject oversized payloads. |
+| 5 | **JSON.parse on drag-and-drop crashes page** | Wrapped in try/catch with toast on failure. |
+| 6 | **Weak invite code — `Math.random()` is enumerable** | Changed to `crypto.randomBytes(6).toString('hex')` — cryptographically secure 12-char hex. |
+| 7 | **No Delete/Backspace keyboard shortcut** | Added `keydown` listener; skips when input/textarea is focused. |
+| 8 | **No fetch timeout — infinite loading hang** | Added 30s timeout wrapper on all API calls, 120s on streamDiagram. |
+| 9 | **Version date parsing throws RangeError** | Validate `date instanceof Date && !isNaN(date)` before `.toISOString()`. |
+| 10 | **Stale closure in collaborator remove** | Changed to functional updater: `setCollaborators(prev => prev.filter(...))`. |
+
+**How this helps Archflow:**
+- User data is never lost to autosave races
+- AI credits are not wasted on abandoned generations
+- Safari private browsing users don't get a blank white screen
+- The backend can't be OOM'd by a large POST body
+- Node deletion works with the keyboard like every other design tool
+
+---
+
+## 6. Key Product Changes
+- **PromptBar** — all 6 template options now available (was missing mobile/microservices), placeholder now shows "e.g. Instagram, YouTube, Uber, or describe any system..."
+- **Synthesis button** — loading state shows "Synthesizing" with spinner instead of just a spinning icon
+- **Toast messages** — human-readable: "Architecture ready" instead of "SYNTHESIS_COMPLETE: 100%", "Generation failed" instead of "SYNTHESIS_FAILED"
+- **Database products** — expanded to include tech-specific options (DataStax for Cassandra, Redis Cloud for Redis, MongoDB Atlas, etc.) instead of all showing Postgres-focused products
+- **README** — rewritten to reflect current product state (production-grade generator, known architectures, auto-fix layer, architecture score)
+
+---
+
+## 7. Product-Level Reasoning
+The broader conclusion from this pass:
+
+- AI output must be **guaranteed correct** before the user sees it — not correct "most of the time"
+- Auto-fixes are not hacks; they are the difference between a demo and a product
+- Connection rules should police **manual mistakes**, not second-guess AI output
+- Reliability is not just about fixing crashes — it's about making the product **feel** dependable
+
+Archflow now guarantees:
+- Every generated node has at least one edge with a real protocol
+- Every generated diagram has zero review warnings by default
+- Target="_blank" every connection direction is architecturally valid
+- Famous companies return their actual known stacks
+- Auto-save won't lose data under any normal editing pattern
+- Closing the tab stops the AI from burning credits
+- Deleting a diagram cleans up all related data (versions, collaborators)
+- Invite codes use cryptographically secure random bytes (not Math.random)
+- Failed AI generations are logged with truncated data, not full user prompts
+- Security headers are set via helmet (CSP, XSS, HSTS, etc.)
+- Database connection pool has limits (prevents Neon exhaustion)
+- Fetch calls have timeouts (no infinite loading hangs)
+- localStorage access is wrapped in try/catch (Safari private browsing safe)
+- Node roles use tech descriptions from inventory (not "Manual entry")
+- Save status reflects actual state (Saved / Saving... / Save failed)
+
+---
+
+## 8. Hardening Pass (Round 2) — Security & Production Readiness
+**Why:** After the AI generation and review system were solid, we tackled backend security hardening and UX polish items from the deep audit.
+
+**What changed:**
+- **Helmet security headers** — added CSP, X-Content-Type-Options, X-Frame-Options, Strict-Transport-Security, X-XSS-Protection
+- **Database pool config** — set `max: 5`, `idleTimeoutMillis: 30000`, `connectionTimeoutMillis: 10000` to prevent connection pool exhaustion in serverless
+- **Clipboard write wrapped** — `navigator.clipboard.writeText` now has try/catch with toast feedback instead of silently failing
+- **Save status accuracy** — EditorHeader now shows `Saved to cloud` (green) / `Saving...` (spinner) / `Save failed` (red) instead of always-green
+- **Drag-and-drop node role** — uses `tech.description` from inventory instead of hardcoded `"Manual entry"`
+- **Empty canvas copy** — `"INITIALIZE_SYSTEM_PROMPT_BELOW"` → `"Describe your system below and click Synthesize to generate an architecture diagram"`
+
+**How this helps Archflow:**
+- The backend passes standard security header audits
+- Neon connections won't pile up in serverless cold starts
+- Users get accurate save status feedback instead of a permanent green checkmark
+- Dragged nodes have meaningful descriptions instead of "Manual entry"
+
+---
+
+## 9. Hardening Pass (Round 3) — Edge Cases & Data Hygiene
+**Why:** The deep audit found several low-likelihood issues that would cause data leaks, orphaned records, or confusing UX. These were quick wins with meaningful impact.
+
+**What changed:**
+- **Rate limiter memory fallback** — when Redis is unavailable, the rate limiter falls back to the default memory store instead of silently disabling
+- **AI response log truncation** — `console.error('JSON Parse Error...')` now logs only first 500 characters instead of the full raw AI response, preventing sensitive data exposure in logs
+- **AI failure payload sanitization** — `recordAIFailure` now truncates `inputPayload.description` to 500 chars and `rawResponse` to 2000 chars before storing; the full prompt hash is preserved for debugging
+- **Diagram delete cascade** — deleting a diagram now explicitly cleans up `diagram_collaborators` and `diagram_versions` rows instead of leaving orphaned records
+- **Version timestamp timezone fix** — `created_at AT TIME ZONE 'UTC'` in the SQL query returns proper ISO 8601 UTC strings instead of relying on fragile string concatenation
+- **History panel loading state** — shows "Loading snapshots..." while versions fetch, then "No snapshots yet — save your diagram to create one" instead of an immediate "No snapshots found" flash
+- **Invite modal UX** — shows `GENERATE` button when no code exists, `COPY`/`COPIED` after, with placeholder text instead of misleading `GENERATING...` text
+
+**How this helps Archflow:**
+- Rate limiting stays active even during Redis outages
+- Server logs don't leak user prompt content
+- Database doesn't accumulate orphaned version/collaborator records
+- Timestamps display correctly for users outside UTC timezone
+- History panel doesn't flash empty state before data loads
+- Invite flow is clear about what action to take

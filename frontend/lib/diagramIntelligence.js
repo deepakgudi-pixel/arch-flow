@@ -1,27 +1,87 @@
 import { formatTechDisplayLabel } from '@/lib/displayNames';
 
 const FALLBACK_CONNECTION_RULES = [
-  { source_category: 'frontend', target_category: 'backend', is_valid: true, warning_message: null },
-  { source_category: 'frontend', target_category: 'database', is_valid: false, warning_message: 'Frontend should not connect directly to the database.' },
-  { source_category: 'frontend', target_category: 'queue', is_valid: false, warning_message: 'Frontend should not connect directly to a queue.' },
-  { source_category: 'frontend', target_category: 'auth', is_valid: true, warning_message: 'Direct auth provider integration is valid, but verify the auth flow is intentional.' },
-  { source_category: 'frontend', target_category: 'storage', is_valid: false, warning_message: 'Direct storage access usually needs a backend or signed upload flow.' },
-  { source_category: 'frontend', target_category: 'external', is_valid: true, warning_message: 'Direct external integrations should be verified for security and resiliency.' },
   { source_category: 'mobile', target_category: 'backend', is_valid: true, warning_message: null },
-  { source_category: 'mobile', target_category: 'database', is_valid: false, warning_message: 'Mobile clients should not connect directly to the database.' },
-  { source_category: 'mobile', target_category: 'queue', is_valid: false, warning_message: 'Mobile clients should not connect directly to a queue.' },
+  { source_category: 'mobile', target_category: 'frontend', is_valid: true, warning_message: 'Mobile-to-frontend may indicate server-rendered content or a webview.' },
+  { source_category: 'mobile', target_category: 'database', is_valid: false, warning_message: 'Mobile clients must never connect directly to the database.' },
+  { source_category: 'mobile', target_category: 'queue', is_valid: false, warning_message: 'Mobile clients must never connect directly to a queue.' },
   { source_category: 'mobile', target_category: 'auth', is_valid: true, warning_message: 'Direct auth provider integration is valid, but verify the auth flow is intentional.' },
-  { source_category: 'mobile', target_category: 'storage', is_valid: false, warning_message: 'Direct storage access usually needs a backend or signed upload flow.' },
+  { source_category: 'mobile', target_category: 'storage', is_valid: false, warning_message: 'Direct storage access from mobile needs a backend or signed upload flow.' },
+  { source_category: 'mobile', target_category: 'external', is_valid: true, warning_message: 'Direct external integrations should be verified for security and resiliency.' },
+  { source_category: 'mobile', target_category: 'devops', is_valid: false, warning_message: 'Mobile should not connect to devops infrastructure directly.' },
+  { source_category: 'mobile', target_category: 'mobile', is_valid: false, warning_message: 'Peer-to-peer mobile connections are unusual in standard architectures.' },
+  { source_category: 'frontend', target_category: 'backend', is_valid: true, warning_message: null },
+  { source_category: 'frontend', target_category: 'mobile', is_valid: false, warning_message: 'Frontend should not connect to mobile clients directly.' },
+  { source_category: 'frontend', target_category: 'database', is_valid: false, warning_message: 'Frontend must never connect directly to the database.' },
+  { source_category: 'frontend', target_category: 'queue', is_valid: false, warning_message: 'Frontend must never connect directly to a queue.' },
+  { source_category: 'frontend', target_category: 'auth', is_valid: true, warning_message: 'Direct auth provider integration is valid, but verify the auth flow is intentional.' },
+  { source_category: 'frontend', target_category: 'storage', is_valid: false, warning_message: 'Direct storage access from frontend needs a backend or signed upload flow.' },
+  { source_category: 'frontend', target_category: 'external', is_valid: true, warning_message: 'Direct external integrations should be verified for security and resiliency.' },
+  { source_category: 'frontend', target_category: 'devops', is_valid: false, warning_message: 'Frontend should not connect to devops infrastructure directly.' },
+  { source_category: 'frontend', target_category: 'frontend', is_valid: false, warning_message: 'Frontend-to-frontend connections are unusual in standard architectures.' },
+  { source_category: 'backend', target_category: 'frontend', is_valid: true, warning_message: 'Backend-initiated connections to frontend (e.g., SSE, WebSocket) are valid.' },
+  { source_category: 'backend', target_category: 'mobile', is_valid: true, warning_message: 'Backend-initiated push to mobile (e.g., WebSocket, push notifications) is valid.' },
+  { source_category: 'backend', target_category: 'backend', is_valid: true, warning_message: 'Service-to-service links are valid, but protocol choice matters.' },
   { source_category: 'backend', target_category: 'database', is_valid: true, warning_message: null },
   { source_category: 'backend', target_category: 'queue', is_valid: true, warning_message: null },
   { source_category: 'backend', target_category: 'auth', is_valid: true, warning_message: null },
   { source_category: 'backend', target_category: 'storage', is_valid: true, warning_message: null },
   { source_category: 'backend', target_category: 'external', is_valid: true, warning_message: null },
-  { source_category: 'backend', target_category: 'backend', is_valid: true, warning_message: 'Service-to-service links are valid, but protocol choice matters.' },
+  { source_category: 'backend', target_category: 'devops', is_valid: true, warning_message: 'Backend reporting to observability/monitoring is valid.' },
+  { source_category: 'database', target_category: 'database', is_valid: true, warning_message: 'Database-to-database links are valid for replication or synchronization.' },
   { source_category: 'database', target_category: 'backend', is_valid: false, warning_message: 'Databases should not initiate application-layer connections.' },
-  { source_category: 'queue', target_category: 'backend', is_valid: false, warning_message: 'Queues should not initiate application-layer connections.' },
+  { source_category: 'database', target_category: 'frontend', is_valid: false, warning_message: 'Databases must never initiate connections to frontends.' },
+  { source_category: 'database', target_category: 'mobile', is_valid: false, warning_message: 'Databases must never initiate connections to mobile clients.' },
+  { source_category: 'database', target_category: 'queue', is_valid: false, warning_message: 'Databases should not push directly to queues; use a backend trigger.' },
+  { source_category: 'database', target_category: 'auth', is_valid: false, warning_message: 'Databases should not initiate auth flows.' },
+  { source_category: 'database', target_category: 'storage', is_valid: false, warning_message: 'Database-to-storage links should go through a backend.' },
+  { source_category: 'database', target_category: 'external', is_valid: false, warning_message: 'Databases should not connect directly to external services.' },
+  { source_category: 'database', target_category: 'devops', is_valid: true, warning_message: 'Database metrics reporting to devops/monitoring is valid.' },
+  { source_category: 'queue', target_category: 'queue', is_valid: true, warning_message: 'Queue chaining is valid, but review whether the event topology is intentional.' },
+  { source_category: 'queue', target_category: 'backend', is_valid: true, warning_message: 'Queue-to-backend data flow represents a consumer subscription pattern. Verify the worker or subscriber architecture is intentional.' },
+  { source_category: 'queue', target_category: 'frontend', is_valid: false, warning_message: 'Queues must never initiate frontend connections.' },
+  { source_category: 'queue', target_category: 'mobile', is_valid: false, warning_message: 'Queues must never initiate mobile connections.' },
+  { source_category: 'queue', target_category: 'database', is_valid: false, warning_message: 'Queues should not write directly to databases; use a backend worker.' },
+  { source_category: 'queue', target_category: 'auth', is_valid: false, warning_message: 'Queues should not initiate auth flows.' },
+  { source_category: 'queue', target_category: 'storage', is_valid: false, warning_message: 'Queues should not write directly to storage; use a backend worker.' },
+  { source_category: 'queue', target_category: 'external', is_valid: false, warning_message: 'Queues should not connect directly to external services.' },
+  { source_category: 'queue', target_category: 'devops', is_valid: true, warning_message: 'Queue metrics reporting to devops/monitoring is valid.' },
+  { source_category: 'auth', target_category: 'backend', is_valid: true, warning_message: 'Auth callbacks to backend for token verification are valid.' },
   { source_category: 'auth', target_category: 'frontend', is_valid: false, warning_message: 'Auth providers should not initiate frontend application flows.' },
-  { source_category: 'storage', target_category: 'frontend', is_valid: false, warning_message: 'Storage providers should not initiate frontend application flows.' }
+  { source_category: 'auth', target_category: 'mobile', is_valid: false, warning_message: 'Auth providers should not initiate mobile application flows.' },
+  { source_category: 'auth', target_category: 'database', is_valid: false, warning_message: 'Auth providers should not connect to databases directly.' },
+  { source_category: 'auth', target_category: 'queue', is_valid: false, warning_message: 'Auth providers should not connect to queues directly.' },
+  { source_category: 'auth', target_category: 'storage', is_valid: false, warning_message: 'Auth providers should not connect to storage directly.' },
+  { source_category: 'auth', target_category: 'external', is_valid: false, warning_message: 'Auth providers should not connect to external services.' },
+  { source_category: 'auth', target_category: 'devops', is_valid: true, warning_message: 'Auth metrics reporting to monitoring is valid.' },
+  { source_category: 'auth', target_category: 'auth', is_valid: true, warning_message: 'Auth provider chaining (e.g., social login federation) is valid.' },
+  { source_category: 'storage', target_category: 'backend', is_valid: true, warning_message: 'Storage callbacks or signed URLs for backend consumption are valid.' },
+  { source_category: 'storage', target_category: 'frontend', is_valid: false, warning_message: 'Storage should not initiate frontend connections.' },
+  { source_category: 'storage', target_category: 'mobile', is_valid: false, warning_message: 'Storage should not initiate mobile connections.' },
+  { source_category: 'storage', target_category: 'database', is_valid: false, warning_message: 'Storage should not connect directly to databases.' },
+  { source_category: 'storage', target_category: 'queue', is_valid: false, warning_message: 'Storage should not push directly to queues.' },
+  { source_category: 'storage', target_category: 'auth', is_valid: false, warning_message: 'Storage should not initiate auth flows.' },
+  { source_category: 'storage', target_category: 'external', is_valid: false, warning_message: 'Storage should not connect directly to external services.' },
+  { source_category: 'storage', target_category: 'devops', is_valid: true, warning_message: 'Storage metrics reporting to monitoring is valid.' },
+  { source_category: 'storage', target_category: 'storage', is_valid: true, warning_message: 'Storage replication between regions is valid.' },
+  { source_category: 'external', target_category: 'backend', is_valid: true, warning_message: 'Webhook callbacks from external services to backend are valid.' },
+  { source_category: 'external', target_category: 'frontend', is_valid: true, warning_message: 'Direct frontend-to-external traffic should be reviewed for security, latency, and resilience.' },
+  { source_category: 'external', target_category: 'mobile', is_valid: true, warning_message: 'Direct mobile-to-external traffic should be reviewed for security.' },
+  { source_category: 'external', target_category: 'database', is_valid: false, warning_message: 'External services should not connect to databases directly.' },
+  { source_category: 'external', target_category: 'queue', is_valid: false, warning_message: 'External services should not connect to queues directly.' },
+  { source_category: 'external', target_category: 'auth', is_valid: false, warning_message: 'External services should not initiate auth flows.' },
+  { source_category: 'external', target_category: 'storage', is_valid: false, warning_message: 'External services should not connect to storage directly.' },
+  { source_category: 'external', target_category: 'devops', is_valid: true, warning_message: 'External service metrics to monitoring is valid.' },
+  { source_category: 'external', target_category: 'external', is_valid: true, warning_message: 'External-to-external chaining may represent service integrations.' },
+  { source_category: 'devops', target_category: 'frontend', is_valid: true, warning_message: 'Devops monitoring of frontend health is valid.' },
+  { source_category: 'devops', target_category: 'backend', is_valid: true, warning_message: 'Devops monitoring of backend health is valid.' },
+  { source_category: 'devops', target_category: 'mobile', is_valid: true, warning_message: 'Devops monitoring of mobile health is valid.' },
+  { source_category: 'devops', target_category: 'database', is_valid: true, warning_message: 'Devops monitoring of database health is valid.' },
+  { source_category: 'devops', target_category: 'queue', is_valid: true, warning_message: 'Devops monitoring of queue health is valid.' },
+  { source_category: 'devops', target_category: 'storage', is_valid: true, warning_message: 'Devops monitoring of storage health is valid.' },
+  { source_category: 'devops', target_category: 'auth', is_valid: true, warning_message: 'Devops monitoring of auth health is valid.' },
+  { source_category: 'devops', target_category: 'external', is_valid: true, warning_message: 'Devops monitoring of external integrations is valid.' },
+  { source_category: 'devops', target_category: 'devops', is_valid: true, warning_message: 'Devops tool-to-tool connections (e.g., Prometheus -> Grafana) are valid.' }
 ];
 
 const GENERIC_EDGE_LABELS = new Set(['CONNECTION', 'INFERRING...', 'API']);
@@ -286,11 +346,16 @@ export function buildVersionDiff(currentNodes, currentEdges, versionNodes, versi
   };
 }
 
-export function buildArchitectureReview({ nodes, edges, connectionRules, connectionMode }) {
+export function buildArchitectureReview({ nodes, edges, connectionRules, connectionMode, mode }) {
+  const relaxed = mode === 'relaxed';
   const techNodes = (nodes || []).filter(node => node.type === 'customNode');
   const findings = [];
 
   if (techNodes.length === 0) {
+    return findings;
+  }
+
+  if (relaxed) {
     return findings;
   }
 
@@ -531,8 +596,74 @@ export function buildArchitectureReview({ nodes, edges, connectionRules, connect
     }
   }
 
+  if ((categoryCounts.frontend || categoryCounts.mobile) && !categoryCounts.backend && !categoryCounts.external) {
+    pushFinding(findings, {
+      severity: 'critical',
+      title: 'MISSING_BACKEND_LAYER',
+      detail: 'Client surfaces exist with no backend or external service to handle requests. Add an API layer.',
+      nodeIds: techNodes.filter(n => ['frontend', 'mobile'].includes(n.data.category)).map(n => n.id)
+    });
+  }
+
+  if (categoryCounts.frontend && !categoryCounts.backend && !categoryCounts.external && !categoryCounts.database) {
+    pushFinding(findings, {
+      severity: 'info',
+      title: 'FRONTEND_ONLY_ARCHITECTURE',
+      detail: 'The diagram only contains frontend components. A complete system needs backend, data, and infrastructure layers.',
+      nodeIds: techNodes.map(n => n.id)
+    });
+  }
+
+  const hasLoadBalancerOrCDN = techNodes.some(n =>
+    ['NGINX', 'CLOUDFLARE', 'KUBERNETES', 'AWS_CLOUDFRONT', 'AKAMAI', 'ENVOY'].includes(n.data.label)
+  );
+  if (!hasLoadBalancerOrCDN && techNodes.length >= 6 && complexityScore >= 8) {
+    pushFinding(findings, {
+      severity: 'info',
+      title: 'MISSING_TRAFFIC_MANAGEMENT',
+      detail: 'A system of this size typically benefits from a load balancer, reverse proxy, or CDN (e.g., NGINX, CLOUDFLARE) to handle traffic distribution and edge caching.',
+      nodeIds: techNodes.map(n => n.id)
+    });
+  }
+
+  const hasStorage = categoryCounts.storage > 0;
+  const hasFileUploadExternal = techNodes.some(n =>
+    ['SENDGRID', 'TWILIO', 'S3', 'CLOUDFLARE_R2'].includes(n.data.label)
+  );
+  if ((categoryCounts.frontend || categoryCounts.mobile) && !hasStorage && techNodes.length >= 4) {
+    pushFinding(findings, {
+      severity: 'info',
+      title: 'NO_STORAGE_LAYER',
+      detail: 'Client-facing systems usually need object storage (S3, R2, GCS) for user-generated content, assets, and uploads.',
+      nodeIds: techNodes.filter(n => ['frontend', 'mobile'].includes(n.data.category)).map(n => n.id)
+    });
+  }
+
+  const hasRedis = techNodes.some(n => normalizeTechLabel(n.data.label) === 'REDIS');
+  if ((categoryCounts.database || 0) >= 2 && !hasRedis && complexityScore >= 8) {
+    pushFinding(findings, {
+      severity: 'info',
+      title: 'MISSING_CACHE_LAYER',
+      detail: 'Multiple databases without a caching layer (REDIS, MEMCACHED) can lead to unnecessary load and higher latency for hot data.',
+      nodeIds: techNodes.filter(n => n.data.category === 'database').map(n => n.id)
+    });
+  }
+
+  const hasAsyncLayer = categoryCounts.queue > 0 || techNodes.some(n => normalizeTechLabel(n.data.label) === 'KAFKA');
+  if (!hasAsyncLayer && backendNodes.length >= 2 && complexityScore >= 10) {
+    pushFinding(findings, {
+      severity: 'info',
+      title: 'MISSING_ASYNC_PROCESSING',
+      detail: 'Multiple backend services without an event bus or message queue (KAFKA, RABBITMQ) can lead to tight coupling and scaling bottlenecks for background work.',
+      nodeIds: backendNodes.map(n => n.id)
+    });
+  }
+
   const deduped = new Map();
   findings.forEach(finding => {
+    if (relaxed && finding.severity !== 'critical') {
+      return;
+    }
     const key = `${finding.title}:${finding.detail}:${finding.nodeIds.join(',')}:${finding.edgeIds.join(',')}`;
     if (!deduped.has(key)) {
       deduped.set(key, finding);
@@ -620,6 +751,56 @@ export function buildNodeTrustProfile(selectedNode, reviewFindings) {
     assumptions,
     risks
   };
+}
+
+export function buildArchitectureScore(findings, nodes, edges) {
+  const techNodes = (nodes || []).filter(n => n.type === 'customNode');
+  const categoryCounts = buildCategoryCounts(techNodes);
+  const criticalCount = findings.filter(f => f.severity === 'critical').length;
+  const warningCount = findings.filter(f => f.severity === 'warning').length;
+  const infoCount = findings.filter(f => f.severity === 'info').length;
+
+  let score = 100;
+  score -= criticalCount * 15;
+  score -= warningCount * 8;
+  score -= infoCount * 2;
+
+  const hasBackend = categoryCounts.backend > 0;
+  const hasDatabase = categoryCounts.database > 0;
+  const hasAuth = categoryCounts.auth > 0;
+  const hasCache = techNodes.some(n => normalizeTechLabel(n.data.label) === 'REDIS');
+  const hasQueue = categoryCounts.queue > 0;
+  const hasStorage = categoryCounts.storage > 0;
+  const hasObservability = categoryCounts.devops > 0;
+
+  if (hasBackend && hasDatabase) score += 2;
+  if (hasAuth) score += 2;
+  if (hasCache) score += 3;
+  if (hasQueue) score += 3;
+  if (hasStorage) score += 2;
+  if (hasObservability) score += 3;
+
+  if (techNodes.length >= 3 && !hasAuth) score -= 5;
+  if (techNodes.length >= 5 && !hasObservability) score -= 5;
+  if (techNodes.length >= 4 && !hasStorage) score -= 3;
+  if (techNodes.length >= 6 && !hasQueue) score -= 3;
+
+  if (techNodes.length === 0) score = 0;
+  if (techNodes.length === 1 && edges.length === 0) score = 10;
+
+  score = Math.max(0, Math.min(100, score));
+
+  let grade = 'F';
+  if (score >= 90) grade = 'A';
+  else if (score >= 75) grade = 'B';
+  else if (score >= 55) grade = 'C';
+  else if (score >= 35) grade = 'D';
+
+  const categoryCoverage = Object.keys(categoryCounts).length;
+  const maxCategories = 9;
+  const coveragePct = Math.round((categoryCoverage / maxCategories) * 100);
+
+  return { score, grade, criticalCount, warningCount, infoCount, categoryCoverage, coveragePct };
 }
 
 export function buildConnectionTrustProfile(selectedEdge, nodes, reviewFindings) {

@@ -156,13 +156,18 @@ function shouldFallbackToFreeRouter(error) {
   );
 }
 
-export async function callOpenRouter(messages, primaryModel, onChunk) {
+export async function callOpenRouter(messages, primaryModel, onChunk, externalSignal) {
   if (!OPENROUTER_API_KEY) {
     throw new Error('Missing OPENROUTER_API_KEY');
   }
 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 180000);
+
+  if (externalSignal) {
+    const onExternalAbort = () => { controller.abort(); };
+    externalSignal.addEventListener('abort', onExternalAbort, { once: true });
+  }
 
   try {
     return await sendOpenRouterRequest(messages, primaryModel, controller.signal, onChunk);
@@ -261,7 +266,7 @@ export function robustParseJSON(text) {
       }
     }
 
-    console.error('JSON Parse Error. Raw text:', text);
+    console.error('JSON Parse Error. Raw text (first 500 chars):', text.slice(0, 500));
     throw new Error(`Failed to parse AI response: ${parseError.message}`);
   }
 }

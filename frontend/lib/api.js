@@ -18,12 +18,23 @@ async function parseResponseBody(response) {
   return text || null;
 }
 
-function getStoredToken() {
-  if (typeof window === 'undefined') {
-    return null;
-  }
+function safeStorageGet(key) {
+  if (typeof window === 'undefined') return null;
+  try { return localStorage.getItem(key); } catch { return null; }
+}
 
-  return localStorage.getItem('archflow_token');
+function safeStorageRemove(key) {
+  if (typeof window === 'undefined') return;
+  try { localStorage.removeItem(key); } catch { /* private browsing */ }
+}
+
+function safeStorageSet(key, value) {
+  if (typeof window === 'undefined') return;
+  try { localStorage.setItem(key, value); } catch { /* quota exceeded or private browsing */ }
+}
+
+function getStoredToken() {
+  return safeStorageGet('archflow_token');
 }
 
 export function setToken(token) {
@@ -36,10 +47,7 @@ export function setTokenProvider(provider) {
 
 export function clearToken() {
   authToken = null;
-
-  if (typeof window !== 'undefined') {
-    localStorage.removeItem('archflow_token');
-  }
+  safeStorageRemove('archflow_token');
 }
 
 async function resolveAuthToken() {
@@ -49,15 +57,23 @@ async function resolveAuthToken() {
     if (freshToken) {
       authToken = freshToken;
 
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('archflow_token', freshToken);
-      }
+      safeStorageSet('archflow_token', freshToken);
 
       return freshToken;
     }
   }
 
   return authToken || getStoredToken();
+}
+
+async function fetchWithTimeout(url, options = {}, timeoutMs = 30000) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } finally {
+    clearTimeout(timeoutId);
+  }
 }
 
 async function fetchAPI(endpoint, options = {}, retry = true) {
@@ -72,7 +88,7 @@ async function fetchAPI(endpoint, options = {}, retry = true) {
     ...fetchOptions.headers
   };
   
-  const response = await fetch(`${API_URL}${endpoint}`, {
+  const response = await fetchWithTimeout(`${API_URL}${endpoint}`, {
     ...fetchOptions,
     headers
   });
@@ -133,11 +149,11 @@ export const api = {
     };
 
     try {
-      const response = await fetch(`${API_URL}/ai/generate-diagram`, {
+      const response = await fetchWithTimeout(`${API_URL}/ai/generate-diagram`, {
         method: 'POST',
         headers,
         body: JSON.stringify(data)
-      });
+      }, 120000);
 
       if (!response.ok) {
         const errorBody = await parseResponseBody(response);

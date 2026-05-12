@@ -130,7 +130,7 @@ const ClearButton = styled.button`
   }
 `;
 
-export default function HistoryPanel({ versions, currentNodes, currentEdges, onSelectVersion, onClearHistory, onClose }) {
+export default function HistoryPanel({ versions, currentNodes, currentEdges, onSelectVersion, onClearHistory, onClose, loading }) {
   return (
     <Panel>
       <PanelHeader>
@@ -143,8 +143,10 @@ export default function HistoryPanel({ versions, currentNodes, currentEdges, onS
         </CloseBtn>
       </PanelHeader>
       <VersionList>
-        {versions.length === 0 ? (
-          <EmptyState>No snapshots found</EmptyState>
+        {loading && versions.length === 0 ? (
+          <EmptyState>Loading snapshots...</EmptyState>
+        ) : versions.length === 0 ? (
+          <EmptyState>No snapshots yet — save your diagram to create one</EmptyState>
         ) : (
           versions.map((v) => (
             <VersionCard key={v.id} onClick={() => onSelectVersion(v)}>

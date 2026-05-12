@@ -43,16 +43,15 @@ function normalizeTechName(name) {
 
 // Rate limiting for AI endpoints
 const aiLimiter = rateLimit({
-  windowMs: 60 * 1000, // 1 minute
-  max: 10, // 10 requests per minute per IP
+  windowMs: 60 * 1000,
+  max: 10,
   message: { error: 'Too many requests. Please slow down and synchronize with the mainframe later.' },
   standardHeaders: true,
   legacyHeaders: false,
   validate: false,
-  store: (redis.isAvailable() && redis.getClient()) ? new RedisStore({
-    sendCommand: (...args) => redis.getClient().sendCommand(args),
-    prefix: 'rl:ai:',
-  }) : undefined,
+  store: (redis.isAvailable() && redis.getClient())
+    ? new RedisStore({ sendCommand: (...args) => redis.getClient().sendCommand(args), prefix: 'rl:ai:' })
+    : undefined,
 });
 
 // In-memory cache (Layer 1 - Local Instance)
@@ -187,6 +186,13 @@ router.post('/generate-diagram', aiLimiter, optionalAuth, validate({
   };
 
   let responseText = '';
+  const abortController = new AbortController();
+  req.on('close', () => {
+    if (!res.writableEnded) {
+      abortController.abort();
+    }
+  });
+
   try {
     const startAI = Date.now();
     const generatedDiagram = await generateDiagramFromPrompt({
@@ -194,9 +200,11 @@ router.post('/generate-diagram', aiLimiter, optionalAuth, validate({
       template,
       model: DIAGRAM_MODEL,
       onChunk: (chunk) => {
+        if (res.destroyed || res.writableEnded) return;
         responseText += chunk;
         sendEvent('chunk', { content: chunk });
-      }
+      },
+      signal: abortController.signal
     });
     responseText = generatedDiagram.rawResponse;
     const duration = Date.now() - startAI;
@@ -211,7 +219,8 @@ router.post('/generate-diagram', aiLimiter, optionalAuth, validate({
 
     const result = {
       nodes: generatedDiagram.nodes,
-      edges: generatedDiagram.edges
+      edges: generatedDiagram.edges,
+      ...(generatedDiagram.autoFixes && { autoFixes: generatedDiagram.autoFixes })
     };
 
     // Auto-register new tech to community inventory if user is logged in
@@ -402,50 +411,54 @@ router.post('/review-diagram', aiLimiter, clerkAuth, validate({
       conversationMessages.push({ role: 'user', content: question });
     }
 
-    const systemPrompt = `You are Archflow's architecture copilot embedded inside an interactive diagram editor.
+    const systemPrompt = `You are a Staff Infrastructure Architect reviewing a system diagram inside Archflow. Your reviews are precise, authoritative, and production-grade. Output ONLY valid JSON.
 
-Return ONLY JSON in this shape:
+RESPONSE SHAPE:
 {
-  "message": "Short helpful answer to the user's question.",
+  "message": "Direct answer to the user's question. 1-3 sentences. Be specific and technical.",
   "suggestions": [
     {
-      "name": "Technology or capability name with natural product casing",
+      "name": "Technology name (e.g., REDIS, KAFKA, CLERK)",
       "category": "mobile|frontend|backend|database|queue|auth|storage|external|devops",
-      "role": "One sentence describing the responsibility this addition would own",
-      "reason": "Why it is missing or useful for this specific diagram",
-      "icon": "PascalCase Lucide icon name such as Server or Database",
+      "role": "What this component does (max 8 words)",
+      "reason": "Why it is needed here (max 10 words)",
+      "icon": "Server|Database|Shield|Cloud|MessageSquare|Smartphone|HardDrive",
       "products": [
-        {
-          "name": "Product or managed service name",
-          "description": "Why this option fits",
-          "url": "https://..."
-        }
+        { "name": "Product name", "description": "Why this fits", "url": "https://..." }
       ],
       "connections": [
         {
           "source": "existing-node-id or ${REVIEW_NEW_NODE_TOKEN}",
           "target": "existing-node-id or ${REVIEW_NEW_NODE_TOKEN}",
-          "label": "REST|SQL|OIDC|S3|KAFKA|...",
-          "reason": "Why that edge should exist"
+          "label": "REST|SQL|OIDC|S3|KAFKA|gRPC|AMQP|GRAPHQL|WEBSOCKET",
+          "reason": "Why this connection (max 10 words)"
         }
       ]
     }
   ]
 }
 
-Rules:
-1. Answer the user's question directly in "message".
-2. Use "suggestions" only for genuinely missing technologies or architecture layers.
-3. Keep suggestions specific to the diagram and the user's request. Prefer 0-4 suggestions, never more than 5.
-4. Never suggest a duplicate of an existing node unless the user explicitly asks for an alternative. In this feature, skip alternatives and replacements.
-5. Every suggested connection must reference exactly one ${REVIEW_NEW_NODE_TOKEN} token and one real existing node id from the diagram context.
-6. Any technology you want the user to consider adding must appear in "suggestions" because suggestions are automatically staged into the Architectural Review panel.
-7. When suggestions are present, tell the user in "message" that the suggestions were added to the Architectural Review panel and can be accepted or declined there.
-8. For each suggestion, provide 1-3 meaningful connections when the surrounding architecture makes them inferable.
-9. Treat diagramContext.reviewFindings and diagramContext.summary as authoritative reliability signals. Do not contradict them.
-10. If the diagram context is incomplete or ambiguous, say that plainly instead of acting certain.
-11. If critical or warning review findings exist, do not describe the architecture as complete or production-ready without naming the caveat.
-12. If the user is asking for explanation only, you may return an empty suggestions array.`;
+APPROVED TECH CATALOG (suggest exact names from here):
+mobile=SWIFT,KOTLIN,REACT_NATIVE,FLUTTER
+frontend=NEXT.JS,REACT,VUE,SVELTE,ANGULAR
+backend=EXPRESS,FASTAPI,NESTJS,DJANGO,SPRING_BOOT,GO,GRAPHQL,FLASK,GIN,RUST
+database=POSTGRESQL,MYSQL,MONGODB,REDIS,CASSANDRA,DYNAMODB,ELASTICSEARCH,MEMCACHED,COCKROACHDB
+queue=KAFKA,RABBITMQ,SQS,BULLMQ,NATS,CELERY
+auth=CLERK,AUTH0,SUPABASE_AUTH,FIREBASE_AUTH,KEYCLOAK,OKTA,COGNITO
+storage=S3,CLOUDFLARE_R2,GCS,MINIO,AZURE_BLOB
+external=STRIPE,TWILIO,SENDGRID,ALGOLIA,MAPBOX,DATADOG,SENTRY,PAYPAL,PLAID
+devops=DOCKER,NGINX,CLOUDFLARE,KUBERNETES,PROMETHEUS,GRAFANA,TERRAFORM,VERCEL,HELM,ISTIO,VAULT,ARGOCD,ELK,JAEGER,JENKINS
+
+RULES:
+1. Answer the question directly and technically in "message". Reference specific node names from the diagram.
+2. Suggestions only for genuinely missing critical layers. Max 4 suggestions. Prefer 0-2.
+3. Never suggest a duplicate of an existing node. Skip alternatives/replacements.
+4. Every connection must reference exactly one ${REVIEW_NEW_NODE_TOKEN} and one real existing node id.
+5. Use exact tech names from the approved catalog above. Never generic names.
+6. For each suggestion, provide 1-2 meaningful connections with real protocols.
+7. If the diagram has critical findings, name them explicitly in your message. Do not call the architecture complete.
+8. Common missing layer patterns to watch for: REDIS(cache) when there are databases, KAFKA(queue) when there are multiple backends, PROMETHEUS+GRAFANA(observability) for 5+ node systems, S3(storage) when clients upload files, CLERK(auth) when there are client-facing surfaces, CDN when the system serves global users.
+9. If the user asks for explanation only, return empty suggestions array.`;
 
     const { data: parsed, rawResponse } = await callOpenRouterForJSON({
       messages: [

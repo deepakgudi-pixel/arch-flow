@@ -34,7 +34,7 @@ import {
   resolveEdgeLabelCollisions
 } from '@/lib/edgeLabelLayout';
 import {
-  buildArchitectureReview,
+  buildArchitectureReview, buildArchitectureScore,
   buildConnectionTrustProfile,
   buildNodeTrustProfile,
   getReplacementCandidates
@@ -828,6 +828,7 @@ export default function DiagramPage() {
   const [reviewAssistantLoading, setReviewAssistantLoading] = useState(false);
   const [showConfirmHistory, setShowConfirmHistory] = useState(false);
   const [versions, setVersions] = useState([]);
+  const [versionsLoading, setVersionsLoading] = useState(false);
   const [connectionMode, setConnectionMode] = useState('guided');
   const [connectionRules, setConnectionRules] = useState([]);
   const [selectedEdge, setSelectedEdge] = useState(null);
@@ -835,6 +836,7 @@ export default function DiagramPage() {
   const replacementRefreshSeqByNodeRef = useRef(new Map());
   const autoSaveTimeoutRef = useRef(null);
   const protocolRepairTimeoutRef = useRef(null);
+  const [saveStatus, setSaveStatus] = useState('saved');
   const lastSavedSnapshotRef = useRef('');
   const saveInFlightRef = useRef(false);
   const queuedSaveOptionsRef = useRef(null);
@@ -943,11 +945,14 @@ export default function DiagramPage() {
   }, [diagramId, getToken, isSignedIn]);
 
   const loadVersions = async () => {
+    setVersionsLoading(true);
     try {
       const data = await api.getDiagramVersions(diagramId);
-      setVersions(data);
+      setVersions(data || []);
     } catch (err) {
       console.error('Failed to load versions:', err);
+    } finally {
+      setVersionsLoading(false);
     }
   };
 
@@ -1084,18 +1089,17 @@ export default function DiagramPage() {
     };
   }, [diagramName, edges, nodes]);
 
+  const nodesRef = useRef(nodes);
+  const edgesRef = useRef(edges);
+  nodesRef.current = nodes;
+  edgesRef.current = edges;
+
   const saveDiagram = useCallback(async ({
     showToast = true,
     recordVersion = false,
     overrides = {}
   } = {}) => {
     if (!diagramId) return;
-
-    const payload = buildPersistedDiagramState(overrides);
-
-    if (!recordVersion && payload.snapshot === lastSavedSnapshotRef.current) {
-      return;
-    }
 
     if (saveInFlightRef.current) {
       queuedSaveOptionsRef.current = {
@@ -1106,9 +1110,21 @@ export default function DiagramPage() {
       return;
     }
 
+    setSaveStatus('saving');
     saveInFlightRef.current = true;
 
     try {
+      const effectiveOverrides = Object.keys(overrides).length > 0
+        ? { nodes: overrides.nodes || nodesRef.current, edges: overrides.edges || edgesRef.current, diagramName: overrides.diagramName || diagramName }
+        : {};
+      const payload = buildPersistedDiagramState(effectiveOverrides);
+
+      if (!recordVersion && payload.snapshot === lastSavedSnapshotRef.current) {
+        saveInFlightRef.current = false;
+        setSaveStatus('saved');
+        return;
+      }
+
       await api.updateDiagram(diagramId, {
         name: payload.name,
         nodes: payload.nodesData,
@@ -1116,6 +1132,7 @@ export default function DiagramPage() {
         recordVersion
       });
       lastSavedSnapshotRef.current = payload.snapshot;
+      setSaveStatus('saved');
 
       if (recordVersion) {
         loadVersions();
@@ -1127,6 +1144,7 @@ export default function DiagramPage() {
       }
     } catch (err) {
       console.error('Failed to save:', err);
+      setSaveStatus('error');
       if (showToast) {
         setToast({ message: 'SYNC_ERROR: DATA_UNSAVED', error: true });
         setTimeout(() => setToast(null), 3000);
@@ -1219,20 +1237,24 @@ export default function DiagramPage() {
           setEdges(newEdges);
           setPrompt('');
           setIsStreaming(false);
-          loadVersions(); // Refresh history
+          loadVersions();
           saveDiagram({ showToast: false, recordVersion: false, overrides: { nodes: newNodes, edges: newEdges } });
-          setToast({ message: 'SYNTHESIS_COMPLETE: 100%', error: false });
-          setTimeout(() => setToast(null), 2000);
+          const fixCount = result.autoFixes ? result.autoFixes.length : 0;
+          const message = fixCount > 0
+            ? 'Architecture ready — ' + fixCount + ' connection' + (fixCount > 1 ? 's' : '') + ' auto-wired'
+            : 'Architecture ready';
+          setToast({ message, error: false });
+          setTimeout(() => setToast(null), 3000);
         },
         (error) => {
           setStreamError(error);
-          setToast({ message: 'SYNTHESIS_FAILED: ' + error, error: true });
+          setToast({ message: 'Generation failed — ' + error, error: true });
           setTimeout(() => setToast(null), 3000);
         }
       );
     } catch (err) {
       console.error('Generation failed:', err);
-      setToast({ message: 'SYNTHESIS_FAILED: ' + err.message, error: true });
+      setToast({ message: 'Generation failed — ' + err.message, error: true });
       setIsStreaming(false);
       setTimeout(() => setToast(null), 3000);
     } finally {
@@ -1719,8 +1741,6 @@ export default function DiagramPage() {
       setToast({ message: `SYNTHESIZING_${edgesToFix.length}_PROTOCOLS...`, warning: true });
     }
 
-    const updatedEdges = [...edges];
-
     for (const edge of edgesToFix) {
       const sourceNode = nodes.find(n => n.id === edge.source);
       const targetNode = nodes.find(n => n.id === edge.target);
@@ -1732,12 +1752,10 @@ export default function DiagramPage() {
             target: { name: targetNode.data.label, category: targetNode.data.category }
           });
 
-          const idx = updatedEdges.findIndex(e => e.id === edge.id);
-          if (idx !== -1) {
-            updatedEdges[idx] = { ...updatedEdges[idx], label: result.label };
-          }
+          setEdges(current => current.map(e => e.id === edge.id ? { ...e, label: result.label } : e));
         } catch (err) {
           console.error('Failed to synthesize protocol for edge:', edge.id, err);
+          setEdges(current => current.map(e => e.id === edge.id ? { ...e, label: 'REST' } : e));
         } finally {
           autoSynthEdgeIdsRef.current.delete(edge.id);
         }
@@ -1745,13 +1763,11 @@ export default function DiagramPage() {
         autoSynthEdgeIdsRef.current.delete(edge.id);
       }
     }
-
-    setEdges(updatedEdges);
     if (showToast) {
       setToast({ message: 'PROTOCOL_SYNTHESIS: COMPLETE', error: false });
       setTimeout(() => setToast(null), 2000);
     }
-  }, [edges, setEdges]);
+  }, [setEdges, nodes]);
 
   useEffect(() => {
     const hasRepairableEdge = edges.some(edge => {
@@ -1794,7 +1810,7 @@ export default function DiagramPage() {
   const handleRemoveCollaborator = async (userId) => {
     try {
       await api.removeCollaborator(params.id, userId);
-      setCollaborators(collaborators.filter(c => c.id !== userId));
+      setCollaborators(prev => prev.filter(c => c.id !== userId));
       setToast({ message: 'COLLABORATOR_REMOVED', error: false });
     } catch (err) {
       setToast({ message: 'REMOVE_FAILED', error: true });
@@ -1808,11 +1824,14 @@ export default function DiagramPage() {
   }, [showInviteModal]);
 
   const copyInvite = () => {
-    navigator.clipboard.writeText(inviteCode);
-    setIsCopying(true);
-    setTimeout(() => {
-      setIsCopying(false);
-    }, 2000);
+    try {
+      navigator.clipboard.writeText(inviteCode);
+      setIsCopying(true);
+      setTimeout(() => setIsCopying(false), 2000);
+    } catch {
+      setToast({ message: 'Failed to copy — browser denied clipboard access', error: true });
+      setTimeout(() => setToast(null), 3000);
+    }
   };
 
   const handleDragStart = (e, tech) => {
@@ -1825,7 +1844,14 @@ export default function DiagramPage() {
     const techData = e.dataTransfer.getData('tech');
     if (!techData) return;
 
-    const tech = JSON.parse(techData);
+    let tech;
+    try {
+      tech = JSON.parse(techData);
+    } catch {
+      setToast({ message: 'Invalid tech data', error: true });
+      setTimeout(() => setToast(null), 3000);
+      return;
+    }
     const reactFlowBounds = e.target.getBoundingClientRect();
     const position = {
       x: e.clientX - reactFlowBounds.left - 70,
@@ -1838,7 +1864,7 @@ export default function DiagramPage() {
       position,
       data: {
         label: tech.name,
-        role: 'Manual entry',
+        role: tech.description || tech.role || tech.name,
         category: tech.category,
         icon: tech.icon,
         products: tech.products || []
@@ -1869,6 +1895,20 @@ export default function DiagramPage() {
       setLeftSidebarOpen(false);
     }
   };
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Delete' || e.key === 'Backspace') {
+        if (document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'TEXTAREA') return;
+        if (selectedNode || selectedEdge) {
+          e.preventDefault();
+          deleteSelected();
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedNode, selectedEdge]);
 
   const updateDiagramName = (e) => {
     setDiagramName(e.target.value);
@@ -2181,6 +2221,7 @@ export default function DiagramPage() {
             onAcceptSuggestion={handleAcceptReviewSuggestion}
             onDeclineSuggestion={handleDeclineReviewSuggestion}
             onClose={() => setReviewPanelOpen(false)}
+            architectureScore={buildArchitectureScore(reviewFindings, nodes, edges)}
           />
         )
       }
@@ -2196,6 +2237,7 @@ export default function DiagramPage() {
               onSelectVersion={handleSelectVersion}
               onClearHistory={handleClearHistory}
               onClose={() => setHistoryPanelOpen(false)}
+              loading={versionsLoading}
             />
           )
         }
@@ -2363,6 +2405,7 @@ export default function DiagramPage() {
           simulateFlow={simulateFlow}
           onToggleSimulateFlow={() => setSimulateFlow(!simulateFlow)}
           onOpenInvite={() => setShowInviteModal(true)}
+          saveStatus={saveStatus}
         />
 
         <MainArea>
@@ -2455,7 +2498,7 @@ export default function DiagramPage() {
             {nodes.length === 0 && (
               <EmptyCanvas>
                 <EmptyIcon>⬡</EmptyIcon>
-                <EmptyText>INITIALIZE_SYSTEM_PROMPT_BELOW</EmptyText>
+                <EmptyText>Describe your system below and click Synthesize to generate an architecture diagram</EmptyText>
               </EmptyCanvas>
             )}
 

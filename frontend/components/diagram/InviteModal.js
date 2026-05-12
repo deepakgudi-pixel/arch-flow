@@ -79,10 +79,11 @@ export default function InviteModal({
         <InviteRow>
           <InviteInput
             readOnly
-            value={inviteCode || 'GENERATING...'}
+            value={inviteCode || ''}
+            placeholder={inviteCode ? '' : 'Click GENERATE to create invite code'}
           />
           <Button $variant="primary" onClick={onCopyInvite} disabled={!inviteCode}>
-            {isCopying ? 'COPIED' : 'COPY'}
+            {inviteCode ? (isCopying ? 'COPIED' : 'COPY') : 'GENERATE'}
           </Button>
         </InviteRow>
         <HintText>

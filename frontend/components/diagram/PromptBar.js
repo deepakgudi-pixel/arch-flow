@@ -87,7 +87,7 @@ export default function PromptBar({
         </IconWrapper>
         
         <PromptInput
-          placeholder="Describe the architecture you want to build..."
+          placeholder="e.g. Instagram, YouTube, Uber, or describe any system..."
           value={prompt}
           onChange={e => onPromptChange(e.target.value)}
           onKeyPress={e => e.key === 'Enter' && onGenerate()}
@@ -99,7 +99,9 @@ export default function PromptBar({
               <option value="blank">Blank Canvas</option>
               <option value="saas">SaaS Platform</option>
               <option value="ecommerce">E-Commerce</option>
+              <option value="mobile">Mobile Backend</option>
               <option value="realtime">Realtime System</option>
+              <option value="microservices">Microservices</option>
             </TemplateSelect>
           </div>
 
@@ -108,12 +110,19 @@ export default function PromptBar({
               {loading ? (
                 <motion.div
                   key="loading"
-                  initial={{ rotate: 0 }}
-                  animate={{ rotate: 360 }}
-                  transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-                  style={{ display: 'flex' }}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
                 >
-                  <Loader2 size={16} />
+                  <motion.div
+                    initial={{ rotate: 0 }}
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                    style={{ display: 'flex' }}
+                  >
+                    <Loader2 size={16} />
+                  </motion.div>
+                  <span>Synthesizing</span>
                 </motion.div>
               ) : (
                 <motion.div
@@ -124,7 +133,7 @@ export default function PromptBar({
                   style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
                 >
                   <Sparkles size={16} />
-                  <span>Generate</span>
+                  <span>Synthesize</span>
                 </motion.div>
               )}
             </AnimatePresence>

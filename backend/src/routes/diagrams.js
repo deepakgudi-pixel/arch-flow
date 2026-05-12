@@ -267,13 +267,14 @@ router.get('/:id/versions', clerkAuth, async (req, res) => {
     }
 
     const versions = await pool.query(
-      'SELECT id, prompt_text, nodes, edges, created_at FROM diagram_versions WHERE diagram_id = $1 ORDER BY created_at DESC',
+      `SELECT id, prompt_text, nodes, edges, created_at AT TIME ZONE 'UTC' as created_at
+       FROM diagram_versions WHERE diagram_id = $1 ORDER BY created_at DESC`,
       [id]
     );
 
     res.json(versions.rows.map(v => ({
       ...v,
-      created_at: new Date(v.created_at + ' +00').toISOString()
+      created_at: v.created_at instanceof Date ? v.created_at.toISOString() : v.created_at
     })));
   } catch (err) {
     logger.error('Error fetching diagram versions', { error: err.message, id });
@@ -311,6 +312,8 @@ router.delete('/:id', clerkAuth, async (req, res) => {
       return res.status(404).json({ error: 'Diagram not found' });
     }
 
+    await pool.query('DELETE FROM diagram_collaborators WHERE diagram_id = $1', [id]);
+    await pool.query('DELETE FROM diagram_versions WHERE diagram_id = $1', [id]);
     await pool.query('DELETE FROM diagrams WHERE id = $1', [id]);
 
     res.json({ success: true });
@@ -332,7 +335,7 @@ router.post('/:id/invite', clerkAuth, async (req, res) => {
 
     let code = result.rows[0].invite_code;
     if (!code) {
-      code = Math.random().toString(36).substring(2, 10).toUpperCase();
+      code = crypto.randomBytes(6).toString('hex').toUpperCase();
       await pool.query('UPDATE diagrams SET invite_code = $1 WHERE id = $2', [code, id]);
     }
 

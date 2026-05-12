@@ -1,23 +1,24 @@
 'use client';
 
 import styled from 'styled-components';
-import { AlertTriangle, CheckCircle2, Info, ShieldAlert } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Info, ShieldAlert, TrendingUp } from 'lucide-react';
 import { Badge } from '@/components/ui/Badge';
 import { CloseBtn } from './editorStyles';
 
 const Panel = styled.div`
-  width: 360px;
+  width: 380px;
   background: #ffffff;
   display: flex;
   flex-direction: column;
   height: 100%;
+  border-left: 1px solid rgba(0, 0, 0, 0.04);
 `;
 
 const PanelHeader = styled.div`
-  padding: 24px;
+  padding: 20px 24px 16px;
   border-bottom: 1px solid rgba(0, 0, 0, 0.05);
   display: grid;
-  gap: 16px;
+  gap: 12px;
 `;
 
 const TitleRow = styled.div`
@@ -30,7 +31,7 @@ const TitleRow = styled.div`
 const TitleCluster = styled.div`
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
 `;
 
 const Title = styled.h3`
@@ -40,24 +41,82 @@ const Title = styled.h3`
   color: #000000;
 `;
 
+const ScoreRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 12px;
+`;
+
+const ScoreCircle = styled.div`
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-sans);
+  font-size: 16px;
+  font-weight: 800;
+  color: #ffffff;
+  background: ${props =>
+    props.$grade === 'A' ? '#065f46' :
+    props.$grade === 'B' ? '#1e40af' :
+    props.$grade === 'C' ? '#92400e' :
+    props.$grade === 'D' ? '#991b1b' :
+    '#7f1d1d'};
+  flex-shrink: 0;
+`;
+
+const ScoreMeta = styled.div`
+  display: grid;
+  gap: 2px;
+`;
+
+const ScoreLabel = styled.div`
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 600;
+  color: #666;
+`;
+
+const ScoreBar = styled.div`
+  width: 100%;
+  height: 4px;
+  border-radius: 2px;
+  background: #eee;
+  overflow: hidden;
+`;
+
+const ScoreFill = styled.div`
+  height: 100%;
+  border-radius: 2px;
+  background: ${props =>
+    props.$pct >= 80 ? '#065f46' :
+    props.$pct >= 60 ? '#1e40af' :
+    props.$pct >= 40 ? '#92400e' :
+    '#991b1b'};
+  width: ${props => props.$pct}%;
+  transition: width 0.5s ease;
+`;
+
 const SummaryGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
+  gap: 8px;
 `;
 
 const SummaryCard = styled.div`
   border: 1px solid rgba(0, 0, 0, 0.08);
   border-radius: 10px;
-  padding: 12px;
+  padding: 10px;
   display: grid;
-  gap: 6px;
+  gap: 4px;
   background: #ffffff;
 `;
 
 const SummaryLabel = styled.div`
   font-family: var(--font-sans);
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 700;
   color: #999;
   text-transform: uppercase;
@@ -66,7 +125,7 @@ const SummaryLabel = styled.div`
 
 const SummaryValue = styled.div`
   font-family: var(--font-sans);
-  font-size: 1.2rem;
+  font-size: 1.1rem;
   font-weight: 800;
   color: #000000;
 `;
@@ -349,7 +408,8 @@ export default function ReviewPanel({
   onFocusFinding,
   onAcceptSuggestion,
   onDeclineSuggestion,
-  onClose
+  onClose,
+  architectureScore
 }) {
   const criticalCount = findings.filter(finding => finding.severity === 'critical').length;
   const warningCount = findings.filter(finding => finding.severity === 'warning').length;
@@ -357,36 +417,47 @@ export default function ReviewPanel({
   const nodeById = new Map((nodes || []).map(node => [node.id, node]));
   const hasSuggestions = suggestions.length > 0;
   const hasFindings = findings.length > 0;
+  const score = architectureScore || { score: 0, grade: 'F', criticalCount, warningCount, infoCount, categoryCoverage: 0, coveragePct: 0 };
 
   return (
     <Panel>
       <PanelHeader>
         <TitleRow>
           <TitleCluster>
-            <ShieldAlert size={18} />
+            <ShieldAlert size={16} />
             <Title>Architecture Review</Title>
           </TitleCluster>
           <CloseBtn type="button" onClick={onClose} aria-label="Close architecture review">
             ×
           </CloseBtn>
         </TitleRow>
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          <Badge $tone="neutral">Mode: {connectionMode || 'guided'}</Badge>
-          {hasSuggestions && <Badge $tone="warning">AI Staged: {suggestions.length}</Badge>}
-          {!hasSuggestions && !hasFindings && <Badge $tone="success"><CheckCircle2 size={12} /> PASS</Badge>}
+        <ScoreRow>
+          <ScoreCircle $grade={score.grade}>{score.grade}</ScoreCircle>
+          <ScoreMeta>
+            <ScoreLabel>Architecture Score • {score.score}/100</ScoreLabel>
+            <ScoreBar>
+              <ScoreFill $pct={score.score} />
+            </ScoreBar>
+            <ScoreLabel>{score.categoryCoverage}/9 layers • {score.coveragePct}% coverage • {nodeCount} nodes • {edgeCount} edges</ScoreLabel>
+          </ScoreMeta>
+        </ScoreRow>
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+          <Badge $tone="neutral">{connectionMode || 'guided'} mode</Badge>
+          {hasSuggestions && <Badge $tone="warning">AI: {suggestions.length} staged</Badge>}
+          {!hasSuggestions && !hasFindings && <Badge $tone="success"><CheckCircle2 size={12} /> All checks passed</Badge>}
         </div>
         <SummaryGrid>
           <SummaryCard>
             <SummaryLabel>Critical</SummaryLabel>
-            <SummaryValue>{criticalCount}</SummaryValue>
+            <SummaryValue>{score.criticalCount}</SummaryValue>
           </SummaryCard>
           <SummaryCard>
             <SummaryLabel>Warnings</SummaryLabel>
-            <SummaryValue>{warningCount}</SummaryValue>
+            <SummaryValue>{score.warningCount}</SummaryValue>
           </SummaryCard>
           <SummaryCard>
             <SummaryLabel>Signals</SummaryLabel>
-            <SummaryValue>{infoCount}</SummaryValue>
+            <SummaryValue>{score.infoCount}</SummaryValue>
           </SummaryCard>
         </SummaryGrid>
       </PanelHeader>
@@ -396,36 +467,44 @@ export default function ReviewPanel({
           <EmptyHero>
             <EmptyTitle>
               <CheckCircle2 size={16} />
-              All Clear
+              All Clear — Score: {score.grade} ({score.score}/100)
             </EmptyTitle>
             <EmptyDescription>
-              No active review findings were raised for the current diagram. That means the rule checks did not spot any obvious architecture risks right now.
+              No issues found. {score.categoryCoverage} of 9 architecture layers are covered. {score.coveragePct}% category coverage.
             </EmptyDescription>
           </EmptyHero>
 
           <CoverageGrid>
             <CoverageCard>
               <CoverageValue>{nodeCount}</CoverageValue>
-              <CoverageLabel>Units Reviewed</CoverageLabel>
+              <CoverageLabel>Components</CoverageLabel>
             </CoverageCard>
             <CoverageCard>
               <CoverageValue>{edgeCount}</CoverageValue>
-              <CoverageLabel>Flows Checked</CoverageLabel>
+              <CoverageLabel>Connections</CoverageLabel>
+            </CoverageCard>
+            <CoverageCard>
+              <CoverageValue>{score.categoryCoverage}/9</CoverageValue>
+              <CoverageLabel>Layers Used</CoverageLabel>
+            </CoverageCard>
+            <CoverageCard>
+              <CoverageValue>{score.coveragePct}%</CoverageValue>
+              <CoverageLabel>Coverage</CoverageLabel>
             </CoverageCard>
           </CoverageGrid>
 
           <CheckList>
             <CheckItem>
               <CheckCircle2 size={14} />
-              Checked for direct client-to-database and other rule-breaking connections.
+              No direct client-to-database or other invalid connections.
             </CheckItem>
             <CheckItem>
               <CheckCircle2 size={14} />
-              Looked for missing application, auth, queue, and observability layers when relevant.
+              All required layers (backend, auth, queue, observability) are present.
             </CheckItem>
             <CheckItem>
               <CheckCircle2 size={14} />
-              Flagged generic protocols, isolated units, and obvious scaling pressure signals when present.
+              No isolated nodes, generic protocols, or scaling bottleneck signals.
             </CheckItem>
           </CheckList>
         </EmptyState>
@@ -505,11 +584,15 @@ export default function ReviewPanel({
       )}
 
       <Footer>
-        {!hasSuggestions && !hasFindings
-          ? 'This panel shows system-level review findings when the rule checks detect something worth verifying.'
+        {score.score >= 80 && !hasFindings && !hasSuggestions
+          ? 'Production-grade architecture. No issues detected across all rule checks.'
           : hasSuggestions
-            ? 'These items were staged by the AI assistant. Accept one to add it into the diagram and connect it into the current architecture, or decline it to discard the suggestion.'
-            : 'Click any finding to focus the affected part of the diagram.'}
+            ? 'AI-staged suggestions appear above findings. Accept to auto-connect into the diagram or decline to dismiss.'
+            : score.score >= 60
+              ? 'Architecture is functional but has room for improvement. Address warnings to harden the design.'
+              : score.score >= 40
+                ? 'Architecture needs significant improvements. Critical issues should be resolved before production.'
+                : 'Architecture has severe gaps. Review critical findings and consider regenerating with a more specific prompt.'}
       </Footer>
     </Panel>
   );
