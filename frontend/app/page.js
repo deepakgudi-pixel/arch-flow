@@ -68,6 +68,8 @@ const BrandMark = styled.span`
   justify-content: center;
   background: #000000;
   color: white;
+  line-height: 1;
+  font-size: 20px;
   box-shadow: none;
   font-size: 1.1rem;
   font-weight: 800;
