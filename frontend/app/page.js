@@ -353,10 +353,7 @@ export default function HomePage() {
       <Nav>
         <Brand href="/">
           <BrandMark>⬡</BrandMark>
-          <div style={{ display: 'grid', gap: '2px' }}>
-            <span style={{ fontFamily: 'var(--font-sans)', fontWeight: 800, fontSize: '1.2rem', letterSpacing: '-0.02em', color: '#000' }}>Archflow</span>
-            <span style={{ fontFamily: 'var(--font-sans)', fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', color: '#999', letterSpacing: '0.05em' }}>AI system design workspace</span>
-          </div>
+          <span style={{ fontFamily: 'var(--font-sans)', fontWeight: 800, fontSize: '1.2rem', letterSpacing: '-0.02em', color: '#000' }}>Archflow</span>
         </Brand>
         <NavLinks>
           <NavLink href="#product">Product</NavLink>
