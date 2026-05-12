@@ -51,7 +51,7 @@ flowchart TB
   end
 
   subgraph Data["Data Layer"]
-    DB[(("PostgreSQL<br/>(Neon)"))]
+    DB[("PostgreSQL<br/>(Neon)")]
     CACHE[("Redis<br/>(Upstash)")]
   end
 
