@@ -542,7 +542,7 @@ export default function HomePage() {
             <div style={{ marginTop: '16px' }}>
               <a href="/downloads/Archflow.zip" download>
                 <Button $variant="primary" $size="lg" style={{ background: '#fff', color: '#000' }}>
-                  DOWNLOAD_FOR_MAC_V1.0
+                  DOWNLOAD_FOR_MAC_V1.5
                 </Button>
               </a>
             </div>
