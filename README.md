@@ -6,7 +6,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/license-MIT-blue?style=flat-square" alt="License">
+  <img src="https://img.shields.io/badge/license-All_Rights_Reserved-red?style=flat-square" alt="License">
   <img src="https://img.shields.io/badge/Next.js-15-black?style=flat-square&logo=next.js" alt="Next.js 15">
   <img src="https://img.shields.io/badge/React-19-61DAFB?style=flat-square&logo=react" alt="React 19">
   <img src="https://img.shields.io/badge/Node-22-339933?style=flat-square&logo=node.js" alt="Node.js 22">
@@ -579,4 +579,6 @@ That combination is the real moat, not a flashy score.
 
 ## License
 
-MIT
+All Rights Reserved.
+
+This repository is proprietary. You may not use, modify, distribute, or sell this code without explicit permission.
