@@ -144,12 +144,14 @@ flowchart TB
 - Surgical editing — replace individual nodes without regenerating the entire diagram
 - Auto-layout spaces nodes into clean category lanes for readability
 
-### AI Architecture Assistant
-- Chat-based assistant that understands the full diagram context (nodes, edges, rules)
-- **Context Budget Guard:** Intelligent serialization monitoring prevents token overflow by validating review/chat context payloads (capped gracefully at 28,000 characters) with clear human-readable feedback.
-- Explains why specific technologies were chosen and flags gaps, risks, or missing layers
-- Stages proposed additions into Architectural Review instead of mutating the diagram directly
-- Chat history survives page refreshes via draft persistence
+### AI Architecture Assistant (Copilot)
+- **Full diagram awareness** — understands every node, edge, protocol, review finding, and category count in the current diagram before answering
+- **Staged suggestions, not silent mutations** — the AI never directly edits your diagram. All proposed additions go through Architectural Review where you accept or decline with one click
+- **Connected suggestions** — every staged technology comes with pre-built connections to existing nodes using real protocols (REST, gRPC, KAFKA, SQL, etc.) and real node IDs
+- **Review-aware answers** — the assistant receives all deterministic review findings as structured context before responding, so it never contradicts the rules engine or suggests something already flagged
+- **Context Budget Guard** — intelligent serialization caps review context at 28,000 characters with clear human-readable feedback if the diagram is too large, preventing silent token overflow
+- **Persistent chat** — conversation history and pending review suggestions survive page refreshes via local draft persistence
+- **Domain expert tone** — responds like a Staff Infrastructure Architect, not a generic chatbot. References specific technologies, protocols, and architectural patterns
 
 ### Architectural Review System
 - Dedicated review drawer with architecture score (0–100 with letter grade A–F), finding counts, and layer coverage stats
