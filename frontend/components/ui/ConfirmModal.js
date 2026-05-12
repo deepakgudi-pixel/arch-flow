@@ -74,18 +74,18 @@ const Button = styled.button`
   transition: all 0.1s;
   background: ${props => props.$primary ? '#000' : '#fff'};
   color: ${props => props.$primary ? '#fff' : '#000'};
-  box-shadow: none;
+  box-shadow: none !important;
 
   &:hover {
     transform: translate(-2px, -2px);
-    box-shadow: none;
+    box-shadow: none !important;
     background: ${props => props.$primary ? '#ff4444' : '#f0f0f0'};
     color: ${props => props.$primary ? '#fff' : '#000'};
   }
 
   &:active {
     transform: translate(2px, 2px);
-    box-shadow: none;
+    box-shadow: none !important;
   }
 `;
 
