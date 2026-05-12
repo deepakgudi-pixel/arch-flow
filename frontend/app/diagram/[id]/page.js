@@ -56,7 +56,7 @@ import SynthesisTerminal from '@/components/diagram/SynthesisTerminal';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import Toast from '@/components/ui/Toast';
 import {
-  Container, MainArea, CanvasWrapper, EmptyCanvas, EmptyIcon, EmptyText
+  Container, MainArea, CanvasWrapper
 } from '@/components/diagram/editorStyles';
 
 const GlobalStyle = createGlobalStyle`
@@ -2494,13 +2494,6 @@ export default function DiagramPage() {
                 maskColor="rgba(0, 0, 0, 0.05)"
               />
             </ReactFlow>
-
-            {nodes.length === 0 && (
-              <EmptyCanvas>
-                <EmptyIcon>⬡</EmptyIcon>
-                <EmptyText>Describe your system below and click Synthesize to generate an architecture diagram</EmptyText>
-              </EmptyCanvas>
-            )}
 
             <PromptBar
               prompt={prompt}
