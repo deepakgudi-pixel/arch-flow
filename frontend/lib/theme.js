@@ -53,8 +53,8 @@ export const theme = {
     textWidth: '960px'
   },
   fonts: {
-    sans: "'Plus Jakarta Sans', 'Inter', -apple-system, sans-serif",
-    display: "'Plus Jakarta Sans', 'Inter', -apple-system, sans-serif",
+    sans: "'JetBrains Mono', 'Menlo', monospace",
+    display: "'JetBrains Mono', 'Menlo', monospace",
     mono: "'JetBrains Mono', 'Menlo', monospace"
   },
   borders: {

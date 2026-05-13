@@ -436,7 +436,7 @@ export default function HomePage() {
               <div>
                 <Badge $tone="neutral">MODULE_01</Badge>
               </div>
-              <CardTitle>AI-Assisted Diagram Generation</CardTitle>
+              <CardTitle>Diagram Generation</CardTitle>
               <CardText>
                 Generate architecture drafts from product requirements, then keep refining them instead of restarting from scratch. Archflow helps users move from blank canvas to working system model fast.
               </CardText>
@@ -477,7 +477,7 @@ export default function HomePage() {
               <div>
                 <Badge $tone="neutral">MODULE_02</Badge>
               </div>
-              <CardTitle>AI Assistant + Architectural Review</CardTitle>
+              <CardTitle>Architectural Review</CardTitle>
               <CardText>
                 Users can ask the AI assistant what is missing, why a technology belongs, or how strong the current diagram is. Missing tech gets staged into Architectural Review before it touches the live diagram.
               </CardText>
@@ -505,7 +505,7 @@ export default function HomePage() {
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', alignItems: 'center' }}>
                 <Badge $tone="neutral">MODULE_03</Badge>
               </div>
-              <CardTitle>Built for iterative architecture work, not one-shot generation.</CardTitle>
+              <CardTitle>Iterative by Design</CardTitle>
               <CardText>
                 Pending AI chat and staged review items survive refreshes, accepted suggestions connect into the diagram, and the review layer uses rule-aware checks so users can grow complex systems without losing clarity or control.
               </CardText>

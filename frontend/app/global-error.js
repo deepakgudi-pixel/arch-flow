@@ -12,7 +12,7 @@ const Body = styled.body`
   display: grid;
   place-items: center;
   padding: 32px;
-  font-family: 'Plus Jakarta Sans', sans-serif;
+  font-family: 'JetBrains Mono', monospace;
 `;
 
 const Card = styled.section`
