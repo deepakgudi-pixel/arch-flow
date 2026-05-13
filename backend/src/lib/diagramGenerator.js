@@ -322,7 +322,7 @@ function enforceArchitectureRules(normalizedNodes, normalizedEdges) {
     + (normalizedNodes.some(n => n.category === 'external') ? 1 : 0)
     + (normalizedNodes.some(n => n.category === 'queue') ? 1 : 0)
     + (normalizedNodes.some(n => n.category === 'devops') ? 1 : 0);
-  if (dbOnlyCount === 1 && approxComplexity >= 12 && !hasCache && primaryBackend) {
+  if (dbOnlyCount === 1 && approxComplexity >= 12 && primaryBackend) {
     const replicaName = primaryBackend.name + '_DB_REPLICA';
     if (!nodeNames.has(replicaName)) {
       normalizedNodes.push({

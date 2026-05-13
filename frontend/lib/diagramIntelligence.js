@@ -759,12 +759,13 @@ export function buildArchitectureScore(findings, nodes, edges) {
   const criticalCount = findings.filter(f => f.severity === 'critical').length;
   const warningCount = findings.filter(f => f.severity === 'warning').length;
   const infoCount = findings.filter(f => f.severity === 'info').length;
+  const signalCount = findings.filter(f => f.severity === 'info' && f.title !== 'REVIEW_EDGE_PATTERN').length;
 
   let score = 100;
   const deductions = {
     critical: criticalCount * 15,
     warning: warningCount * 8,
-    info: infoCount * 2
+    info: signalCount * 2
   };
   score -= deductions.critical;
   score -= deductions.warning;
