@@ -430,7 +430,7 @@ function buildFallbackSuggestionConnections(suggestion, nodes, edges) {
     if (auth) addConnection(REVIEW_NEW_NODE_TOKEN, auth.id, 'OIDC', 'The backend usually coordinates identity or token validation.');
     if (queue) addConnection(REVIEW_NEW_NODE_TOKEN, queue.id, 'ASYNC', 'Background or deferred work should hang off the backend layer.');
     if (storage) addConnection(REVIEW_NEW_NODE_TOKEN, storage.id, 'S3', 'The backend should mediate asset access and file workflows.');
-    if (external) addConnection(REVIEW_NEW_NODE_TOKEN, external.id, 'API', 'External integrations are typically orchestrated by the backend.');
+    if (external) addConnection(REVIEW_NEW_NODE_TOKEN, external.id, 'HTTPS', 'External integrations are typically orchestrated by the backend.');
   }
 
   if (category === 'frontend') {
@@ -479,7 +479,7 @@ function buildFallbackSuggestionConnections(suggestion, nodes, edges) {
     const backend = pickAny(['backend']);
     const client = pickAny(['frontend', 'mobile']);
 
-    if (backend) addConnection(backend.id, REVIEW_NEW_NODE_TOKEN, 'API', 'Most third-party integrations should sit behind the backend.');
+    if (backend) addConnection(backend.id, REVIEW_NEW_NODE_TOKEN, 'HTTPS', 'Most third-party integrations should sit behind the backend.');
     else if (client) addConnection(client.id, REVIEW_NEW_NODE_TOKEN, 'HTTPS', 'If there is no backend yet, this external integration is client-facing.');
   }
 
@@ -825,8 +825,14 @@ export default function DiagramPage() {
   const [assistantPrompt, setAssistantPrompt] = useState('');
   const [assistantMessages, setAssistantMessages] = useState([]);
   const [reviewSuggestions, setReviewSuggestions] = useState([]);
+  const [generationAutoFixes, setGenerationAutoFixes] = useState([]);
   const [reviewAssistantLoading, setReviewAssistantLoading] = useState(false);
   const [showConfirmHistory, setShowConfirmHistory] = useState(false);
+  const [undoStack, setUndoStack] = useState([]);
+  const [redoStack, setRedoStack] = useState([]);
+  const isUndoingRef = useRef(false);
+  const isRedoingRef = useRef(false);
+  const skipHistoryRef = useRef(false);
   const [versions, setVersions] = useState([]);
   const [versionsLoading, setVersionsLoading] = useState(false);
   const [connectionMode, setConnectionMode] = useState('guided');
@@ -1163,6 +1169,14 @@ export default function DiagramPage() {
   }, [buildPersistedDiagramState, diagramId]);
 
   useEffect(() => {
+    if (skipHistoryRef.current) { skipHistoryRef.current = false; return; }
+    if (isUndoingRef.current || isRedoingRef.current) return;
+    if (nodes.length === 0 && edges.length === 0) return;
+    setUndoStack(prev => [...prev.slice(-50), { nodes, edges }]);
+    setRedoStack([]);
+  }, [nodes, edges]);
+
+  useEffect(() => {
     if (!diagramId || !loadCompleteRef.current) {
       return undefined;
     }
@@ -1239,9 +1253,11 @@ export default function DiagramPage() {
           setIsStreaming(false);
           loadVersions();
           saveDiagram({ showToast: false, recordVersion: false, overrides: { nodes: newNodes, edges: newEdges } });
-          const fixCount = result.autoFixes ? result.autoFixes.length : 0;
+          const autoFixesList = result.autoFixes || [];
+          setGenerationAutoFixes(autoFixesList);
+          const fixCount = autoFixesList.length;
           const message = fixCount > 0
-            ? 'Architecture ready — ' + fixCount + ' connection' + (fixCount > 1 ? 's' : '') + ' auto-wired'
+            ? 'Architecture ready — ' + fixCount + ' auto-fix' + (fixCount > 1 ? 'es' : '') + ' applied'
             : 'Architecture ready';
           setToast({ message, error: false });
           setTimeout(() => setToast(null), 3000);
@@ -1499,7 +1515,7 @@ export default function DiagramPage() {
         id: `e_${Date.now()}_${index}`,
         source,
         target,
-        label: connection.label || 'CONNECTION',
+        label: connection.label || 'HTTPS',
         animated: simulateFlow
       });
     });
@@ -1898,8 +1914,41 @@ export default function DiagramPage() {
 
   useEffect(() => {
     const handleKeyDown = (e) => {
+      if (document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'TEXTAREA') return;
+
+      if ((e.metaKey || e.ctrlKey) && e.key === 'z' && !e.shiftKey) {
+        e.preventDefault();
+        setUndoStack(prev => {
+          if (prev.length === 0) return prev;
+          const last = prev[prev.length - 1];
+          skipHistoryRef.current = true;
+          isUndoingRef.current = true;
+          setRedoStack(r => [...r, { nodes, edges }]);
+          setNodes(last.nodes);
+          setEdges(last.edges);
+          setTimeout(() => { isUndoingRef.current = false; }, 0);
+          return prev.slice(0, -1);
+        });
+        return;
+      }
+
+      if ((e.metaKey || e.ctrlKey) && e.key === 'z' && e.shiftKey) {
+        e.preventDefault();
+        setRedoStack(prev => {
+          if (prev.length === 0) return prev;
+          const last = prev[prev.length - 1];
+          skipHistoryRef.current = true;
+          isRedoingRef.current = true;
+          setUndoStack(u => [...u, { nodes, edges }]);
+          setNodes(last.nodes);
+          setEdges(last.edges);
+          setTimeout(() => { isRedoingRef.current = false; }, 0);
+          return prev.slice(0, -1);
+        });
+        return;
+      }
+
       if (e.key === 'Delete' || e.key === 'Backspace') {
-        if (document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'TEXTAREA') return;
         if (selectedNode || selectedEdge) {
           e.preventDefault();
           deleteSelected();
@@ -1908,7 +1957,7 @@ export default function DiagramPage() {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedNode, selectedEdge]);
+  }, [selectedNode, selectedEdge, nodes, edges]);
 
   const updateDiagramName = (e) => {
     setDiagramName(e.target.value);
@@ -2117,6 +2166,97 @@ export default function DiagramPage() {
     }
   };
 
+  const canUndo = undoStack.length > 0;
+  const canRedo = redoStack.length > 0;
+
+  const handleUndo = useCallback(() => {
+    if (undoStack.length === 0) return;
+    setUndoStack(prev => {
+      if (prev.length === 0) return prev;
+      const last = prev[prev.length - 1];
+      skipHistoryRef.current = true;
+      isUndoingRef.current = true;
+      setRedoStack(r => [...r, { nodes, edges }]);
+      setNodes(last.nodes);
+      setEdges(last.edges);
+      setTimeout(() => { isUndoingRef.current = false; }, 0);
+      return prev.slice(0, -1);
+    });
+  }, [undoStack, nodes, edges]);
+
+  const handleRedo = useCallback(() => {
+    if (redoStack.length === 0) return;
+    setRedoStack(prev => {
+      if (prev.length === 0) return prev;
+      const last = prev[prev.length - 1];
+      skipHistoryRef.current = true;
+      isRedoingRef.current = true;
+      setUndoStack(u => [...u, { nodes, edges }]);
+      setNodes(last.nodes);
+      setEdges(last.edges);
+      setTimeout(() => { isRedoingRef.current = false; }, 0);
+      return prev.slice(0, -1);
+    });
+  }, [redoStack, nodes, edges]);
+
+  const handleOptimizeTo100 = useCallback(() => {
+    const findings = buildArchitectureReview({ nodes, edges, connectionRules, connectionMode });
+    const techNodes = nodes.filter(n => n.type === 'customNode');
+    const nodeById = new Map(techNodes.map(n => [n.id, n]));
+    const existingLabels = new Set(techNodes.map(n => normalizeTechLabel(n.data.label)));
+    const existingCategories = new Set(techNodes.map(n => n.data.category));
+    const hasBackend = existingCategories.has('backend');
+    const additions = [];
+
+    const optiMap = [
+      { title: 'NO_AUTH_LAYER', label: 'CLERK', category: 'auth', icon: 'shield', role: 'Authentication and user management', check: () => !existingCategories.has('auth') && hasBackend },
+      { title: 'NO_OBSERVABILITY_LAYER', label: 'GRAFANA', category: 'devops', icon: 'bar-chart', role: 'Monitoring and observability', check: () => !existingCategories.has('devops') && techNodes.length >= 5 && hasBackend },
+      { title: 'MISSING_CACHE_LAYER', label: 'REDIS', category: 'database', icon: 'database', role: 'Caching and session store', check: () => !existingLabels.has('REDIS') && (nodes.filter(n => n.data?.category === 'database').length >= 2) && hasBackend },
+      { title: 'MISSING_ASYNC_PROCESSING', label: 'KAFKA', category: 'queue', icon: 'message-square', role: 'Async message broker and event stream', check: () => !existingCategories.has('queue') && (nodes.filter(n => n.data?.category === 'backend').length >= 2) && hasBackend },
+      { title: 'NO_STORAGE_LAYER', label: 'S3', category: 'storage', icon: 'hard-drive', role: 'Object storage for assets', check: () => !existingCategories.has('storage') && techNodes.length >= 4 && hasBackend },
+      { title: 'MISSING_TRAFFIC_MANAGEMENT', label: 'NGINX', category: 'devops', icon: 'server', role: 'Reverse proxy and load balancer', check: () => !existingLabels.has('NGINX') && techNodes.length >= 6 && hasBackend },
+    ];
+
+    findings.forEach(finding => {
+      const match = optiMap.find(o => o.title === finding.title && o.check());
+      if (!match) return;
+      if (additions.some(a => a.label === match.label)) return;
+      const id = `node_opt_${Date.now()}_${additions.length}`;
+      const rightmostX = Math.max(...techNodes.map(n => n.position?.x || 0), 120);
+      const anchorY = Math.round((techNodes.reduce((s, n) => s + (n.position?.y || 0), 0) / Math.max(techNodes.length, 1)));
+      additions.push({ id, match, x: rightmostX + 220 + additions.length * 60, y: anchorY + additions.length * 80 });
+    });
+
+    if (additions.length === 0) {
+      setToast({ message: 'ARCHITECTURE_ALREADY_OPTIMAL: All scores 100/100', error: false });
+      setTimeout(() => setToast(null), 2500);
+      return;
+    }
+
+    const newNodes = [...nodes];
+    const newEdges = [...edges];
+    const primaryBackend = techNodes.find(n => n.data?.category === 'backend');
+
+    additions.forEach(({ id, match, x, y }) => {
+      newNodes.push({
+        id, type: 'customNode',
+        position: { x, y },
+        data: { label: match.label, category: match.category, role: match.role, reason: `Auto-added: missing ${match.category} layer`, icon: match.icon, products: [] }
+      });
+      if (primaryBackend) {
+        const label = match.category === 'auth' ? 'OIDC' : match.category === 'queue' ? 'KAFKA' : match.category === 'storage' ? 'S3' : 'HTTPS';
+        newEdges.push({ id: `e_opt_${id}`, source: primaryBackend.id, target: id, label, animated: simulateFlow });
+      }
+    });
+
+    skipHistoryRef.current = true;
+    setNodes(newNodes);
+    setEdges(newEdges);
+
+    setToast({ message: `OPTIMIZED: Added ${additions.length} missing layer${additions.length > 1 ? 's' : ''} (${additions.map(a => a.match.label).join(', ')})`, error: false });
+    setTimeout(() => setToast(null), 3500);
+  }, [nodes, edges, connectionRules, connectionMode, simulateFlow]);
+
   if (!isLoaded || !isSignedIn) {
     return null;
   }
@@ -2208,7 +2348,7 @@ export default function DiagramPage() {
     : reviewPanelOpen
     ? {
         key: 'review',
-        width: 360,
+        width: 380,
         content: (
           <ReviewPanel
             findings={reviewFindings}
@@ -2222,6 +2362,7 @@ export default function DiagramPage() {
             onDeclineSuggestion={handleDeclineReviewSuggestion}
             onClose={() => setReviewPanelOpen(false)}
             architectureScore={buildArchitectureScore(reviewFindings, nodes, edges)}
+            autoFixes={generationAutoFixes}
           />
         )
       }
@@ -2406,6 +2547,11 @@ export default function DiagramPage() {
           onToggleSimulateFlow={() => setSimulateFlow(!simulateFlow)}
           onOpenInvite={() => setShowInviteModal(true)}
           saveStatus={saveStatus}
+          canUndo={canUndo}
+          canRedo={canRedo}
+          onUndo={handleUndo}
+          onRedo={handleRedo}
+          onOptimize={handleOptimizeTo100}
         />
 
         <MainArea>

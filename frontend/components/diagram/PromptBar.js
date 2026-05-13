@@ -87,7 +87,7 @@ export default function PromptBar({
         </IconWrapper>
         
         <PromptInput
-          placeholder="e.g. Instagram, YouTube, Uber, or describe any system..."
+          placeholder="Describe any system..."
           value={prompt}
           onChange={e => onPromptChange(e.target.value)}
           onKeyPress={e => e.key === 'Enter' && onGenerate()}

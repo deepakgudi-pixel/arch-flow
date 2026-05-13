@@ -607,9 +607,7 @@ function DashboardContent() {
             style={{ 
               flex: 1,
               background: '#ff4444', 
-              color: '#fff', 
-              border: '3px solid #000',
-              boxShadow: '4px 4px 0px #000'
+              color: '#fff'
             }}
           >
             CONFIRM_PURGE

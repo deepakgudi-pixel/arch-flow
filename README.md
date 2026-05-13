@@ -21,11 +21,11 @@
 
 # Archflow
 
-**Archflow** is a production-grade AI system design generator. Describe any application — Instagram, YouTube, fintech, e-commerce, IoT — and get an accurate, fully-connected architecture diagram with real technology names, proper protocols, and all layers wired.
+**Archflow** is a production-grade AI system design generator with an iterative architecture assistant, real-time review scoring, and undo/redo. Describe any application — Instagram, YouTube, fintech, e-commerce, IoT — and get a complete, production-ready system diagram that scores **100/100** with zero findings.
 
-> from "build me Instagram" to a complete, production-ready system diagram in seconds
+> from "build me Instagram" to a perfect-score architecture diagram in seconds
 
-Archflow optimizes for **accuracy**, **completeness**, and **zero friction** — every AI-generated diagram has all nodes connected with valid protocols, no warnings, and no isolated components.
+Archflow optimizes for **trust**, **transparency**, and **iterative workflow** — every AI-generated diagram arrives at 100/100, every AI suggestion improves the score, and the scoring breakdown is fully transparent.
 
 ---
 
@@ -135,27 +135,35 @@ flowchart TB
 
 ### AI Diagram Generation
 - Generate production-grade system architecture from any prompt — famous companies (Instagram, Netflix, Uber, YouTube, WhatsApp, Twitter, Facebook, Slack, Amazon, Discord, Figma), application types (e-commerce, fintech, SaaS, realtime, IoT, healthcare, analytics), or custom descriptions
+- **Guaranteed 100/100 score** — every generated diagram includes all required layers: backend, auth, cache (REDIS), queue (KAFKA), storage (S3), observability (GRAFANA+PROMETHEUS), traffic management (NGINX). Auto-added before you see it.
+- **Zero generic edge labels** — labels like `API`, `CONNECTION`, and `INFERRING...` are normalized to specific protocols (`HTTPS`, `SQL`, `KAFKA`, etc.)
+- **Single-datastore pressure auto-fix** — read replica added when 1 database with high complexity
 - **Known architecture database** — 14+ famous company stacks with real technology names, not generic placeholders
 - **Domain-specific patterns** — e-commerce, social media, video streaming, fintech, SaaS multi-tenant, realtime collaboration, IoT, healthcare, and analytics platforms each get appropriate tech choices
 - **Zero isolated node guarantee** — auto-fix layer ensures every generated node is connected with proper protocol labels
-- **Smart auto-wiring** — missing auth layer, observability stack, queue consumers, and cache layers are detected and connected automatically
+- **Smart auto-wiring** — missing auth layer, observability stack, queue consumers, cache, storage, and traffic management are detected and connected automatically
 - **Deterministic generation engine** — temperature 0.2 with `response_format: json_object` ensures consistent, reproducible outputs instead of random tech selections
+- **Auto-fix visibility** — all auto-added nodes and connections are listed in the ReviewPanel so you know exactly what was generated
 - **JSON repair on failure** — if the AI returns malformed JSON, retries with the exact parse error for a corrected response
 - Surgical editing — replace individual nodes without regenerating the entire diagram
 - Auto-layout spaces nodes into clean category lanes for readability
 
 ### AI Architecture Assistant (Copilot)
 - **Full diagram awareness** — understands every node, edge, protocol, review finding, and category count in the current diagram before answering
+- **Finding-targeted suggestions** — every suggestion MUST directly resolve a finding from the review system (NO_AUTH_LAYER → auth, MISSING_CACHE_LAYER → REDIS, etc.). No irrelevant suggestions.
 - **Staged suggestions, not silent mutations** — the AI never directly edits your diagram. All proposed additions go through Architectural Review where you accept or decline with one click
 - **Connected suggestions** — every staged technology comes with pre-built connections to existing nodes using real protocols (REST, gRPC, KAFKA, SQL, etc.) and real node IDs
 - **Review-aware answers** — the assistant receives all deterministic review findings as structured context before responding, so it never contradicts the rules engine or suggests something already flagged
+- **Accepting always improves the score** — suggestion edge labels are sanitized (no generic labels), so accepting never creates hidden penalties
 - **Context Budget Guard** — intelligent serialization caps review context at 28,000 characters with clear human-readable feedback if the diagram is too large, preventing silent token overflow
 - **Persistent chat** — conversation history and pending review suggestions survive page refreshes via local draft persistence
 - **Domain expert tone** — responds like a Staff Infrastructure Architect, not a generic chatbot. References specific technologies, protocols, and architectural patterns
 
 ### Architectural Review System
-- Dedicated review drawer with architecture score (0–100 with letter grade A–F), finding counts, and layer coverage stats
-- **Architecture score** — computed from critical/warning/info findings plus layer coverage (auth, cache, queue, observability, storage, etc.)
+- Dedicated review drawer with **animated** architecture score (0–100 with letter grade A–F), finding counts, and adaptive layer coverage stats
+- **Transparent score breakdown** — click "Show score breakdown" to see the exact math: `100 - critical(-15) - warning(-8) + auth(+2) + cache(+3) = 93`
+- **Score always moves in the right direction** — accepting AI suggestions improves the score (no hidden edge penalties, no redundant threshold charges)
+- **Adaptive category coverage** — coverage percentage is computed against relevant categories only (mobile doesn't count if absent, auth counts if clients exist)
 - **Connection mode selector** — Strict (block invalid connections), Guided (flag unusual patterns), Sandbox (zero warnings for free sketching)
   - Strict/Guided/Sandbox modes apply to manual diagram editing only — AI-generated output is always clean
 - Review signals use `SOLID` / `CHECK` / `RISK` labels (not HIGH/MEDIUM/LOW)
@@ -166,6 +174,8 @@ flowchart TB
 
 ### Interactive Diagram Canvas
 - Full React Flow-powered canvas with zoom, pan, snap-to-grid
+- **Undo/Redo** — 50-level history with `Ctrl+Z` / `Cmd+Z` (undo) and `Ctrl+Shift+Z` / `Cmd+Shift+Z` (redo). Toolbar buttons also available.
+- **One-click "Optimize to 100"** — scans all review findings and auto-adds every missing layer at once. Accessible via Actions > Optimize to 100.
 - Flow visibility modes: `FLOW_CONTEXT` (focused), `FLOW_ALL` (full labels), `FLOW_HIDE` (clean)
 - Protocol-labeled edges with animated flow simulation
 - Selected connections are emphasized visually on the canvas
@@ -183,15 +193,15 @@ flowchart TB
 - Confidence signals derived from deterministic rule checks
 - One-click disconnect button to delete the connection
 
-### Version History
-- Full version snapshots stored as the diagram evolves
-- Restore any previous version with a single click
-- Diff-aware context preserved for architecture assistant queries
-
 ### Tech Inventory
 - Built-in technology catalog organized by category (frontend, backend, database, queue, auth, storage, external, devops)
 - User-registered custom technologies
 - Drag-and-drop from inventory onto the canvas
+
+### Version History
+- Full version snapshots stored as the diagram evolves
+- Restore any previous version with a single click
+- Diff-aware context preserved for architecture assistant queries
 
 ### Export & Sharing
 - PNG export with high-resolution (2x) pixel rendering

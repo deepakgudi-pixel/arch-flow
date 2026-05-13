@@ -20,7 +20,10 @@ import {
   CheckCircle2,
   Loader2,
   AlertCircle,
-  Cloud
+  Cloud,
+  Undo2,
+  Redo2,
+  Sparkles
 } from 'lucide-react';
 import {
   Header, HeaderLeft, Logo, LogoIcon, DiagramNameWrap, DiagramName,
@@ -115,11 +118,15 @@ const PrimaryAction = styled(ActionButton)`
   padding: 8px 12px;
   font-weight: 700;
 
-  &:hover {
+  &:hover:not(:disabled) {
     background: ${props => props.$active ? '#000000' : 'rgba(0, 0, 0, 0.05)'};
     color: ${props => props.$active ? '#ffffff' : '#000'};
     transform: none;
     box-shadow: none;
+  }
+
+  &:disabled {
+    cursor: not-allowed;
   }
 `;
 
@@ -220,8 +227,15 @@ export default function EditorHeader({
   simulateFlow, onToggleSimulateFlow,
   onOpenInvite,
   saveStatus = 'saved',
+  canUndo, canRedo, onUndo, onRedo, onOptimize,
 }) {
   const utilityItems = [
+    {
+      label: 'Optimize to 100',
+      icon: <Sparkles />,
+      onClick: onOptimize
+    },
+    { divider: true },
     {
       label: historyPanelOpen ? 'Hide history' : 'Open history',
       meta: historyPanelOpen ? 'Active' : null,
@@ -320,6 +334,12 @@ export default function EditorHeader({
 
       <ActionRail>
         <PrimaryGroup>
+          <PrimaryAction onClick={onUndo} disabled={!canUndo} style={{ opacity: canUndo ? 1 : 0.35 }}>
+            <Undo2 size={15} />
+          </PrimaryAction>
+          <PrimaryAction onClick={onRedo} disabled={!canRedo} style={{ opacity: canRedo ? 1 : 0.35 }}>
+            <Redo2 size={15} />
+          </PrimaryAction>
           <PrimaryAction $active={assistantPanelOpen} onClick={onToggleAssistantPanel}>
             <Bot size={16} />
             AI Assistant

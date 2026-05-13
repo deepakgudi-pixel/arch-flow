@@ -462,7 +462,7 @@ export function buildArchitectureReview({ nodes, edges, connectionRules, connect
 
     if (GENERIC_EDGE_LABELS.has(normalizeTechLabel(edge.label))) {
       pushFinding(findings, {
-        severity: 'warning',
+        severity: 'info',
         title: 'GENERIC_PROTOCOL_LABEL',
         detail: `${formatTechDisplayLabel(sourceNode.data.label, sourceNode.data.category)} to ${formatTechDisplayLabel(targetNode.data.label, targetNode.data.category)} still uses a generic connection label. Clarify the protocol or interaction pattern.`,
         nodeIds: [sourceNode.id, targetNode.id],
@@ -761,9 +761,14 @@ export function buildArchitectureScore(findings, nodes, edges) {
   const infoCount = findings.filter(f => f.severity === 'info').length;
 
   let score = 100;
-  score -= criticalCount * 15;
-  score -= warningCount * 8;
-  score -= infoCount * 2;
+  const deductions = {
+    critical: criticalCount * 15,
+    warning: warningCount * 8,
+    info: infoCount * 2
+  };
+  score -= deductions.critical;
+  score -= deductions.warning;
+  score -= deductions.info;
 
   const hasBackend = categoryCounts.backend > 0;
   const hasDatabase = categoryCounts.database > 0;
@@ -773,17 +778,13 @@ export function buildArchitectureScore(findings, nodes, edges) {
   const hasStorage = categoryCounts.storage > 0;
   const hasObservability = categoryCounts.devops > 0;
 
-  if (hasBackend && hasDatabase) score += 2;
-  if (hasAuth) score += 2;
-  if (hasCache) score += 3;
-  if (hasQueue) score += 3;
-  if (hasStorage) score += 2;
-  if (hasObservability) score += 3;
-
-  if (techNodes.length >= 3 && !hasAuth) score -= 5;
-  if (techNodes.length >= 5 && !hasObservability) score -= 5;
-  if (techNodes.length >= 4 && !hasStorage) score -= 3;
-  if (techNodes.length >= 6 && !hasQueue) score -= 3;
+  const bonuses = {};
+  if (hasBackend && hasDatabase) { score += 2; bonuses.backendDb = 2; }
+  if (hasAuth) { score += 2; bonuses.auth = 2; }
+  if (hasCache) { score += 3; bonuses.cache = 3; }
+  if (hasQueue) { score += 3; bonuses.queue = 3; }
+  if (hasStorage) { score += 2; bonuses.storage = 2; }
+  if (hasObservability) { score += 3; bonuses.observability = 3; }
 
   if (techNodes.length === 0) score = 0;
   if (techNodes.length === 1 && edges.length === 0) score = 10;
@@ -797,10 +798,18 @@ export function buildArchitectureScore(findings, nodes, edges) {
   else if (score >= 35) grade = 'D';
 
   const categoryCoverage = Object.keys(categoryCounts).length;
-  const maxCategories = 9;
-  const coveragePct = Math.round((categoryCoverage / maxCategories) * 100);
+  const allCategories = ['mobile', 'frontend', 'backend', 'database', 'queue', 'auth', 'storage', 'external', 'devops'];
+  const relevantMax = allCategories.filter(cat => {
+    if (categoryCounts[cat]) return true;
+    if (cat === 'auth' && (categoryCounts.frontend || categoryCounts.mobile)) return true;
+    if (cat === 'storage' && (categoryCounts.frontend || categoryCounts.mobile)) return true;
+    if (cat === 'devops' && techNodes.length >= 5) return true;
+    if (cat === 'queue' && (categoryCounts.backend || 0) >= 2) return true;
+    return false;
+  }).length;
+  const coveragePct = Math.round((categoryCoverage / Math.max(relevantMax, 1)) * 100);
 
-  return { score, grade, criticalCount, warningCount, infoCount, categoryCoverage, coveragePct };
+  return { score, grade, criticalCount, warningCount, infoCount, categoryCoverage, coveragePct, breakdown: { deductions, bonuses } };
 }
 
 export function buildConnectionTrustProfile(selectedEdge, nodes, reviewFindings) {

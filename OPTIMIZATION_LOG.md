@@ -1,5 +1,168 @@
 # Archflow Optimization Log
 
+**log:** 2026-05-13 16:00:00 IST (+0530)
+
+## Overview
+Architecture Scoring Integrity & AI Trust Alignment Pass. Focus areas: fixing the contradiction where AI suggestions lowered the architecture score, making AI-generated diagrams always score 100/100, and adding undo/redo + one-click optimization.
+
+---
+
+## 1. AI Suggestions Were Tanking the Score (Root Cause Fix)
+**Why:** The AI Architecture Assistant suggested technologies, but accepting them penalized the score. External service connections used `'API'` as a label, which triggered a `GENERIC_PROTOCOL_LABEL` warning (-8). Missing labels defaulted to `'CONNECTION'`, same penalty. Each suggestion could cost **-8 to -16 points** while bonuses were only **+2 to +3**.
+
+**What changed:**
+- **Edge label normalization** — `buildFallbackSuggestionConnections` now uses `'HTTPS'` instead of `'API'` for external integrations
+- **Default label fix** — `handleAcceptReviewSuggestion` defaults to `'HTTPS'` instead of `'CONNECTION'`
+- **Severity downgrade** — `GENERIC_PROTOCOL_LABEL` reduced from `warning` (-8) to `info` (-2) — a generic label is a documentation issue, not a structural flaw
+
+**How this helps Archflow:**
+- Accepting AI suggestions no longer creates self-inflicted edge penalties
+- Score moves in the right direction (up) with every accepted suggestion
+
+---
+
+## 2. Redundant Threshold Penalties Were Double-Charging
+**Why:** The scoring system had independent threshold penalties that duplicated the findings system:
+```js
+if (techNodes.length >= 3 && !hasAuth) score -= 5;      // REDUNDANT
+if (techNodes.length >= 5 && !hasObservability) score -= 5;  // REDUNDANT
+```
+The findings already flagged these as `info` (-2). The thresholds added another **-3 to -5** on top — and fired at exact node count boundaries. Crossing from 4 to 6 nodes without devops used to cost **-12** (info + penalty + penalty). Now it costs **-4** (info only).
+
+**What changed:**
+- Removed all 4 redundant threshold penalties from `buildArchitectureScore()` in `diagramIntelligence.js`
+
+**How this helps Archflow:**
+- No more score drops when crossing node count boundaries during incremental improvement
+- The findings system still flags missing layers — just doesn't double-charge
+
+---
+
+## 3. AI Assistant Now Targets Review Findings
+**Why:** The AI could suggest random tech unrelated to the diagram's actual issues. It received review findings as context but wasn't forced to use them.
+
+**What changed:**
+- Updated the `/review-diagram` system prompt in `backend/src/routes/ai.js` with rule 2: *"Every suggestion MUST directly resolve a finding from the reviewFindings list"*
+- Added rule 7 with explicit finding-to-suggestion mappings (NO_AUTH_LAYER → auth, MISSING_CACHE_LAYER → REDIS, etc.)
+- Added rule 8: if no findings above info level, return empty suggestions
+
+**How this helps Archflow:**
+- Every AI suggestion directly fixes a flagged issue
+- No more irrelevant suggestions that don't improve the score
+- Tight feedback loop: review finds issues → AI targets them → score improves
+
+---
+
+## 4. Generated Diagrams Now Always Score 100/100
+**Why:** `enforceArchitectureRules()` only auto-added backend, auth, and observability. Missing cache (REDIS), storage (S3), queue (KAFKA), and traffic management (NGINX) meant generated diagrams could score below 100.
+
+**What changed:**
+- **Cache auto-add** — REDIS added when 2+ databases exist without cache
+- **Storage auto-add** — S3 added when clients present with ≥4 nodes
+- **Queue auto-add** — KAFKA added when 2+ backends without async processing
+- **Traffic management auto-add** — NGINX added when ≥6 nodes without load balancer
+- **Datastore replica auto-add** — read replica added when 1 database with high complexity (≥12)
+- **Edge label normalization** in `normalizeEdgeLabel()` — generic labels (API, CONNECTION, empty) are replaced with `'HTTPS'`
+- **System prompt strengthened** — rule 5 changed from suggestion to hard requirement: *"ALWAYS include ALL of these for any multi-component system"*
+- Added rule 10 warning about score deductions for missing layers
+
+**How this helps Archflow:**
+- Every AI-generated diagram arrives at 100/100 with zero findings
+- Users trust the AI output immediately — no warnings or score drops on first view
+
+---
+
+## 5. Adaptive Category Coverage
+**Why:** Coverage was hardcoded as `/9` categories regardless of relevance. A 3-node system without mobile/queue was "67% covered" — misleading.
+
+**What changed:**
+- `buildArchitectureScore()` now computes `relevantMax` dynamically
+- Categories only count as "relevant" if: present, or architecturally implied (auth counts if clients exist, devops counts at ≥5 nodes, queue counts at ≥2 backends, mobile doesn't count if absent)
+
+**How this helps Archflow:**
+- Coverage percentage reflects what actually matters for the specific architecture
+- Small diagrams aren't penalized for not having every possible layer
+
+---
+
+## 6. Score Breakdown & Animation
+**Why:** The score was a static number with no explanation of how it was calculated. Users couldn't understand "why did my score change?"
+
+**What changed:**
+- `buildArchitectureScore()` now returns a `breakdown` object with `{ deductions: { critical, warning, info }, bonuses: { auth, cache, queue, ... } }`
+- ReviewPanel has a collapsible **"Show score breakdown"** toggle showing the full math: `100 - critical(-15) - warning(-8) + auth(+2) + cache(+3) = 93`
+- Score now **animates** (ease-out cubic) when it changes using `requestAnimationFrame`
+
+**How this helps Archflow:**
+- Transparent scoring — no more "why did my score drop?" mystery
+- Delightful visual feedback when score improves
+
+---
+
+## 7. Auto-Fix Visibility
+**Why:** Auto-fixes from diagram generation were shown only as a count ("3 auto-fixes applied"). Users couldn't see what was actually added.
+
+**What changed:**
+- Auto-fixes now appear as a list in the ReviewPanel header with `CheckCircle2` icons
+- Each fix shows the exact action taken: "Added REDIS (multiple databases without cache)", "Added EXPRESS (clients connected directly to database)"
+
+**How this helps Archflow:**
+- Users see exactly what the generator added under the hood
+- Builds trust through transparency
+
+---
+
+## 8. Undo/Redo System
+**Why:** Iterative architecture work needs the ability to revert changes. Only Delete/Backspace existed.
+
+**What changed:**
+- 50-level history stack of node/edge snapshots added to `page.js`
+- Keyboard shortcuts: `Ctrl+Z` / `Cmd+Z` (undo), `Ctrl+Shift+Z` / `Cmd+Shift+Z` (redo)
+- Toolbar buttons: Undo/Redo added to `EditorHeader` PrimaryGroup (left of AI Assistant)
+- Skip-history ref prevents undo/redo restores from being re-recorded
+- Disabled state: buttons grey out when no history available
+
+**How this helps Archflow:**
+- Users can freely experiment and revert mistakes
+- Matches standard design tool expectations
+- Makes iterative architecture work feel safe
+
+---
+
+## 9. One-Click "Optimize to 100"
+**Why:** Users had to individually accept AI suggestions to fix each finding. With multiple missing layers, this was tedious.
+
+**What changed:**
+- Added `handleOptimizeTo100()` in `page.js` — scans all `buildArchitectureReview()` findings and auto-adds ALL missing layers at once
+- Maps findings to tech: `NO_AUTH_LAYER` → CLERK, `MISSING_CACHE_LAYER` → REDIS, `NO_OBSERVABILITY_LAYER` → GRAFANA, etc.
+- Each node is connected to the primary backend with the correct protocol
+- Shows a toast listing exactly what was added
+- Accessible via **Actions > Optimize to 100** in the EditorHeader dropdown
+- If already optimal, shows "ARCHITECTURE_ALREADY_OPTIMAL: All scores 100/100"
+
+**How this helps Archflow:**
+- One click to a perfect score — fastest path to 100/100
+- Eliminates the iterative "add one layer, check score, add another" loop
+
+---
+
+## 10. Product-Level Reasoning
+The broader conclusion from this pass:
+
+- A scoring system that **contradicts** the AI's suggestions destroys trust faster than any individual bug
+- The review, scoring, and suggestion systems must be **internally consistent** — they should all pull in the same direction
+- Generated diagrams must be **perfect out of the box** — the first impression determines trust
+- Undo/redo is not polish for an architecture tool — it's a **fundamental requirement** for iterative work
+
+Archflow now guarantees:
+- Every accepted AI suggestion improves the score
+- Every generated diagram scores 100/100
+- Score is transparent and explainable with live breakdown
+- Undo/redo for safe experimentation
+- One-click optimization to a perfect score
+
+---
+
 **log:** 2026-05-12 14:00:00 IST (+0530)
 
 ## Overview

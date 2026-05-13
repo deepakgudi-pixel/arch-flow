@@ -243,6 +243,102 @@ function enforceArchitectureRules(normalizedNodes, normalizedEdges) {
     }
   }
 
+  const dbCount = normalizedNodes.filter(n => n.category === 'database').length;
+  const hasCache = normalizedNodes.some(n => n.name === 'REDIS' || n.name === 'MEMCACHED');
+  if (dbCount >= 2 && !hasCache && primaryBackend) {
+    const cacheName = 'REDIS';
+    normalizedNodes.push({
+      name: cacheName,
+      category: 'database',
+      role: 'Caching and session store',
+      reason: 'Auto-added: cache layer for multiple databases',
+      icon: 'database'
+    });
+    categoryMap[cacheName] = 'database';
+    nodeNames.add(cacheName);
+    normalizedEdges.push({ source: primaryBackend.name, target: cacheName, label: 'TCP' });
+    changes.push(`Added ${cacheName} (multiple databases without cache)`);
+  }
+
+  const clientCount = normalizedNodes.filter(n => n.category === 'frontend' || n.category === 'mobile').length;
+  const hasStorage = normalizedNodes.some(n => n.category === 'storage');
+  if (clientCount > 0 && !hasStorage && normalizedNodes.length >= 4) {
+    const storageName = 'S3';
+    normalizedNodes.push({
+      name: storageName,
+      category: 'storage',
+      role: 'Object storage for assets and uploads',
+      reason: 'Auto-added: storage for client-facing system',
+      icon: 'hard-drive'
+    });
+    categoryMap[storageName] = 'storage';
+    nodeNames.add(storageName);
+    if (primaryBackend) {
+      normalizedEdges.push({ source: primaryBackend.name, target: storageName, label: 'S3' });
+    }
+    changes.push(`Added ${storageName} (client-facing system without storage)`);
+  }
+
+  const hasQueue = normalizedNodes.some(n => n.category === 'queue');
+  if (backendCount >= 2 && !hasQueue) {
+    const queueName = 'KAFKA';
+    normalizedNodes.push({
+      name: queueName,
+      category: 'queue',
+      role: 'Async message broker and event stream',
+      reason: 'Auto-added: async processing for multiple backends',
+      icon: 'message-square'
+    });
+    categoryMap[queueName] = 'queue';
+    nodeNames.add(queueName);
+    if (primaryBackend) {
+      normalizedEdges.push({ source: primaryBackend.name, target: queueName, label: 'KAFKA' });
+    }
+    changes.push(`Added ${queueName} (multiple backends without async queue)`);
+  }
+
+  const hasTrafficManager = normalizedNodes.some(n =>
+    ['NGINX', 'CLOUDFLARE', 'ENVOY', 'KUBERNETES', 'AWS_CLOUDFRONT', 'AKAMAI'].includes(n.name)
+  );
+  if (normalizedNodes.length >= 6 && !hasTrafficManager && primaryBackend) {
+    const tmName = 'NGINX';
+    normalizedNodes.push({
+      name: tmName,
+      category: 'devops',
+      role: 'Reverse proxy and load balancer',
+      reason: 'Auto-added: traffic management for large system',
+      icon: 'server'
+    });
+    categoryMap[tmName] = 'devops';
+    nodeNames.add(tmName);
+    normalizedEdges.push({ source: primaryBackend.name, target: tmName, label: 'HTTP' });
+    changes.push(`Added ${tmName} (traffic management for large system)`);
+  }
+
+  const dbOnlyCount = normalizedNodes.filter(n => n.category === 'database').length;
+  const approxComplexity = normalizedNodes.length + Math.min(normalizedEdges.length, 4)
+    + (normalizedNodes.some(n => n.category === 'auth') ? 1 : 0)
+    + (normalizedNodes.some(n => n.category === 'storage') ? 1 : 0)
+    + (normalizedNodes.some(n => n.category === 'external') ? 1 : 0)
+    + (normalizedNodes.some(n => n.category === 'queue') ? 1 : 0)
+    + (normalizedNodes.some(n => n.category === 'devops') ? 1 : 0);
+  if (dbOnlyCount === 1 && approxComplexity >= 12 && !hasCache && primaryBackend) {
+    const replicaName = primaryBackend.name + '_DB_REPLICA';
+    if (!nodeNames.has(replicaName)) {
+      normalizedNodes.push({
+        name: replicaName,
+        category: 'database',
+        role: 'Read replica for datastore scaling',
+        reason: 'Auto-added: read replica to relieve single-datastore pressure',
+        icon: 'database'
+      });
+      categoryMap[replicaName] = 'database';
+      nodeNames.add(replicaName);
+      normalizedEdges.push({ source: primaryBackend.name, target: replicaName, label: 'SQL' });
+      changes.push(`Added ${replicaName} (single-datastore pressure at high complexity)`);
+    }
+  }
+
   const hasKafka = normalizedNodes.some(n => n.name === 'KAFKA');
   const kafkaHasProducer = normalizedEdges.some(e => e.target === 'KAFKA' && (categoryMap[e.source] === 'backend' || categoryMap[e.source] === 'external'));
   const kafkaHasConsumer = normalizedEdges.some(e => e.source === 'KAFKA');
@@ -301,7 +397,10 @@ function normalizeNodeCategory(category, name) {
 
 function normalizeEdgeLabel(label) {
   const normalized = normalizeIdentifier(label);
-  return normalized || 'CONNECTION';
+  if (!normalized || normalized === 'CONNECTION' || normalized === 'API' || normalized === 'INFERRING...' || normalized === '') {
+    return 'HTTPS';
+  }
+  return normalized;
 }
 
 function normalizeDiagramStructure(parsed) {
@@ -428,11 +527,12 @@ RULES:
 2. Use exact tech names from catalog. Never prefix with app name. Never generic names.
 3. Categories only: mobile frontend backend database queue auth storage external devops.
 4. Frontend/mobile NEVER connect to database. Always backend in between.
-5. For any non-trivial system always include: REDIS(cache), KAFKA/RABBITMQ(async), S3(storage), PROMETHEUS+GRAFANA(observability).
+5. ALWAYS include ALL of these for any multi-component system: REDIS (cache), KAFKA or RABBITMQ (async processing), S3 (storage), PROMETHEUS+GRAFANA (observability), CLERK (auth), NGINX or CLOUDFLARE (traffic management).
 6. Max 12 nodes. Roles max 4 words. Reasons max 6 words.
-7. Edge labels from protocol map only.
+7. Edge labels from protocol map only. Never use generic labels like CONNECTION or API.
 8. No protocols or generic terms as nodes.
 9. Famous companies use their known stack above.
+10. The architecture MUST be production-complete. Every generated diagram will be scored — missing layers cause score deductions and erode user trust.
 
 OUTPUT ONLY THIS JSON (no other text):
 {"nodes":[{"name":"TECH","category":"","role":"","reason":"","icon":""}],"edges":[{"source":"TECH","target":"TECH","label":"PROTOCOL"}]}`;

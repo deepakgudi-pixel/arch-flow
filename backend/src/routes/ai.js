@@ -451,13 +451,23 @@ devops=DOCKER,NGINX,CLOUDFLARE,KUBERNETES,PROMETHEUS,GRAFANA,TERRAFORM,VERCEL,GI
 
 RULES:
 1. Answer the question directly and technically in "message". Reference specific node names from the diagram.
-2. Suggestions only for genuinely missing critical layers. Max 4 suggestions. Prefer 0-2.
+2. Every suggestion MUST directly resolve a finding from the reviewFindings list in the diagram context. Do not suggest anything that does not fix a flagged finding.
 3. Never suggest a duplicate of an existing node. Skip alternatives/replacements.
 4. Every connection must reference exactly one ${REVIEW_NEW_NODE_TOKEN} and one real existing node id.
 5. Use exact tech names from the approved catalog above. Never generic names.
 6. For each suggestion, provide 1-2 meaningful connections with real protocols.
-7. If the diagram has critical findings, name them explicitly in your message. Do not call the architecture complete.
-8. Common missing layer patterns to watch for: REDIS(cache) when there are databases, KAFKA(queue) when there are multiple backends, PROMETHEUS+GRAFANA(observability) for 5+ node systems, S3(storage) when clients upload files, CLERK(auth) when there are client-facing surfaces, CDN when the system serves global users.
+7. Map findings to suggestions using these patterns:
+   - NO_AUTH_LAYER → suggest auth (CLERK, AUTH0, etc.)
+   - NO_OBSERVABILITY_LAYER → suggest devops (PROMETHEUS+GRAFANA, DATADOG, etc.)
+   - MISSING_CACHE_LAYER → suggest REDIS
+   - MISSING_ASYNC_PROCESSING / LIMITED_ASYNC_SCALING → suggest queue (KAFKA, RABBITMQ, etc.)
+   - NO_STORAGE_LAYER / MISSING_STORAGE_CONTROL_PLANE → suggest storage (S3, GCS, etc.)
+   - MISSING_TRAFFIC_MANAGEMENT → suggest NGINX, CLOUDFLARE, or ENVOY
+   - MISSING_APPLICATION_LAYER / MISSING_BACKEND_LAYER → suggest backend
+   - SINGLE_DATASTORE_PRESSURE → suggest read-replica or cache (REDIS)
+   - CENTRAL_BACKEND_CHOKE_POINT → suggest queue for async offload
+   - FRONTEND_ONLY_ARCHITECTURE → suggest backend + database
+8. Base your suggestions primarily on the reviewFindings and criticalSignals in the summary. If there are zero findings above info level, return empty suggestions with an explanation message.
 9. If the user asks for explanation only, return empty suggestions array.`;
 
     const { data: parsed, rawResponse } = await callOpenRouterForJSON({

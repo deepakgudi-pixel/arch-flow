@@ -1,7 +1,8 @@
 'use client';
 
+import { useState, useEffect, useRef } from 'react';
 import styled from 'styled-components';
-import { AlertTriangle, CheckCircle2, Info, ShieldAlert } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Info, ShieldAlert, ChevronDown, ChevronUp } from 'lucide-react';
 import { Badge } from '@/components/ui/Badge';
 import { CloseBtn } from './editorStyles';
 
@@ -12,10 +13,11 @@ const Panel = styled.div`
   flex-direction: column;
   height: 100%;
   border-left: 1px solid rgba(0, 0, 0, 0.04);
+  padding: 0 24px;
 `;
 
 const PanelHeader = styled.div`
-  padding: 20px 24px 16px;
+  padding: 20px 0 16px;
   border-bottom: 1px solid rgba(0, 0, 0, 0.05);
   display: grid;
   gap: 12px;
@@ -133,7 +135,7 @@ const SummaryValue = styled.div`
 const FindingsList = styled.div`
   flex: 1;
   overflow-y: auto;
-  padding: 12px;
+  padding: 12px 0;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -187,7 +189,7 @@ const FindingDetail = styled.p`
 `;
 
 const Footer = styled.div`
-  padding: 20px 24px;
+  padding: 20px 0;
   border-top: 1px solid rgba(0, 0, 0, 0.05);
   font-family: var(--font-sans);
   font-size: 11px;
@@ -372,6 +374,71 @@ const SuggestionButton = styled.button`
   }
 `;
 
+const BreakdownToggle = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: var(--font-sans);
+  font-size: 10px;
+  font-weight: 700;
+  color: #999;
+  padding: 4px 0;
+  transition: color 0.2s;
+
+  &:hover {
+    color: #666;
+  }
+`;
+
+const BreakdownPanel = styled.div`
+  background: #f8f8f8;
+  border-radius: 10px;
+  padding: 12px;
+  display: grid;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 1.6;
+`;
+
+const BreakdownRow = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+`;
+
+const BreakdownLabel = styled.span`
+  font-family: var(--font-sans);
+  font-weight: ${props => props.$bold ? '800' : '500'};
+  color: ${props => props.$tone || '#333'};
+`;
+
+const BreakdownValue = styled.span`
+  font-weight: 700;
+  color: ${props => props.$tone || '#333'};
+`;
+
+const AutoFixesList = styled.div`
+  display: grid;
+  gap: 6px;
+  padding: 8px 12px;
+  background: #f0f7ff;
+  border-radius: 10px;
+  border: 1px solid rgba(59, 130, 246, 0.1);
+`;
+
+const AutoFixItem = styled.div`
+  font-size: 11px;
+  line-height: 1.5;
+  color: #1e40af;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+`;
+
 function severityIcon(severity) {
   if (severity === 'critical') return <ShieldAlert size={14} />;
   if (severity === 'warning') return <AlertTriangle size={14} />;
@@ -409,15 +476,36 @@ export default function ReviewPanel({
   onAcceptSuggestion,
   onDeclineSuggestion,
   onClose,
-  architectureScore
+  architectureScore,
+  autoFixes = []
 }) {
   const criticalCount = findings.filter(finding => finding.severity === 'critical').length;
   const warningCount = findings.filter(finding => finding.severity === 'warning').length;
   const infoCount = findings.filter(finding => finding.severity === 'info').length;
   const nodeById = new Map((nodes || []).map(node => [node.id, node]));
   const hasSuggestions = suggestions.length > 0;
-  const hasFindings = findings.length > 0;
-  const score = architectureScore || { score: 0, grade: 'F', criticalCount, warningCount, infoCount, categoryCoverage: 0, coveragePct: 0 };
+  const hasActiveFindings = findings.filter(f => f.severity === 'critical' || f.severity === 'warning').length > 0;
+  const score = architectureScore || { score: 0, grade: 'F', criticalCount, warningCount, infoCount, categoryCoverage: 0, coveragePct: 0, breakdown: { deductions: {}, bonuses: {} } };
+  const [displayScore, setDisplayScore] = useState(0);
+  const [showBreakdown, setShowBreakdown] = useState(false);
+  const prevScore = useRef(0);
+
+  useEffect(() => {
+    const target = score.score;
+    const start = prevScore.current;
+    if (start === target) return;
+    const duration = 600;
+    const startTime = performance.now();
+    const animate = (now) => {
+      const elapsed = now - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setDisplayScore(Math.round(start + (target - start) * eased));
+      if (progress < 1) requestAnimationFrame(animate);
+    };
+    prevScore.current = target;
+    requestAnimationFrame(animate);
+  }, [score.score]);
 
   if (nodeCount === 0) {
     return (
@@ -461,17 +549,40 @@ export default function ReviewPanel({
         <ScoreRow>
           <ScoreCircle $grade={score.grade}>{score.grade}</ScoreCircle>
           <ScoreMeta>
-            <ScoreLabel>Architecture Score • {score.score}/100</ScoreLabel>
+            <ScoreLabel>Architecture Score • {displayScore}/100</ScoreLabel>
             <ScoreBar>
-              <ScoreFill $pct={score.score} />
+              <ScoreFill $pct={displayScore} />
             </ScoreBar>
-            <ScoreLabel>{score.categoryCoverage}/9 layers • {score.coveragePct}% coverage • {nodeCount} nodes • {edgeCount} edges</ScoreLabel>
+            <ScoreLabel>{score.categoryCoverage} layers • {score.coveragePct}% relevant coverage • {nodeCount} nodes • {edgeCount} edges</ScoreLabel>
           </ScoreMeta>
         </ScoreRow>
+        <BreakdownToggle type="button" onClick={() => setShowBreakdown(!showBreakdown)}>
+          {showBreakdown ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+          {showBreakdown ? 'Hide' : 'Show'} score breakdown
+        </BreakdownToggle>
+        {showBreakdown && (
+          <BreakdownPanel>
+            <BreakdownRow><BreakdownLabel $bold>Base</BreakdownLabel><BreakdownValue>100</BreakdownValue></BreakdownRow>
+            {score.breakdown?.deductions?.critical > 0 && (
+              <BreakdownRow><BreakdownLabel $tone="#dc2626">-{score.breakdown.deductions.critical / 15} critical × 15</BreakdownLabel><BreakdownValue $tone="#dc2626">-{score.breakdown.deductions.critical}</BreakdownValue></BreakdownRow>
+            )}
+            {score.breakdown?.deductions?.warning > 0 && (
+              <BreakdownRow><BreakdownLabel $tone="#d97706">-{score.breakdown.deductions.warning / 8} warning × 8</BreakdownLabel><BreakdownValue $tone="#d97706">-{score.breakdown.deductions.warning}</BreakdownValue></BreakdownRow>
+            )}
+            {score.breakdown?.deductions?.info > 0 && (
+              <BreakdownRow><BreakdownLabel $tone="#6b7280">-{score.breakdown.deductions.info / 2} info × 2</BreakdownLabel><BreakdownValue $tone="#6b7280">-{score.breakdown.deductions.info}</BreakdownValue></BreakdownRow>
+            )}
+            {Object.entries(score.breakdown?.bonuses || {}).filter(([, v]) => v > 0).map(([key, val]) => (
+              <BreakdownRow key={key}><BreakdownLabel $tone="#059669">+{key === 'backendDb' ? 'backend+db' : key} bonus</BreakdownLabel><BreakdownValue $tone="#059669">+{val}</BreakdownValue></BreakdownRow>
+            ))}
+            <div style={{ borderTop: '1px solid #ddd', margin: '4px 0' }} />
+            <BreakdownRow><BreakdownLabel $bold>Final Score</BreakdownLabel><BreakdownValue $bold>{score.score}</BreakdownValue></BreakdownRow>
+          </BreakdownPanel>
+        )}
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
           <Badge $tone="neutral">{connectionMode || 'guided'} mode</Badge>
           {hasSuggestions && <Badge $tone="warning">AI: {suggestions.length} staged</Badge>}
-          {!hasSuggestions && !hasFindings && <Badge $tone="success"><CheckCircle2 size={12} /> All checks passed</Badge>}
+          {!hasSuggestions && !hasActiveFindings && <Badge $tone="success"><CheckCircle2 size={12} /> All checks passed</Badge>}
         </div>
         <SummaryGrid>
           <SummaryCard>
@@ -487,9 +598,16 @@ export default function ReviewPanel({
             <SummaryValue>{score.infoCount}</SummaryValue>
           </SummaryCard>
         </SummaryGrid>
+        {autoFixes.length > 0 && (
+          <AutoFixesList>
+            {autoFixes.map((fix, i) => (
+              <AutoFixItem key={i}><CheckCircle2 size={12} />{fix}</AutoFixItem>
+            ))}
+          </AutoFixesList>
+        )}
       </PanelHeader>
 
-      {!hasSuggestions && !hasFindings ? (
+      {!hasSuggestions && !hasActiveFindings ? (
         <EmptyState>
           <EmptyHero>
             <EmptyTitle>
@@ -497,7 +615,7 @@ export default function ReviewPanel({
               All Clear — Score: {score.grade} ({score.score}/100)
             </EmptyTitle>
             <EmptyDescription>
-              No issues found. {score.categoryCoverage} of 9 architecture layers are covered. {score.coveragePct}% category coverage.
+              No issues found. {score.categoryCoverage} architecture layers covered ({score.coveragePct}% of relevant).
             </EmptyDescription>
           </EmptyHero>
 
@@ -511,7 +629,7 @@ export default function ReviewPanel({
               <CoverageLabel>Connections</CoverageLabel>
             </CoverageCard>
             <CoverageCard>
-              <CoverageValue>{score.categoryCoverage}/9</CoverageValue>
+              <CoverageValue>{score.categoryCoverage}</CoverageValue>
               <CoverageLabel>Layers Used</CoverageLabel>
             </CoverageCard>
             <CoverageCard>
@@ -586,7 +704,7 @@ export default function ReviewPanel({
             </ReviewSection>
           )}
 
-          {hasFindings && (
+          {findings.length > 0 && (
             <ReviewSection>
               <SectionHeading>Rule Findings</SectionHeading>
               {findings.map(finding => (
@@ -611,7 +729,7 @@ export default function ReviewPanel({
       )}
 
       <Footer>
-        {score.score >= 80 && !hasFindings && !hasSuggestions
+        {score.score >= 80 && !hasActiveFindings && !hasSuggestions
           ? 'Production-grade architecture. No issues detected across all rule checks.'
           : hasSuggestions
             ? 'AI-staged suggestions appear above findings. Accept to auto-connect into the diagram or decline to dismiss.'
