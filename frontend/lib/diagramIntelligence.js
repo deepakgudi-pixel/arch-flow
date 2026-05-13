@@ -86,7 +86,7 @@ const FALLBACK_CONNECTION_RULES = [
 
 const GENERIC_EDGE_LABELS = new Set(['CONNECTION', 'INFERRING...', 'API']);
 
-function normalizeTechLabel(value) {
+export function normalizeTechLabel(value) {
   return (value || '').trim().toUpperCase();
 }
 

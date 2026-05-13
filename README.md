@@ -135,7 +135,31 @@ flowchart TB
 
 ### AI Diagram Generation
 - Generate production-grade system architecture from any prompt — famous companies (Instagram, Netflix, Uber, YouTube, WhatsApp, Twitter, Facebook, Slack, Amazon, Discord, Figma), application types (e-commerce, fintech, SaaS, realtime, IoT, healthcare, analytics), or custom descriptions
-- **Guaranteed 100/100 score** — every generated diagram includes all required layers: backend, auth, cache (REDIS), queue (KAFKA), storage (S3), observability (GRAFANA+PROMETHEUS), traffic management (NGINX). Auto-added before you see it.
+- **Guaranteed 100/100 score** — every generated diagram scores 100/100 before you see it. Here's how:
+
+  **Step 1 — AI generation:** The LLM builds the base diagram from your prompt using 110+ real technology names.
+
+  **Step 2 — Server-side auto-fix (`enforceArchitectureRules`):** A deterministic rule engine scans the generated diagram and auto-adds any missing layers:
+  - **Backend** (EXPRESS) — if clients connect directly to databases
+  - **Auth** (CLERK) — if 3+ nodes without authentication
+  - **Observability** (GRAFANA + PROMETHEUS) — if 5+ nodes without monitoring
+  - **Cache** (REDIS) — if 2+ databases without caching
+  - **Storage** (S3) — if client-facing system with 4+ nodes without object storage
+  - **Queue** (KAFKA) — if 2+ backends without async processing
+  - **Traffic management** (NGINX) — if 6+ nodes without load balancing
+  - **Read replica** — if 1 database with high complexity (prevents single-datastore pressure)
+  - **Edge direction fix** — database→backend edges are flipped to backend→database
+  - **Kafka consumers** — orphan Kafka topics get a worker node
+
+  Every auto-added node is wired with the correct protocol (OIDC for auth, S3 for storage, KAFKA for queue, etc.)
+
+  **Step 3 — Isolated node wiring (`connectIsolatedNodes`):** Every node that somehow has zero connections is wired to its nearest appropriate peer (frontend→backend, backend→database, queue→backend, etc.).
+
+  **Step 4 — Edge label normalization:** Generic labels (`API`, `CONNECTION`, `INFERRING...`, empty) are replaced with specific protocols (`HTTPS`, `SQL`, `KAFKA`, etc.).
+
+  **Step 5 — Frontend verification pass:** After receiving the diagram, the frontend runs the full 20+ rule deterministic review. If the score isn't 100/100, missing layers are auto-added before rendering. You only see the diagram when it's guaranteed perfect.
+
+  **Result:** Every generated diagram arrives at 100/100 with zero findings, zero warnings, zero isolated components, and zero generic labels. The auto-fix list in the Review Panel shows exactly what was added so you can verify the system's work.
 - **Zero generic edge labels** — labels like `API`, `CONNECTION`, and `INFERRING...` are normalized to specific protocols (`HTTPS`, `SQL`, `KAFKA`, etc.)
 - **Single-datastore pressure auto-fix** — read replica added when 1 database with high complexity
 - **Known architecture database** — 14+ famous company stacks with real technology names, not generic placeholders

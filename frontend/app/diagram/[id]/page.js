@@ -37,7 +37,8 @@ import {
   buildArchitectureReview, buildArchitectureScore,
   buildConnectionTrustProfile,
   buildNodeTrustProfile,
-  getReplacementCandidates
+  getReplacementCandidates,
+  normalizeTechLabel
 } from '@/lib/diagramIntelligence';
 import { categoryColors } from '@/lib/theme';
 import { CustomNode } from '@/components/diagram/CustomNode';
@@ -1225,21 +1226,21 @@ export default function DiagramPage() {
           setStreamingContent(prev => prev + chunk);
         },
         (result) => {
-          const newNodes = result.nodes.map(node => ({
+          let newNodes = result.nodes.map(node => ({
             id: node.id,
             type: 'customNode',
             position: node.position,
             data: { 
-          label: node.name, 
-          role: node.role, 
-          category: node.category, 
-          reason: node.reason, 
-          icon: node.icon,
-          products: node.products || [] 
-        }
+              label: node.name, 
+              role: node.role, 
+              category: node.category, 
+              reason: node.reason, 
+              icon: node.icon,
+              products: node.products || [] 
+            }
           }));
 
-          const newEdges = result.edges.map(edge => ({
+          let newEdges = result.edges.map(edge => ({
             id: edge.id,
             source: edge.source,
             target: edge.target,
@@ -1247,13 +1248,65 @@ export default function DiagramPage() {
             animated: simulateFlow
           }));
 
+          // Auto-optimize to 100/100 before the user sees it
+          const techNodes = newNodes.filter(n => n.type === 'customNode');
+          const existingLabels = new Set(techNodes.map(n => normalizeTechLabel(n.data.label)));
+          const existingCategories = new Set(techNodes.map(n => n.data.category));
+          const hasBackend = existingCategories.has('backend');
+          const primaryBackend = techNodes.find(n => n.data?.category === 'backend');
+          const additions = [];
+
+          const optiMap = [
+            { title: 'NO_AUTH_LAYER', label: 'CLERK', category: 'auth', icon: 'shield', role: 'Authentication and user management', check: () => !existingCategories.has('auth') && hasBackend },
+            { title: 'NO_OBSERVABILITY_LAYER', label: 'GRAFANA', category: 'devops', icon: 'bar-chart', role: 'Monitoring and observability', check: () => !existingCategories.has('devops') && techNodes.length >= 5 && hasBackend },
+            { title: 'MISSING_CACHE_LAYER', label: 'REDIS', category: 'database', icon: 'database', role: 'Caching and session store', check: () => !existingLabels.has('REDIS') && newNodes.filter(n => n.data?.category === 'database').length >= 2 && hasBackend },
+            { title: 'MISSING_ASYNC_PROCESSING', label: 'KAFKA', category: 'queue', icon: 'message-square', role: 'Async message broker', check: () => !existingCategories.has('queue') && newNodes.filter(n => n.data?.category === 'backend').length >= 2 && hasBackend },
+            { title: 'NO_STORAGE_LAYER', label: 'S3', category: 'storage', icon: 'hard-drive', role: 'Object storage for assets', check: () => !existingCategories.has('storage') && techNodes.length >= 4 && hasBackend },
+            { title: 'MISSING_TRAFFIC_MANAGEMENT', label: 'NGINX', category: 'devops', icon: 'server', role: 'Reverse proxy and load balancer', check: () => !existingLabels.has('NGINX') && techNodes.length >= 6 && hasBackend },
+            { title: 'SINGLE_DATASTORE_PRESSURE', label: `${primaryBackend?.name || 'DB'}_REPLICA`, category: 'database', icon: 'database', role: 'Read replica for scaling', check: () => hasBackend && existingCategories.has('database') && newNodes.filter(n => n.data?.category === 'database').length === 1 },
+          ];
+
+          const findings = buildArchitectureReview({ nodes: newNodes, edges: newEdges, connectionRules, connectionMode });
+          const score = buildArchitectureScore(findings, newNodes, newEdges);
+          let extraFixes = 0;
+
+          if (score.score < 100) {
+            findings.forEach(finding => {
+              const match = optiMap.find(o => o.title === finding.title && o.check());
+              if (!match) return;
+              if (additions.some(a => a.label === match.label)) return;
+              const id = `node_genfix_${Date.now()}_${additions.length}`;
+              const rightmostX = Math.max(...techNodes.map(n => n.position?.x || 0), 120);
+              const anchorY = Math.round((techNodes.reduce((s, n) => s + (n.position?.y || 0), 0) / Math.max(techNodes.length, 1)));
+              additions.push({ id, match, x: rightmostX + 220 + additions.length * 60, y: anchorY + additions.length * 80 });
+            });
+
+            additions.forEach(({ id, match, x, y }) => {
+              existingLabels.add(match.label);
+              existingCategories.add(match.category);
+              newNodes.push({
+                id, type: 'customNode',
+                position: { x, y },
+                data: { label: match.label, category: match.category, role: match.role, reason: `Auto-optimized: missing ${match.category} layer`, icon: match.icon, products: [] }
+              });
+              if (primaryBackend) {
+                const label = match.category === 'auth' ? 'OIDC' : match.category === 'queue' ? 'KAFKA' : match.category === 'storage' ? 'S3' : 'HTTPS';
+                newEdges.push({ id: `e_genfix_${id}`, source: primaryBackend.id, target: id, label, animated: simulateFlow });
+              }
+              extraFixes++;
+            });
+          }
+
           setNodes(newNodes);
           setEdges(newEdges);
           setPrompt('');
           setIsStreaming(false);
           loadVersions();
           saveDiagram({ showToast: false, recordVersion: false, overrides: { nodes: newNodes, edges: newEdges } });
-          const autoFixesList = result.autoFixes || [];
+          const autoFixesList = [...(result.autoFixes || [])];
+          if (extraFixes > 0) {
+            autoFixesList.push(...additions.map(a => `Auto-optimized: Added ${a.match.label} (${a.match.category}) for 100/100`));
+          }
           setGenerationAutoFixes(autoFixesList);
           const fixCount = autoFixesList.length;
           const message = fixCount > 0
@@ -2206,6 +2259,7 @@ export default function DiagramPage() {
     const existingLabels = new Set(techNodes.map(n => normalizeTechLabel(n.data.label)));
     const existingCategories = new Set(techNodes.map(n => n.data.category));
     const hasBackend = existingCategories.has('backend');
+    const primaryBackend = techNodes.find(n => n.data?.category === 'backend');
     const additions = [];
 
     const optiMap = [
@@ -2215,6 +2269,7 @@ export default function DiagramPage() {
       { title: 'MISSING_ASYNC_PROCESSING', label: 'KAFKA', category: 'queue', icon: 'message-square', role: 'Async message broker and event stream', check: () => !existingCategories.has('queue') && (nodes.filter(n => n.data?.category === 'backend').length >= 2) && hasBackend },
       { title: 'NO_STORAGE_LAYER', label: 'S3', category: 'storage', icon: 'hard-drive', role: 'Object storage for assets', check: () => !existingCategories.has('storage') && techNodes.length >= 4 && hasBackend },
       { title: 'MISSING_TRAFFIC_MANAGEMENT', label: 'NGINX', category: 'devops', icon: 'server', role: 'Reverse proxy and load balancer', check: () => !existingLabels.has('NGINX') && techNodes.length >= 6 && hasBackend },
+      { title: 'SINGLE_DATASTORE_PRESSURE', label: `${primaryBackend?.name || 'DB'}_REPLICA`, category: 'database', icon: 'database', role: 'Read replica for scaling', check: () => hasBackend && existingCategories.has('database') && nodes.filter(n => n.data?.category === 'database').length === 1 },
     ];
 
     findings.forEach(finding => {
@@ -2235,7 +2290,6 @@ export default function DiagramPage() {
 
     const newNodes = [...nodes];
     const newEdges = [...edges];
-    const primaryBackend = techNodes.find(n => n.data?.category === 'backend');
 
     additions.forEach(({ id, match, x, y }) => {
       newNodes.push({
