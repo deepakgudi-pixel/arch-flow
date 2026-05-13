@@ -4,6 +4,7 @@ import styled from 'styled-components';
 import { Badge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
 import { formatTechDisplayLabel } from '@/lib/displayNames';
+import { getLayerLearningProfile } from '@/lib/learningInsights';
 import {
   LeftSidebar, SidebarContent, SidebarTitle, CloseBtn,
   TechBadge, SectionTitle, Description, ProductCard, ProductName, ProductDesc
@@ -173,6 +174,9 @@ export default function NodeDetailsSidebar({
   const displayLabel = selectedNode
     ? formatTechDisplayLabel(selectedNode.data.label, selectedNode.data.category)
     : '';
+  const learningProfile = selectedNode
+    ? getLayerLearningProfile(selectedNode.data.category, displayLabel)
+    : null;
 
   return (
     <LeftSidebar $open={open}>
@@ -203,6 +207,17 @@ export default function NodeDetailsSidebar({
               </NodeLabel>
               <NodeRoleLabel>ROLE: {selectedNode.data.role}</NodeRoleLabel>
 
+              {learningProfile && (
+                <>
+                  <SectionTitle>System Design Lesson</SectionTitle>
+                  <InsightList>
+                    <InsightItem>{learningProfile.principle}</InsightItem>
+                    <InsightItem>{learningProfile.responsibilities}</InsightItem>
+                    <InsightItem>{learningProfile.scalingCue}</InsightItem>
+                  </InsightList>
+                </>
+              )}
+
               <SectionTitle>Function Spec</SectionTitle>
               <Description>
                 {selectedNode.data.category === 'database' && `${displayLabel} handles persistence operations and state management for the identified domain.`}
@@ -220,6 +235,16 @@ export default function NodeDetailsSidebar({
                 <>
                   <SectionTitle>Why This Was Chosen</SectionTitle>
                   <Description>{trustProfile.whyChosen}</Description>
+                </>
+              )}
+
+              {learningProfile && (
+                <>
+                  <SectionTitle>Inspect This</SectionTitle>
+                  <InsightList>
+                    <InsightItem>{learningProfile.inspectQuestion}</InsightItem>
+                    <InsightItem>{learningProfile.commonMistake}</InsightItem>
+                  </InsightList>
                 </>
               )}
 

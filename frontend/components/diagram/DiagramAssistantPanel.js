@@ -225,6 +225,8 @@ const SendButton = styled(ActionButton)`
 
 const QUICK_PROMPTS = [
   'How is my diagram?',
+  'Walk me through the request flow',
+  'Explain this like I am learning system design',
   'What is missing for this architecture?'
 ];
 
@@ -271,7 +273,7 @@ export default function DiagramAssistantPanel({
         <IntroCard>
           <IntroTitle>
             <Sparkles size={14} />
-            Ask About Gaps, Risks, Or Missing Tech
+            Ask For Walkthroughs, Tradeoffs, Or Missing Tech
           </IntroTitle>
           <PromptRow>
             {QUICK_PROMPTS.map(example => (

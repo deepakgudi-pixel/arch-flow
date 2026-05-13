@@ -30,6 +30,7 @@ const router = express.Router();
 import { RedisStore } from 'rate-limit-redis';
 
 const DIAGRAM_REVIEW_MODEL = process.env.OPENROUTER_REVIEW_MODEL || TECH_MODEL;
+const GENERATION_CACHE_VERSION = 'review-safe-v2';
 
 function normalizeTechName(name) {
   return String(name || '')
@@ -132,7 +133,7 @@ router.post('/generate-diagram', aiLimiter, optionalAuth, validate({
   const userMessage = buildDiagramUserMessage(description, template);
 
   // 1. In-memory Cache check (Layer 1 - Local Instance)
-  const cacheKey = crypto.createHash('sha256').update(userMessage).digest('hex');
+  const cacheKey = crypto.createHash('sha256').update(`${GENERATION_CACHE_VERSION}:${userMessage}`).digest('hex');
   const localCached = localCache.get(cacheKey);
   if (localCached && (Date.now() - localCached.timestamp < CACHE_TTL)) {
     logger.cacheMetrics('LOCAL_GET', cacheKey, true);
@@ -220,6 +221,7 @@ router.post('/generate-diagram', aiLimiter, optionalAuth, validate({
     const result = {
       nodes: generatedDiagram.nodes,
       edges: generatedDiagram.edges,
+      ...(generatedDiagram.quality && { quality: generatedDiagram.quality }),
       ...(generatedDiagram.autoFixes && { autoFixes: generatedDiagram.autoFixes })
     };
 
@@ -411,7 +413,7 @@ router.post('/review-diagram', aiLimiter, clerkAuth, validate({
       conversationMessages.push({ role: 'user', content: question });
     }
 
-    const systemPrompt = `You are a Staff Infrastructure Architect reviewing a system diagram inside Archflow. Your reviews are precise, authoritative, and production-grade. Output ONLY valid JSON.
+    const systemPrompt = `You are a Staff Infrastructure Architect and system-design tutor reviewing a diagram inside Archflow. Your reviews are precise, authoritative, educational, and production-grade. Output ONLY valid JSON.
 
 RESPONSE SHAPE:
 {
@@ -468,7 +470,9 @@ RULES:
    - CENTRAL_BACKEND_CHOKE_POINT → suggest queue for async offload
    - FRONTEND_ONLY_ARCHITECTURE → suggest backend + database
 8. Base your suggestions primarily on the reviewFindings and criticalSignals in the summary. If there are zero findings above info level, return empty suggestions with an explanation message.
-9. If the user asks for explanation only, return empty suggestions array.`;
+9. If the user asks for explanation only, return empty suggestions array.
+10. For learning or walkthrough questions, explain the architecture as a sequence of flows, responsibilities, tradeoffs, and failure modes. Avoid hype. Make it inspectable rather than magical.
+11. Keep the answer useful for students: define why each important layer exists, but do not over-explain common acronyms unless the user asks.`;
 
     const { data: parsed, rawResponse } = await callOpenRouterForJSON({
       messages: [

@@ -2408,6 +2408,7 @@ export default function DiagramPage() {
             findings={reviewFindings}
             suggestions={reviewSuggestions}
             nodes={nodes.filter(node => node.type === 'customNode')}
+            edges={edges}
             connectionMode={connectionMode}
             nodeCount={nodes.filter(node => node.type === 'customNode').length}
             edgeCount={edges.length}

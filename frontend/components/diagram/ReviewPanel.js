@@ -4,6 +4,11 @@ import { useState, useEffect, useRef } from 'react';
 import styled from 'styled-components';
 import { AlertTriangle, CheckCircle2, Info, ShieldAlert, ChevronDown, ChevronUp } from 'lucide-react';
 import { Badge } from '@/components/ui/Badge';
+import {
+  buildDiagramStudyGuide,
+  buildReviewLearningSummary,
+  getFindingLearningProfile
+} from '@/lib/learningInsights';
 import { CloseBtn } from './editorStyles';
 
 const Panel = styled.div`
@@ -439,6 +444,85 @@ const AutoFixItem = styled.div`
   gap: 6px;
 `;
 
+const LearningSummary = styled.div`
+  padding: 12px 14px;
+  border: 1px solid rgba(3, 105, 161, 0.12);
+  border-radius: 12px;
+  background: #f7fbff;
+  display: grid;
+  gap: 5px;
+`;
+
+const LearningTitle = styled.div`
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 800;
+  color: #0369a1;
+  text-transform: uppercase;
+`;
+
+const LearningText = styled.p`
+  font-size: 12px;
+  line-height: 1.55;
+  color: #333333;
+`;
+
+const FindingLesson = styled.div`
+  border-top: 1px solid rgba(0, 0, 0, 0.05);
+  padding-top: 10px;
+  display: grid;
+  gap: 6px;
+`;
+
+const LessonLabel = styled.div`
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 900;
+  color: #666666;
+  text-transform: uppercase;
+`;
+
+const LessonText = styled.p`
+  font-size: 11px;
+  line-height: 1.55;
+  color: #333333;
+`;
+
+const StudyGuideList = styled.div`
+  display: grid;
+  gap: 10px;
+`;
+
+const StudyCard = styled.div`
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 12px;
+  background: #ffffff;
+  padding: 14px;
+  display: grid;
+  gap: 8px;
+`;
+
+const StudyTitle = styled.div`
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 800;
+  color: #000000;
+`;
+
+const StudyText = styled.p`
+  font-size: 12px;
+  line-height: 1.55;
+  color: #333333;
+`;
+
+const StudyInspect = styled.p`
+  border-top: 1px solid rgba(0, 0, 0, 0.05);
+  padding-top: 8px;
+  font-size: 11px;
+  line-height: 1.55;
+  color: #555555;
+`;
+
 function severityIcon(severity) {
   if (severity === 'critical') return <ShieldAlert size={14} />;
   if (severity === 'warning') return <AlertTriangle size={14} />;
@@ -469,6 +553,7 @@ export default function ReviewPanel({
   findings,
   suggestions = [],
   nodes = [],
+  edges = [],
   connectionMode,
   nodeCount = 0,
   edgeCount = 0,
@@ -479,13 +564,16 @@ export default function ReviewPanel({
   architectureScore,
   autoFixes = []
 }) {
-  const criticalCount = findings.filter(finding => finding.severity === 'critical').length;
-  const warningCount = findings.filter(finding => finding.severity === 'warning').length;
-  const infoCount = findings.filter(finding => finding.severity === 'info').length;
+  const safeFindings = findings || [];
+  const criticalCount = safeFindings.filter(finding => finding.severity === 'critical').length;
+  const warningCount = safeFindings.filter(finding => finding.severity === 'warning').length;
+  const infoCount = safeFindings.filter(finding => finding.severity === 'info').length;
   const nodeById = new Map((nodes || []).map(node => [node.id, node]));
   const hasSuggestions = suggestions.length > 0;
-  const hasActiveFindings = findings.filter(f => f.severity === 'critical' || f.severity === 'warning').length > 0;
+  const hasActiveFindings = safeFindings.filter(f => f.severity === 'critical' || f.severity === 'warning').length > 0;
   const score = architectureScore || { score: 0, grade: 'F', criticalCount, warningCount, infoCount, categoryCoverage: 0, coveragePct: 0, breakdown: { deductions: {}, bonuses: {} } };
+  const learningSummary = buildReviewLearningSummary(safeFindings, nodeCount, edgeCount);
+  const studyGuide = buildDiagramStudyGuide(nodes, edges);
   const [displayScore, setDisplayScore] = useState(0);
   const [showBreakdown, setShowBreakdown] = useState(false);
   const prevScore = useRef(0);
@@ -506,6 +594,23 @@ export default function ReviewPanel({
     prevScore.current = target;
     requestAnimationFrame(animate);
   }, [score.score]);
+
+  const renderStudyGuide = () => (
+    studyGuide.length > 0 && (
+      <ReviewSection>
+        <SectionHeading>System Walkthrough</SectionHeading>
+        <StudyGuideList>
+          {studyGuide.map(item => (
+            <StudyCard key={item.title}>
+              <StudyTitle>{item.title}</StudyTitle>
+              <StudyText>{item.detail}</StudyText>
+              <StudyInspect>{item.inspect}</StudyInspect>
+            </StudyCard>
+          ))}
+        </StudyGuideList>
+      </ReviewSection>
+    )
+  );
 
   if (nodeCount === 0) {
     return (
@@ -529,6 +634,10 @@ export default function ReviewPanel({
               Add technologies to your diagram to see architecture review signals, layer coverage, and improvement suggestions.
             </EmptyDescription>
           </EmptyHero>
+          <LearningSummary>
+            <LearningTitle>{learningSummary.title}</LearningTitle>
+            <LearningText>{learningSummary.detail}</LearningText>
+          </LearningSummary>
         </EmptyState>
       </Panel>
     );
@@ -584,6 +693,10 @@ export default function ReviewPanel({
           {hasSuggestions && <Badge $tone="warning">AI: {suggestions.length} staged</Badge>}
           {!hasSuggestions && !hasActiveFindings && <Badge $tone="success"><CheckCircle2 size={12} /> All checks passed</Badge>}
         </div>
+        <LearningSummary>
+          <LearningTitle>{learningSummary.title}</LearningTitle>
+          <LearningText>{learningSummary.detail}</LearningText>
+        </LearningSummary>
         <SummaryGrid>
           <SummaryCard>
             <SummaryLabel>Critical</SummaryLabel>
@@ -638,6 +751,8 @@ export default function ReviewPanel({
             </CoverageCard>
           </CoverageGrid>
 
+          {renderStudyGuide()}
+
           <CheckList>
             <CheckItem>
               <CheckCircle2 size={14} />
@@ -655,6 +770,8 @@ export default function ReviewPanel({
         </EmptyState>
       ) : (
         <FindingsList>
+          {renderStudyGuide()}
+
           {hasSuggestions && (
             <ReviewSection>
               <SectionHeading>AI Staged Additions</SectionHeading>
@@ -704,25 +821,35 @@ export default function ReviewPanel({
             </ReviewSection>
           )}
 
-          {findings.length > 0 && (
+          {safeFindings.length > 0 && (
             <ReviewSection>
               <SectionHeading>Rule Findings</SectionHeading>
-              {findings.map(finding => (
-                <FindingCard
-                  key={finding.id}
-                  $severity={finding.severity}
-                  onClick={() => onFocusFinding?.(finding)}
-                >
-                  <FindingTop>
-                    <FindingTitle>{finding.title}</FindingTitle>
-                    <Badge $tone={severityTone(finding.severity)}>
-                      {severityIcon(finding.severity)}
-                      {finding.severity}
-                    </Badge>
-                  </FindingTop>
-                  <FindingDetail>{finding.detail}</FindingDetail>
-                </FindingCard>
-              ))}
+              {safeFindings.map(finding => {
+                const lesson = getFindingLearningProfile(finding.title);
+
+                return (
+                  <FindingCard
+                    key={finding.id}
+                    $severity={finding.severity}
+                    onClick={() => onFocusFinding?.(finding)}
+                  >
+                    <FindingTop>
+                      <FindingTitle>{finding.title}</FindingTitle>
+                      <Badge $tone={severityTone(finding.severity)}>
+                        {severityIcon(finding.severity)}
+                        {finding.severity}
+                      </Badge>
+                    </FindingTop>
+                    <FindingDetail>{finding.detail}</FindingDetail>
+                    <FindingLesson>
+                      <LessonLabel>Why It Matters</LessonLabel>
+                      <LessonText>{lesson.why}</LessonText>
+                      <LessonLabel>How To Fix</LessonLabel>
+                      <LessonText>{lesson.fix}</LessonText>
+                    </FindingLesson>
+                  </FindingCard>
+                );
+              })}
             </ReviewSection>
           )}
         </FindingsList>

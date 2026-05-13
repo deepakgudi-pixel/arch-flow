@@ -1,5 +1,84 @@
 # Archflow Optimization Log
 
+**log:** 2026-05-13 21:10:00 IST (+0530)
+
+## Overview
+Reliability Hardening + Teaching-First UX Pass. Focus areas: enforcing perfect-score AI generation at the backend gate and upgrading the product from "diagram generator" to "diagram tutor."
+
+---
+
+## 1. Deterministic Reliability Gate for AI Generation
+**Why:** Even with strong auto-fixes, rare generations could still surface non-perfect review outcomes. For a reliability tool, "usually correct" is not enough.
+
+**What changed:**
+- added a strict generation acceptance gate in `backend/src/lib/diagramGenerator.js`
+- generation now returns only when deterministic review confirms:
+  - score is exactly `100`
+  - `critical` findings are `0`
+  - `warning` findings are `0`
+- non-perfect outputs are rejected and regenerated before the user sees them
+
+**How this helps Archflow:**
+- guarantees trustworthy first output for students and developers
+- removes review contradictions where AI output could violate the same rules we teach
+
+---
+
+## 2. Cache Versioning to Prevent Stale Imperfect Outputs
+**Why:** Older cached generations can survive logic upgrades and reappear after reliability improvements.
+
+**What changed:**
+- introduced versioned generation cache keys (`review-safe-v2`) in the generator flow
+- cache entries from older quality semantics no longer get served as current "perfect" outputs
+
+**How this helps Archflow:**
+- quality upgrades become immediately enforceable
+- users consistently receive post-fix reliability behavior
+
+---
+
+## 3. Review Panel as a Teaching Surface
+**Why:** A score alone tells users "what," but not "why." Students need contextual guidance to learn system design principles.
+
+**What changed:**
+- review findings now include:
+  - **Why this matters**
+  - **How to fix**
+- added a diagram-level **System Walkthrough** generated from real nodes/edges so users can narrate architecture decisions end-to-end
+
+**How this helps Archflow:**
+- transforms review into guided learning, not just validation
+- improves interview readiness and architecture reasoning clarity
+
+---
+
+## 4. Diagram Detail Sidebars as Embedded Lessons
+**Why:** Users click nodes and edges while thinking; that moment is the best time to teach.
+
+**What changed:**
+- Node Details now includes a **System Design Lesson** section
+- Connection Details now includes a **Protocol Primer** section
+- both use deterministic context from current graph topology and category semantics
+
+**How this helps Archflow:**
+- learning happens inline during diagram exploration
+- users understand tradeoffs instead of memorizing component names
+
+---
+
+## 5. AI Architecture Assistant: From Suggestions to Coaching
+**Why:** Assistant value increases when it can coach users through weak spots, not only add technologies.
+
+**What changed:**
+- added quick teaching-oriented prompts (weakest links, scaling risks, failover, interview-style walkthroughs)
+- tuned assistant behavior to produce explanation-first guidance tied to live architecture context and findings
+
+**How this helps Archflow:**
+- better for college learners and early-career developers
+- preserves expert utility while making reasoning more accessible
+
+---
+
 **log:** 2026-05-13 16:00:00 IST (+0530)
 
 ## Overview

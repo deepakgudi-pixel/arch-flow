@@ -163,6 +163,7 @@ export default function EditorSmokeProbePage() {
             findings={findings}
             suggestions={reviewSuggestions}
             nodes={nodes}
+            edges={edges}
             connectionMode="guided"
             nodeCount={nodes.length}
             edgeCount={edges.length}

@@ -3,6 +3,7 @@
 import styled from 'styled-components';
 import { Badge } from '@/components/ui/Badge';
 import { Trash2 } from 'lucide-react';
+import { getProtocolLearningProfile } from '@/lib/learningInsights';
 import {
   LeftSidebar,
   SidebarContent,
@@ -130,6 +131,14 @@ export default function ConnectionDetailsSidebar({
   connectionProfile,
   onDeleteEdge
 }) {
+  const protocolLearning = connectionProfile
+    ? getProtocolLearningProfile(
+        connectionProfile.protocolLabel,
+        connectionProfile.sourceCategory,
+        connectionProfile.targetCategory
+      )
+    : null;
+
   return (
     <LeftSidebar $open={open}>
       {open && (
@@ -175,6 +184,17 @@ export default function ConnectionDetailsSidebar({
 
               <SectionTitle>Why This Connection Fits</SectionTitle>
               <Description>{connectionProfile.whyChosen}</Description>
+
+              {protocolLearning && (
+                <>
+                  <SectionTitle>Protocol Primer</SectionTitle>
+                  <InsightList>
+                    <InsightItem>{protocolLearning.summary}</InsightItem>
+                    <InsightItem>{protocolLearning.whenToUse}</InsightItem>
+                    <InsightItem>{protocolLearning.watchOut}</InsightItem>
+                  </InsightList>
+                </>
+              )}
 
               {connectionProfile.assumptions?.length > 0 && (
                 <>

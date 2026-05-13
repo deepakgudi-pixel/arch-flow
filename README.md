@@ -157,9 +157,12 @@ flowchart TB
 
   **Step 4 — Edge label normalization:** Generic labels (`API`, `CONNECTION`, `INFERRING...`, empty) are replaced with specific protocols (`HTTPS`, `SQL`, `KAFKA`, etc.).
 
-  **Step 5 — Frontend verification pass:** After receiving the diagram, the frontend runs the full 20+ rule deterministic review. If the score isn't 100/100, missing layers are auto-added before rendering. You only see the diagram when it's guaranteed perfect.
+  **Step 5 — Frontend verification pass:** After receiving the diagram, the frontend runs the full 20+ rule deterministic review. If the score isn't 100/100, missing layers are auto-added before rendering.
+
+  **Step 6 — Backend reliability gate:** Generation only returns when the deterministic review confirms **score = 100/100**, **critical = 0**, and **warning = 0**. Non-perfect candidates are rejected and regenerated.
 
   **Result:** Every generated diagram arrives at 100/100 with zero findings, zero warnings, zero isolated components, and zero generic labels. The auto-fix list in the Review Panel shows exactly what was added so you can verify the system's work.
+- **Versioned perfect-output cache** — generation cache keys include a reliability pass version (`review-safe-v2`) so stale non-perfect payloads are never replayed after quality upgrades
 - **Zero generic edge labels** — labels like `API`, `CONNECTION`, and `INFERRING...` are normalized to specific protocols (`HTTPS`, `SQL`, `KAFKA`, etc.)
 - **Single-datastore pressure auto-fix** — read replica added when 1 database with high complexity
 - **Known architecture database** — 14+ famous company stacks with real technology names, not generic placeholders
@@ -182,10 +185,13 @@ flowchart TB
 - **Context Budget Guard** — intelligent serialization caps review context at 28,000 characters with clear human-readable feedback if the diagram is too large, preventing silent token overflow
 - **Persistent chat** — conversation history and pending review suggestions survive page refreshes via local draft persistence
 - **Domain expert tone** — responds like a Staff Infrastructure Architect, not a generic chatbot. References specific technologies, protocols, and architectural patterns
+- **Tutor mode behavior** — answers now prioritize teaching value: why each layer exists, what tradeoff it protects, and what to check during architecture interviews
+- **Guided starter prompts** — quick actions for weakest links, scaling risks, failover design, and interview-style walkthrough questions
 
 ### Architectural Review System
 - Dedicated review drawer with **animated** architecture score (0–100 with letter grade A–F), finding counts, and adaptive layer coverage stats
 - **Transparent score breakdown** — click "Show score breakdown" to see the exact math: `100 - critical(-15) - warning(-8) + auth(+2) + cache(+3) = 93`
+- **Finding-level coaching** — every finding includes "Why this matters" and "How to fix" guidance so review doubles as a learning experience
 - **Score always moves in the right direction** — accepting AI suggestions improves the score (no hidden edge penalties, no redundant threshold charges)
 - **Adaptive category coverage** — coverage percentage is computed against relevant categories only (mobile doesn't count if absent, auth counts if clients exist)
 - **Connection mode selector** — Strict (block invalid connections), Guided (flag unusual patterns), Sandbox (zero warnings for free sketching)
@@ -210,12 +216,14 @@ flowchart TB
 - Lists assumptions and review risks
 - Shows incoming and outgoing connected flows
 - Suggests same-category replacement technologies
+- Includes a **System Design Lesson** section that explains node responsibility, design tradeoffs, and interview framing
 
 ### Connection Details Sidebar
 - Shows source → target endpoints with protocol and category badges
 - Displays connection spec, why it fits, assumptions, and review risks
 - Confidence signals derived from deterministic rule checks
 - One-click disconnect button to delete the connection
+- Includes a **Protocol Primer** section to explain why the selected protocol fits this path and when alternatives are better
 
 ### Tech Inventory
 - Built-in technology catalog organized by category (frontend, backend, database, queue, auth, storage, external, devops)

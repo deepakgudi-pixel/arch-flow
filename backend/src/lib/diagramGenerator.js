@@ -1,7 +1,33 @@
 import { categoryOrder, categorizeTech, getCategoryProducts } from './tech.js';
 import { callOpenRouter, callOpenRouterForJSON, DIAGRAM_MODEL, robustParseJSON } from './openRouter.js';
+import { canonicalConnectionRules } from './connectionRules.js';
 
 const VALID_CATEGORIES = new Set(categoryOrder);
+const CLIENT_CATEGORIES = new Set(['frontend', 'mobile']);
+const DATABASE_CATEGORIES = new Set(['database']);
+const BACKEND_TECH_NAMES = new Set([
+  'EXPRESS',
+  'FASTAPI',
+  'NESTJS',
+  'DJANGO',
+  'SPRING_BOOT',
+  'GO',
+  'GRAPHQL',
+  'NODE_JS',
+  'PYTHON',
+  'JAVA',
+  'SCALA',
+  'ERLANG',
+  'PHP',
+  'FLASK',
+  'GIN',
+  'RUST',
+]);
+const OBSERVABILITY_NAMES = new Set(['GRAFANA', 'PROMETHEUS', 'DATADOG', 'ELK', 'SENTRY', 'JAEGER', 'NEW_RELIC']);
+const TRAFFIC_MANAGER_NAMES = new Set(['NGINX', 'CLOUDFLARE', 'ENVOY', 'KUBERNETES', 'AWS_CLOUDFRONT', 'AKAMAI']);
+const CACHE_NAMES = new Set(['REDIS', 'MEMCACHED']);
+const GENERIC_EDGE_LABELS = new Set(['CONNECTION', 'INFERRING...', 'API', '']);
+const REVIEW_SAFE_MAX_PASSES = 5;
 
 const FIXTURE_MAP = {
   'SWIFT': { category: 'mobile', icon: 'smartphone' },
@@ -120,6 +146,152 @@ function fixNodeIcon(name) {
   return null;
 }
 
+function ruleKey(sourceCategory, targetCategory) {
+  return `${sourceCategory || 'unknown'}->${targetCategory || 'unknown'}`;
+}
+
+function buildRuleMap() {
+  return new Map(
+    canonicalConnectionRules.map(([sourceCategory, targetCategory, isValid, warningMessage]) => [
+      ruleKey(sourceCategory, targetCategory),
+      {
+        source_category: sourceCategory,
+        target_category: targetCategory,
+        is_valid: isValid,
+        warning_message: warningMessage,
+      },
+    ])
+  );
+}
+
+const GENERATION_RULE_MAP = buildRuleMap();
+
+function getConnectionRule(sourceCategory, targetCategory) {
+  return GENERATION_RULE_MAP.get(ruleKey(sourceCategory, targetCategory));
+}
+
+function isConnectionValid(sourceCategory, targetCategory) {
+  const rule = getConnectionRule(sourceCategory, targetCategory);
+  return rule ? rule.is_valid !== false : false;
+}
+
+function buildDiagramLookups(nodes) {
+  const categoryMap = {};
+  nodes.forEach(node => {
+    categoryMap[node.name] = node.category;
+  });
+
+  return { categoryMap };
+}
+
+function addNormalizedNode(nodes, name, category, role, reason, icon, changes) {
+  const normalizedName = normalizeIdentifier(name);
+
+  if (!normalizedName || nodes.some(node => node.name === normalizedName)) {
+    return nodes.find(node => node.name === normalizedName) || null;
+  }
+
+  const fixedCategory = normalizeNodeCategory(category, normalizedName);
+  const fixedIcon = fixNodeIcon(normalizedName);
+  const node = {
+    name: normalizedName,
+    category: fixedCategory,
+    role,
+    reason,
+    icon: fixedIcon || icon || 'server',
+  };
+
+  nodes.push(node);
+  changes?.push(`Added ${normalizedName} (${fixedCategory})`);
+  return node;
+}
+
+function hasNodeNamed(nodes, name) {
+  const normalizedName = normalizeIdentifier(name);
+  return nodes.some(node => node.name === normalizedName);
+}
+
+function getNodesByCategory(nodes, category) {
+  return nodes.filter(node => node.category === category);
+}
+
+function protocolForConnection(sourceCategory, targetCategory, sourceName = '', targetName = '') {
+  if (CLIENT_CATEGORIES.has(sourceCategory) && targetCategory === 'backend') return 'HTTPS';
+  if (sourceCategory === 'backend' && CLIENT_CATEGORIES.has(targetCategory)) return 'WEBSOCKET';
+  if (sourceCategory === 'backend' && targetCategory === 'database') {
+    if (targetName === 'MONGODB') return 'MONGO';
+    if (CACHE_NAMES.has(targetName)) return 'TCP';
+    return 'SQL';
+  }
+  if (sourceCategory === 'database' && targetCategory === 'database') return 'SQL';
+  if (sourceCategory === 'backend' && targetCategory === 'queue') {
+    return targetName === 'KAFKA' || sourceName === 'KAFKA' ? 'KAFKA' : 'AMQP';
+  }
+  if (sourceCategory === 'queue' && targetCategory === 'backend') {
+    return sourceName === 'KAFKA' || targetName === 'KAFKA' ? 'KAFKA' : 'AMQP';
+  }
+  if (sourceCategory === 'backend' && targetCategory === 'auth') return 'OIDC';
+  if (CLIENT_CATEGORIES.has(sourceCategory) && targetCategory === 'auth') return 'OIDC';
+  if (sourceCategory === 'auth' && targetCategory === 'backend') return 'OIDC';
+  if (sourceCategory === 'backend' && targetCategory === 'storage') return 'S3';
+  if (sourceCategory === 'backend' && targetCategory === 'external') return 'HTTPS';
+  if (sourceCategory === 'external' && targetCategory === 'backend') return 'WEBHOOK';
+  if (sourceCategory === 'backend' && targetCategory === 'devops') return 'HTTP';
+  if (sourceCategory === 'devops') return 'HTTP';
+  if (sourceCategory === 'backend' && targetCategory === 'backend') return 'HTTP';
+  return 'HTTPS';
+}
+
+function normalizeEdgeLabelForConnection(label, sourceCategory, targetCategory, sourceName = '', targetName = '') {
+  const normalizedIdentifier = normalizeIdentifier(label);
+
+  if (GENERIC_EDGE_LABELS.has(normalizedIdentifier)) {
+    return protocolForConnection(sourceCategory, targetCategory, sourceName, targetName);
+  }
+
+  return normalizeEdgeLabel(label || protocolForConnection(sourceCategory, targetCategory, sourceName, targetName));
+}
+
+function addNormalizedEdge(edges, nodes, source, target, label, changes, reason) {
+  const sourceName = normalizeIdentifier(source);
+  const targetName = normalizeIdentifier(target);
+
+  if (!sourceName || !targetName || sourceName === targetName) {
+    return false;
+  }
+
+  const { categoryMap } = buildDiagramLookups(nodes);
+
+  if (!categoryMap[sourceName] || !categoryMap[targetName]) {
+    return false;
+  }
+
+  if (!isConnectionValid(categoryMap[sourceName], categoryMap[targetName])) {
+    return false;
+  }
+
+  const normalizedLabel = normalizeEdgeLabelForConnection(
+    label,
+    categoryMap[sourceName],
+    categoryMap[targetName],
+    sourceName,
+    targetName
+  );
+  const edgeKey = `${sourceName}->${targetName}::${normalizedLabel}`;
+
+  if (edges.some(edge => `${edge.source}->${edge.target}::${edge.label}` === edgeKey)) {
+    return false;
+  }
+
+  edges.push({ source: sourceName, target: targetName, label: normalizedLabel });
+
+  if (reason) {
+    changes?.push(reason);
+  }
+
+  return true;
+}
+
 function findPrimaryBackend(nodes) {
   const order = ['DJANGO', 'SPRING_BOOT', 'EXPRESS', 'FASTAPI', 'NESTJS', 'GO', 'GRAPHQL', 'NODE_JS', 'PYTHON', 'JAVA', 'SCALA', 'ERLANG', 'PHP', 'FLASK', 'GIN', 'RUST'];
   for (const name of order) {
@@ -150,7 +322,7 @@ function enforceArchitectureRules(normalizedNodes, normalizedEdges) {
 
   const hasRealBackend = normalizedNodes.some(n =>
     n.category === 'backend' &&
-    ['EXPRESS', 'FASTAPI', 'NESTJS', 'DJANGO', 'SPRING_BOOT', 'GO', 'GRAPHQL', 'NODE_JS', 'PYTHON', 'JAVA', 'SCALA', 'ERLANG', 'PHP', 'FLASK', 'GIN', 'RUST'].includes(n.name)
+    BACKEND_TECH_NAMES.has(n.name)
   );
 
   if (needsBackend && !hasRealBackend) {
@@ -464,6 +636,616 @@ function normalizeDiagramStructure(parsed) {
   };
 }
 
+function countCategories(nodes) {
+  return nodes.reduce((acc, node) => {
+    acc[node.category] = (acc[node.category] || 0) + 1;
+    return acc;
+  }, {});
+}
+
+function hasObservability(nodes) {
+  return nodes.some(node => OBSERVABILITY_NAMES.has(node.name));
+}
+
+function hasTrafficManager(nodes) {
+  return nodes.some(node => TRAFFIC_MANAGER_NAMES.has(node.name));
+}
+
+function hasCache(nodes) {
+  return nodes.some(node => CACHE_NAMES.has(node.name));
+}
+
+function buildDiagramComplexityScore(nodes, edges, categoryCounts = countCategories(nodes)) {
+  const bonusCategories = ['auth', 'storage', 'external', 'queue', 'devops']
+    .reduce((sum, category) => sum + ((categoryCounts[category] || 0) > 0 ? 1 : 0), 0);
+
+  return nodes.length
+    + Math.min((edges || []).length, 4)
+    + bonusCategories
+    + ((categoryCounts.backend || 0) >= 2 ? 1 : 0);
+}
+
+function ensureBackendNode(nodes, changes) {
+  let primaryBackend = findPrimaryBackend(nodes);
+
+  if (primaryBackend) {
+    return primaryBackend;
+  }
+
+  primaryBackend = addNormalizedNode(
+    nodes,
+    'EXPRESS',
+    'backend',
+    'API gateway',
+    'Auto-added: application control plane',
+    'server',
+    changes
+  );
+  changes?.push('Added EXPRESS (required application layer)');
+  return primaryBackend;
+}
+
+function ensureProductionCompleteness(nodes, edges, changes) {
+  let changed = 0;
+  const counts = countCategories(nodes);
+  const hasClient = (counts.frontend || 0) + (counts.mobile || 0) > 0;
+  const hasRuntimeDependency = ['database', 'queue', 'auth', 'storage', 'external']
+    .some(category => (counts[category] || 0) > 0);
+  let primaryBackend = findPrimaryBackend(nodes);
+
+  if (!primaryBackend && (hasClient || hasRuntimeDependency || nodes.length > 1)) {
+    primaryBackend = ensureBackendNode(nodes, changes);
+    changed += 1;
+  }
+
+  if (!primaryBackend) {
+    return changed;
+  }
+
+  const clientNodes = nodes.filter(node => CLIENT_CATEGORIES.has(node.category));
+  clientNodes.forEach(clientNode => {
+    if (!edges.some(edge => edge.source === clientNode.name && edge.target === primaryBackend.name)) {
+      if (addNormalizedEdge(
+        edges,
+        nodes,
+        clientNode.name,
+        primaryBackend.name,
+        undefined,
+        changes,
+        `Connected ${clientNode.name} -> ${primaryBackend.name} (client control plane)`
+      )) {
+        changed += 1;
+      }
+    }
+  });
+
+  getNodesByCategory(nodes, 'database').forEach(databaseNode => {
+    if (!edges.some(edge => edge.source === primaryBackend.name && edge.target === databaseNode.name)) {
+      if (addNormalizedEdge(
+        edges,
+        nodes,
+        primaryBackend.name,
+        databaseNode.name,
+        undefined,
+        changes,
+        `Connected ${primaryBackend.name} -> ${databaseNode.name} (data access)`
+      )) {
+        changed += 1;
+      }
+    }
+  });
+
+  let latestCounts = countCategories(nodes);
+
+  if (hasClient && !latestCounts.auth) {
+    const authNode = addNormalizedNode(
+      nodes,
+      'CLERK',
+      'auth',
+      'Authentication',
+      'Auto-added: identity layer',
+      'shield',
+      changes
+    );
+    changed += authNode ? 1 : 0;
+    if (authNode && addNormalizedEdge(edges, nodes, primaryBackend.name, authNode.name, undefined, changes, `Connected ${primaryBackend.name} -> ${authNode.name} (identity)`)) {
+      changed += 1;
+    }
+  }
+
+  latestCounts = countCategories(nodes);
+  if (hasClient && !latestCounts.storage && nodes.length >= 4) {
+    const storageNode = addNormalizedNode(
+      nodes,
+      'S3',
+      'storage',
+      'Object storage',
+      'Auto-added: file storage',
+      'hard-drive',
+      changes
+    );
+    changed += storageNode ? 1 : 0;
+    if (storageNode && addNormalizedEdge(edges, nodes, primaryBackend.name, storageNode.name, undefined, changes, `Connected ${primaryBackend.name} -> ${storageNode.name} (asset storage)`)) {
+      changed += 1;
+    }
+  }
+
+  latestCounts = countCategories(nodes);
+  const shouldAddObservability = !hasObservability(nodes) && buildDiagramComplexityScore(nodes, edges, latestCounts) >= 10;
+  if (shouldAddObservability) {
+    const prometheusNode = hasNodeNamed(nodes, 'PROMETHEUS')
+      ? nodes.find(node => node.name === 'PROMETHEUS')
+      : addNormalizedNode(
+          nodes,
+          'PROMETHEUS',
+          'devops',
+          'Metrics collection',
+          'Auto-added: observability',
+          'activity',
+          changes
+        );
+    const grafanaNode = hasNodeNamed(nodes, 'GRAFANA')
+      ? nodes.find(node => node.name === 'GRAFANA')
+      : addNormalizedNode(
+          nodes,
+          'GRAFANA',
+          'devops',
+          'Monitoring dashboard',
+          'Auto-added: observability',
+          'bar-chart',
+          changes
+        );
+
+    changed += prometheusNode ? 1 : 0;
+    changed += grafanaNode ? 1 : 0;
+    if (prometheusNode && addNormalizedEdge(edges, nodes, primaryBackend.name, prometheusNode.name, undefined, changes, `Connected ${primaryBackend.name} -> ${prometheusNode.name} (metrics)`)) {
+      changed += 1;
+    }
+    if (grafanaNode && addNormalizedEdge(edges, nodes, prometheusNode.name, grafanaNode.name, undefined, changes, `Connected ${prometheusNode.name} -> ${grafanaNode.name} (dashboards)`)) {
+      changed += 1;
+    }
+  }
+
+  latestCounts = countCategories(nodes);
+  if (!hasTrafficManager(nodes) && nodes.length >= 6 && buildDiagramComplexityScore(nodes, edges, latestCounts) >= 8) {
+    const trafficNode = addNormalizedNode(
+      nodes,
+      'NGINX',
+      'devops',
+      'Traffic gateway',
+      'Auto-added: traffic management',
+      'server',
+      changes
+    );
+    changed += trafficNode ? 1 : 0;
+    if (trafficNode && addNormalizedEdge(edges, nodes, trafficNode.name, primaryBackend.name, undefined, changes, `Connected ${trafficNode.name} -> ${primaryBackend.name} (traffic gateway)`)) {
+      changed += 1;
+    }
+  }
+
+  latestCounts = countCategories(nodes);
+  const latestDbCount = latestCounts.database || 0;
+  if (latestDbCount === 1 && buildDiagramComplexityScore(nodes, edges, latestCounts) >= 12) {
+    const replicaName = `${primaryBackend.name}_DB_REPLICA`;
+    if (!hasNodeNamed(nodes, replicaName)) {
+      const replicaNode = addNormalizedNode(
+        nodes,
+        replicaName,
+        'database',
+        'Read replica',
+        'Auto-added: datastore scaling',
+        'database',
+        changes
+      );
+      changed += replicaNode ? 1 : 0;
+      if (replicaNode && addNormalizedEdge(edges, nodes, primaryBackend.name, replicaNode.name, 'SQL', changes, `Connected ${primaryBackend.name} -> ${replicaNode.name} (read scaling)`)) {
+        changed += 1;
+      }
+    }
+  }
+
+  latestCounts = countCategories(nodes);
+  if ((latestCounts.database || 0) >= 2 && !hasCache(nodes)) {
+    const cacheNode = addNormalizedNode(
+      nodes,
+      'REDIS',
+      'database',
+      'Cache layer',
+      'Auto-added: hot-data cache',
+      'database',
+      changes
+    );
+    changed += cacheNode ? 1 : 0;
+    if (cacheNode && addNormalizedEdge(edges, nodes, primaryBackend.name, cacheNode.name, 'TCP', changes, `Connected ${primaryBackend.name} -> ${cacheNode.name} (cache)`)) {
+      changed += 1;
+    }
+  }
+
+  latestCounts = countCategories(nodes);
+  const backendNodes = getNodesByCategory(nodes, 'backend');
+  const heavyBackend = backendNodes.some(backendNode => {
+    const downstreamCategories = new Set(
+      edges
+        .filter(edge => edge.source === backendNode.name)
+        .map(edge => nodes.find(node => node.name === edge.target)?.category)
+        .filter(category => ['database', 'storage', 'external', 'queue'].includes(category))
+    );
+
+    return downstreamCategories.size >= 2;
+  });
+  const shouldHaveQueue = !latestCounts.queue && (
+    backendNodes.length >= 2 ||
+    (heavyBackend && ((latestCounts.database || 0) + (latestCounts.storage || 0) + (latestCounts.external || 0)) >= 2)
+  );
+
+  if (shouldHaveQueue) {
+    const queueNode = addNormalizedNode(
+      nodes,
+      'KAFKA',
+      'queue',
+      'Event stream',
+      'Auto-added: async processing',
+      'message-square',
+      changes
+    );
+    changed += queueNode ? 1 : 0;
+    if (queueNode && addNormalizedEdge(edges, nodes, primaryBackend.name, queueNode.name, undefined, changes, `Connected ${primaryBackend.name} -> ${queueNode.name} (async producer)`)) {
+      changed += 1;
+    }
+  }
+
+  return changed;
+}
+
+function ensureQueueTopology(nodes, edges, changes) {
+  let changed = 0;
+  const queueNodes = getNodesByCategory(nodes, 'queue');
+
+  for (const queueNode of queueNodes) {
+    const primaryBackend = ensureBackendNode(nodes, changes);
+    const hasProducer = edges.some(edge => {
+      if (edge.target !== queueNode.name) return false;
+      const sourceNode = nodes.find(node => node.name === edge.source);
+      return ['backend', 'external', 'queue'].includes(sourceNode?.category);
+    });
+    const hasConsumer = edges.some(edge => {
+      if (edge.source !== queueNode.name) return false;
+      const targetNode = nodes.find(node => node.name === edge.target);
+      return ['backend', 'queue'].includes(targetNode?.category);
+    });
+
+    if (!hasProducer && primaryBackend) {
+      if (addNormalizedEdge(edges, nodes, primaryBackend.name, queueNode.name, undefined, changes, `Connected ${primaryBackend.name} -> ${queueNode.name} (queue producer)`)) {
+        changed += 1;
+      }
+    }
+
+    if (!hasConsumer) {
+      const workerName = `${queueNode.name}_WORKER`;
+      const workerNode = nodes.find(node => node.name === workerName) || addNormalizedNode(
+        nodes,
+        workerName,
+        'backend',
+        'Async worker',
+        'Auto-added: queue consumer',
+        'server',
+        changes
+      );
+      changed += workerNode ? 1 : 0;
+
+      if (workerNode && addNormalizedEdge(edges, nodes, queueNode.name, workerNode.name, undefined, changes, `Connected ${queueNode.name} -> ${workerNode.name} (queue consumer)`)) {
+        changed += 1;
+      }
+    }
+  }
+
+  return changed;
+}
+
+function addBackendBridgeEdges(nextEdges, nodes, sourceName, sourceCategory, targetName, targetCategory, changes) {
+  const primaryBackend = ensureBackendNode(nodes, changes);
+
+  if (!primaryBackend) {
+    return;
+  }
+
+  if (sourceName !== primaryBackend.name) {
+    if (isConnectionValid(sourceCategory, 'backend')) {
+      addNormalizedEdge(nextEdges, nodes, sourceName, primaryBackend.name, undefined, changes);
+    } else if (isConnectionValid('backend', sourceCategory)) {
+      addNormalizedEdge(nextEdges, nodes, primaryBackend.name, sourceName, undefined, changes);
+    }
+  }
+
+  if (targetName !== primaryBackend.name) {
+    if (isConnectionValid('backend', targetCategory)) {
+      addNormalizedEdge(nextEdges, nodes, primaryBackend.name, targetName, undefined, changes);
+    } else if (isConnectionValid(targetCategory, 'backend')) {
+      addNormalizedEdge(nextEdges, nodes, targetName, primaryBackend.name, undefined, changes);
+    }
+  }
+}
+
+function sanitizeInvalidConnections(nodes, edges, changes) {
+  let changed = 0;
+  const nextEdges = [];
+
+  for (const edge of edges) {
+    const sourceNode = nodes.find(node => node.name === edge.source);
+    const targetNode = nodes.find(node => node.name === edge.target);
+
+    if (!sourceNode || !targetNode || sourceNode.name === targetNode.name) {
+      changed += 1;
+      continue;
+    }
+
+    const sourceCategory = sourceNode.category;
+    const targetCategory = targetNode.category;
+    const label = normalizeEdgeLabelForConnection(edge.label, sourceCategory, targetCategory, sourceNode.name, targetNode.name);
+
+    if (isConnectionValid(sourceCategory, targetCategory)) {
+      addNormalizedEdge(nextEdges, nodes, sourceNode.name, targetNode.name, label, changes);
+      if (label !== edge.label) {
+        changed += 1;
+      }
+      continue;
+    }
+
+    changed += 1;
+    changes?.push(`Repaired invalid ${sourceNode.name} -> ${targetNode.name} connection`);
+
+    if (isConnectionValid(targetCategory, sourceCategory)) {
+      addNormalizedEdge(nextEdges, nodes, targetNode.name, sourceNode.name, undefined, changes);
+      continue;
+    }
+
+    addBackendBridgeEdges(
+      nextEdges,
+      nodes,
+      sourceNode.name,
+      sourceCategory,
+      targetNode.name,
+      targetCategory,
+      changes
+    );
+  }
+
+  edges.splice(0, edges.length, ...nextEdges);
+  return changed;
+}
+
+function dedupeNormalizedEdges(edges) {
+  const seenEdgeKeys = new Set();
+  return edges.filter(edge => {
+    const edgeKey = `${edge.source}->${edge.target}::${edge.label}`;
+    if (seenEdgeKeys.has(edgeKey)) {
+      return false;
+    }
+    seenEdgeKeys.add(edgeKey);
+    return true;
+  });
+}
+
+function reviewNormalizedDiagramForGeneration(diagram) {
+  const nodes = diagram.nodes || [];
+  const edges = diagram.edges || [];
+  const findings = [];
+  const nodeByName = new Map(nodes.map(node => [node.name, node]));
+  const degreeByName = new Map(nodes.map(node => [node.name, 0]));
+  const incomingEdgesByName = new Map(nodes.map(node => [node.name, []]));
+  const outgoingEdgesByName = new Map(nodes.map(node => [node.name, []]));
+  const categoryCounts = countCategories(nodes);
+  const complexityScore = buildDiagramComplexityScore(nodes, edges, categoryCounts);
+
+  const addFinding = (severity, title, detail) => {
+    findings.push({ severity, title, detail });
+  };
+
+  if (nodes.length > 1 && edges.length === 0) {
+    addFinding('critical', 'NO_DATA_FLOW', 'Multiple nodes have no connections.');
+  }
+
+  for (const edge of edges) {
+    const sourceNode = nodeByName.get(edge.source);
+    const targetNode = nodeByName.get(edge.target);
+
+    if (!sourceNode || !targetNode) {
+      addFinding('warning', 'BROKEN_EDGE_REFERENCE', `${edge.source} -> ${edge.target} references a missing node.`);
+      continue;
+    }
+
+    degreeByName.set(sourceNode.name, (degreeByName.get(sourceNode.name) || 0) + 1);
+    degreeByName.set(targetNode.name, (degreeByName.get(targetNode.name) || 0) + 1);
+    incomingEdgesByName.get(targetNode.name)?.push(edge);
+    outgoingEdgesByName.get(sourceNode.name)?.push(edge);
+
+    if (CLIENT_CATEGORIES.has(sourceNode.category) && DATABASE_CATEGORIES.has(targetNode.category)) {
+      addFinding('critical', `${sourceNode.category.toUpperCase()}_DIRECT_TO_DATABASE`, 'Client layers must not connect directly to databases.');
+    }
+
+    if (!isConnectionValid(sourceNode.category, targetNode.category)) {
+      addFinding('warning', 'RULE_VIOLATION', `${sourceNode.category} should not connect directly to ${targetNode.category}.`);
+    }
+
+    if (GENERIC_EDGE_LABELS.has(normalizeIdentifier(edge.label))) {
+      addFinding('info', 'GENERIC_PROTOCOL_LABEL', `${sourceNode.name} -> ${targetNode.name} has a generic protocol label.`);
+    }
+  }
+
+  nodes.forEach(node => {
+    if ((degreeByName.get(node.name) || 0) === 0) {
+      addFinding('warning', 'ISOLATED_NODE', `${node.name} is disconnected.`);
+    }
+  });
+
+  if (((categoryCounts.frontend || 0) + (categoryCounts.mobile || 0)) > 0 && categoryCounts.database && !categoryCounts.backend) {
+    addFinding('critical', 'MISSING_APPLICATION_LAYER', 'Client and database layers require an application layer between them.');
+  }
+
+  if (((categoryCounts.frontend || 0) + (categoryCounts.mobile || 0)) > 0 && !categoryCounts.backend && !categoryCounts.external) {
+    addFinding('critical', 'MISSING_BACKEND_LAYER', 'Client surfaces need a backend or external service to handle requests.');
+  }
+
+  if (((categoryCounts.frontend || 0) + (categoryCounts.mobile || 0)) > 0 && !categoryCounts.auth) {
+    addFinding('info', 'NO_AUTH_LAYER', 'Client-facing systems should model an auth layer.');
+  }
+
+  if (complexityScore >= 10 && !hasObservability(nodes)) {
+    addFinding('info', 'NO_OBSERVABILITY_LAYER', 'Production-scale systems should model observability.');
+  }
+
+  if ((categoryCounts.database || 0) === 1 && complexityScore >= 12) {
+    addFinding('warning', 'SINGLE_DATASTORE_PRESSURE', 'Larger systems should avoid a single datastore bottleneck.');
+  }
+
+  getNodesByCategory(nodes, 'queue').forEach(queueNode => {
+    const inboundEdges = incomingEdgesByName.get(queueNode.name) || [];
+    const outboundEdges = outgoingEdgesByName.get(queueNode.name) || [];
+    const hasProducer = inboundEdges.some(edge => {
+      const sourceCategory = nodeByName.get(edge.source)?.category;
+      return ['backend', 'external', 'queue'].includes(sourceCategory);
+    });
+    const hasConsumer = outboundEdges.some(edge => {
+      const targetCategory = nodeByName.get(edge.target)?.category;
+      return ['backend', 'queue'].includes(targetCategory);
+    });
+
+    if (!hasProducer) {
+      addFinding('warning', 'QUEUE_WITHOUT_PRODUCER', `${queueNode.name} has no producer.`);
+    }
+    if (!hasConsumer) {
+      addFinding('warning', 'QUEUE_WITHOUT_CONSUMER', `${queueNode.name} has no consumer.`);
+    }
+  });
+
+  const backendNodes = getNodesByCategory(nodes, 'backend');
+  const heavyBackendNodes = backendNodes.filter(backendNode => {
+    const downstreamCategories = new Set(
+      (outgoingEdgesByName.get(backendNode.name) || [])
+        .map(edge => nodeByName.get(edge.target)?.category)
+        .filter(category => ['database', 'storage', 'external', 'queue'].includes(category))
+    );
+
+    return downstreamCategories.size >= 2;
+  });
+
+  if (!categoryCounts.queue && (
+    backendNodes.length >= 3 ||
+    (heavyBackendNodes.length > 0 && ((categoryCounts.database || 0) + (categoryCounts.storage || 0) + (categoryCounts.external || 0)) >= 2)
+  )) {
+    addFinding('info', 'LIMITED_ASYNC_SCALING_PATH', 'Multiple downstream workloads should have queue-backed async processing.');
+  }
+
+  if (backendNodes.length === 1 && nodes.length >= 6) {
+    const centralBackend = backendNodes[0];
+    const downstreamCategories = new Set(
+      (outgoingEdgesByName.get(centralBackend.name) || [])
+        .map(edge => nodeByName.get(edge.target)?.category)
+        .filter(category => ['database', 'auth', 'storage', 'external', 'queue'].includes(category))
+    );
+
+    if (downstreamCategories.size >= 3) {
+      addFinding('info', 'CENTRAL_BACKEND_CHOKE_POINT', `${centralBackend.name} owns many downstream paths.`);
+    }
+  }
+
+  if (categoryCounts.frontend && !categoryCounts.backend && !categoryCounts.external && !categoryCounts.database) {
+    addFinding('info', 'FRONTEND_ONLY_ARCHITECTURE', 'Frontend-only diagrams need backend and data layers for production systems.');
+  }
+
+  if (!hasTrafficManager(nodes) && nodes.length >= 6 && complexityScore >= 8) {
+    addFinding('info', 'MISSING_TRAFFIC_MANAGEMENT', 'Large systems should model traffic management.');
+  }
+
+  if (((categoryCounts.frontend || 0) + (categoryCounts.mobile || 0)) > 0 && !categoryCounts.storage && nodes.length >= 4) {
+    addFinding('info', 'NO_STORAGE_LAYER', 'Client-facing systems should model object storage.');
+  }
+
+  if ((categoryCounts.database || 0) >= 2 && !hasCache(nodes) && complexityScore >= 8) {
+    addFinding('info', 'MISSING_CACHE_LAYER', 'Multiple databases should have a cache layer.');
+  }
+
+  if (!categoryCounts.queue && backendNodes.length >= 2 && complexityScore >= 10) {
+    addFinding('info', 'MISSING_ASYNC_PROCESSING', 'Multiple backend services should have queue-backed async processing.');
+  }
+
+  const criticalCount = findings.filter(finding => finding.severity === 'critical').length;
+  const warningCount = findings.filter(finding => finding.severity === 'warning').length;
+  const infoCount = findings.filter(finding => finding.severity === 'info').length;
+  const signalCount = findings.filter(finding => finding.severity === 'info' && finding.title !== 'REVIEW_EDGE_PATTERN').length;
+  let score = 100;
+  const deductions = {
+    critical: criticalCount * 15,
+    warning: warningCount * 8,
+    info: signalCount * 2,
+  };
+
+  score -= deductions.critical + deductions.warning + deductions.info;
+
+  const bonuses = {};
+  if (categoryCounts.backend > 0 && categoryCounts.database > 0) { score += 2; bonuses.backendDb = 2; }
+  if (categoryCounts.auth > 0) { score += 2; bonuses.auth = 2; }
+  if (hasCache(nodes)) { score += 3; bonuses.cache = 3; }
+  if (categoryCounts.queue > 0) { score += 3; bonuses.queue = 3; }
+  if (categoryCounts.storage > 0) { score += 2; bonuses.storage = 2; }
+  if (categoryCounts.devops > 0) { score += 3; bonuses.observability = 3; }
+
+  if (nodes.length === 0) score = 0;
+  if (nodes.length === 1 && edges.length === 0) score = 10;
+  score = Math.max(0, Math.min(100, score));
+
+  let grade = 'F';
+  if (score >= 90) grade = 'A';
+  else if (score >= 75) grade = 'B';
+  else if (score >= 55) grade = 'C';
+  else if (score >= 35) grade = 'D';
+
+  return {
+    score: { score, grade, criticalCount, warningCount, infoCount, breakdown: { deductions, bonuses } },
+    findings,
+  };
+}
+
+export function hardenNormalizedDiagramForReview(diagram) {
+  const hardened = {
+    nodes: [...(diagram.nodes || [])],
+    edges: [...(diagram.edges || [])],
+  };
+  const changes = [];
+
+  for (let pass = 0; pass < REVIEW_SAFE_MAX_PASSES; pass += 1) {
+    const before = JSON.stringify(hardened);
+
+    ensureProductionCompleteness(hardened.nodes, hardened.edges, changes);
+    changes.push(...enforceArchitectureRules(hardened.nodes, hardened.edges));
+    changes.push(...connectIsolatedNodes(hardened.nodes, hardened.edges));
+    sanitizeInvalidConnections(hardened.nodes, hardened.edges, changes);
+    ensureQueueTopology(hardened.nodes, hardened.edges, changes);
+    sanitizeInvalidConnections(hardened.nodes, hardened.edges, changes);
+    hardened.edges = dedupeNormalizedEdges(hardened.edges);
+
+    if (JSON.stringify(hardened) === before) {
+      break;
+    }
+  }
+
+  const quality = reviewNormalizedDiagramForGeneration(hardened);
+  const activeFindings = quality.findings.filter(finding => finding.severity === 'critical' || finding.severity === 'warning');
+
+  if (activeFindings.length > 0) {
+    ensureProductionCompleteness(hardened.nodes, hardened.edges, changes);
+    ensureQueueTopology(hardened.nodes, hardened.edges, changes);
+    sanitizeInvalidConnections(hardened.nodes, hardened.edges, changes);
+    hardened.edges = dedupeNormalizedEdges(hardened.edges);
+  }
+
+  return {
+    diagram: hardened,
+    changes: [...new Set(changes)],
+    quality: reviewNormalizedDiagramForGeneration(hardened),
+  };
+}
+
 function validateNormalizedDiagram(diagram) {
   if (!Array.isArray(diagram.nodes) || diagram.nodes.length === 0) {
     throw new Error('Generated architecture did not contain any valid nodes.');
@@ -695,7 +1477,7 @@ function buildJsonRepairMessages(messages, rawResponse, errorMessage, schemaHint
     { role: 'assistant', content: rawResponse },
     {
       role: 'user',
-      content: `Your previous response could not be parsed as valid JSON (${errorMessage}). Return ONLY valid JSON matching this shape: ${schemaHint}. Do not include markdown fences, prose, duplicate objects, or explanations.`
+      content: `Your previous response could not be accepted (${errorMessage}). Return ONLY valid JSON matching this shape: ${schemaHint}. Do not include markdown fences, prose, duplicate objects, or explanations. The diagram must have no rule violations, no direct client-to-database links, no isolated nodes, queue producer and consumer paths, and all production support layers needed to score 100/100.`
     }
   ];
 }
@@ -729,21 +1511,18 @@ export async function generateDiagramFromPrompt({ description, template, model =
     try {
       const parsed = robustParseJSON(rawResponse);
       const normalizedDiagram = normalizeDiagramStructure(parsed);
-      const autoFixes = enforceArchitectureRules(normalizedDiagram.nodes, normalizedDiagram.edges);
-      const connectionFixes = connectIsolatedNodes(normalizedDiagram.nodes, normalizedDiagram.edges);
-      const allFixes = [...autoFixes, ...connectionFixes];
+      const hardened = hardenNormalizedDiagramForReview(normalizedDiagram);
+      const activeFindings = hardened.quality.findings
+        .filter(finding => finding.severity === 'critical' || finding.severity === 'warning');
 
-      const seenEdgeKeys = new Set();
-      normalizedDiagram.edges = normalizedDiagram.edges.filter(e => {
-        const key = `${e.source}->${e.target}::${e.label}`;
-        if (seenEdgeKeys.has(key)) return false;
-        seenEdgeKeys.add(key);
-        return true;
-      });
+      if (activeFindings.length > 0 || hardened.quality.score.score < 100) {
+        const findingTitles = activeFindings.map(finding => finding.title).join(', ') || `score ${hardened.quality.score.score}/100`;
+        throw new Error(`Generated architecture failed deterministic review gate: ${findingTitles}`);
+      }
 
-      validateNormalizedDiagram(normalizedDiagram);
-      const nodes = generateNodesFromDiagram(normalizedDiagram.nodes);
-      const edges = generateEdgesFromDiagram(normalizedDiagram.nodes, normalizedDiagram.edges, nodes);
+      validateNormalizedDiagram(hardened.diagram);
+      const nodes = generateNodesFromDiagram(hardened.diagram.nodes);
+      const edges = generateEdgesFromDiagram(hardened.diagram.nodes, hardened.diagram.edges, nodes);
 
       return {
         model: resolvedModel,
@@ -751,7 +1530,8 @@ export async function generateDiagramFromPrompt({ description, template, model =
         userMessage,
         nodes,
         edges,
-        autoFixes: allFixes.length > 0 ? allFixes : undefined
+        quality: hardened.quality,
+        autoFixes: hardened.changes.length > 0 ? hardened.changes : undefined
       };
     } catch (error) {
       lastError = error;
@@ -761,7 +1541,7 @@ export async function generateDiagramFromPrompt({ description, template, model =
   }
 
   const failure = new Error(
-    `Failed to parse AI JSON response after ${maxAttempts} attempt(s): ${lastError?.message || 'Unknown parse error'}`
+    `Failed to produce a review-safe AI diagram after ${maxAttempts} attempt(s): ${lastError?.message || 'Unknown generation error'}`
   );
   failure.rawResponse = rawResponse;
   failure.model = resolvedModel;
