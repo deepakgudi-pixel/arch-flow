@@ -1,7 +1,7 @@
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://img.shields.io/badge/archflow-00ff9d?style=for-the-badge&labelColor=0a0a0a">
-    <img alt="Archflow" src="https://img.shields.io/badge/archflow-00ff9d?style=for-the-badge&labelColor=0a0a0a">
+    <source media="(prefers-color-scheme: dark)" srcset="https://img.shields.io/badge/archflow-ffffff?style=for-the-badge&labelColor=000000">
+    <img alt="Archflow" src="https://img.shields.io/badge/archflow-ffffff?style=for-the-badge&labelColor=000000">
   </picture>
 </p>
 
