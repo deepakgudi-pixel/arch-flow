@@ -1,6 +1,6 @@
 <p align="center">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://img.shields.io/badge/archflow-cyberpunk%20system%20design-00ff9d?style=for-the-badge&labelColor=0a0a0a">
+  
     <img alt="Archflow" src="https://img.shields.io/badge/archflow-cyberpunk%20system%20design-00ff9d?style=for-the-badge&labelColor=0a0a0a">
   </picture>
 </p>
