@@ -8,7 +8,7 @@ import {
   buildReviewLearningSummary,
   getFindingLearningProfile
 } from '@/lib/learningInsights';
-import { CloseBtn } from './editorStyles';
+import { CloseBtn } from '../editorStyles';
 import {
   Panel, PanelHeader, TitleRow, TitleCluster, Title, ScoreRow, ScoreCircle, ScoreMeta,
   ScoreLabel, ScoreBar, ScoreFill, SummaryGrid, SummaryCard, SummaryLabel, SummaryValue,

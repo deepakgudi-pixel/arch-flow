@@ -1,5 +1,5 @@
 import styled from 'styled-components';
-import { ActionButton } from './editorStyles';
+import { ActionButton } from '../editorStyles';
 
 export const Panel = styled.div`
   width: 390px;

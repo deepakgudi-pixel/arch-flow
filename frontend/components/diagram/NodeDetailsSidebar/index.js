@@ -7,7 +7,7 @@ import { getLayerLearningProfile } from '@/lib/learningInsights';
 import {
   LeftSidebar, SidebarContent, SidebarTitle, CloseBtn,
   TechBadge, SectionTitle, Description, ProductCard, ProductName, ProductDesc
-} from './editorStyles';
+} from '../editorStyles';
 import {
   DetailHeader, NodeLabel, NodeRoleLabel, InsightList, InsightItem, ReplaceStack,
   ReplaceCard, ReplaceTitle, ReplaceName, ReplaceMeta, ReplaceDescription, ConnectionStack,

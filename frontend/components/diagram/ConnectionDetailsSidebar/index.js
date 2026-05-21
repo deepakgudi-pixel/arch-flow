@@ -11,7 +11,7 @@ import {
   TechBadge,
   SectionTitle,
   Description
-} from './editorStyles';
+} from '../editorStyles';
 import {
   DetailHeader, RouteCard, RouteMeta, Arrow, EndpointName, ProtocolHero, InsightList,
   InsightItem, EmptyHint, DangerButton

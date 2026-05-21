@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Bot, MessageSquareText, Send, Sparkles } from 'lucide-react';
 import { Badge } from '@/components/ui/Badge';
-import { CloseBtn } from './editorStyles';
+import { CloseBtn } from '../editorStyles';
 import {
   Panel, PanelHeader, TitleRow, TitleCluster, Title, IntroCard, IntroTitle, PromptRow,
   PromptChip, MessageList, ThinkingCard, ThinkingDot, MessageCard, MessageMeta, MessageRole,

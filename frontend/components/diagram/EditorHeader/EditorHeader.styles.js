@@ -1,6 +1,6 @@
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
-import { HeaderCenter, HeaderRight, ActionButton } from './editorStyles';
+import { HeaderCenter, HeaderRight, ActionButton } from '../editorStyles';
 
 export const CenterStack = styled(HeaderCenter)`
   flex-direction: row;

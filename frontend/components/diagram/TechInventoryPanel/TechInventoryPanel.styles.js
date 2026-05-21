@@ -1,5 +1,5 @@
 import styled from 'styled-components';
-import { ActionButton, SearchInput } from './editorStyles';
+import { ActionButton, SearchInput } from '../editorStyles';
 
 export const GenerateSection = styled.div`
   margin-bottom: 32px;

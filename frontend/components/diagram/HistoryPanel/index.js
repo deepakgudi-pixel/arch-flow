@@ -3,7 +3,7 @@
 import { History, Clock, RotateCcw } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { buildVersionDiff } from '@/lib/diagramIntelligence';
-import { CloseBtn } from './editorStyles';
+import { CloseBtn } from '../editorStyles';
 import {
   Panel, PanelHeader, TitleCluster, Title, VersionList, VersionCard, VersionMeta,
   VersionPrompt, VersionDiff, EmptyState, Footer, ClearButton

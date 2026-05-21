@@ -26,7 +26,7 @@ import {
 } from 'lucide-react';
 import {
   Header, HeaderLeft, Logo, LogoIcon, DiagramNameWrap, DiagramName
-} from './editorStyles';
+} from '../editorStyles';
 import {
   CenterStack, FocusChip, FocusLabel, FocusValue, StatusChip, SaveStatus, ActionRail,
   PrimaryGroup, PrimaryAction, ReviewCount, UtilityWrapper, UtilityTrigger, UtilityDropdownShell,

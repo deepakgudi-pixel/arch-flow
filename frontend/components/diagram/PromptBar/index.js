@@ -10,7 +10,7 @@ import {
   Loader2,
   Cpu
 } from 'lucide-react';
-import { BottomBar, PromptInput, TemplateSelect } from './editorStyles';
+import { BottomBar, PromptInput, TemplateSelect } from '../editorStyles';
 import {
   PromptBarPositioner, GenerateButton, IconWrapper, PromptActions, TemplateSelectWrap,
   ButtonContent, SpinnerWrap

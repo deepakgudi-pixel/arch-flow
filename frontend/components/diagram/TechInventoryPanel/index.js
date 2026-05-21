@@ -4,7 +4,7 @@ import { Trash2 } from 'lucide-react';
 import {
   RightPanel, PanelContent, SidebarTitle, SearchInput, CloseBtn,
   SectionTitle, TechChip, TechCategory, CategoryLabel
-} from './editorStyles';
+} from '../editorStyles';
 import {
   GenerateSection, CustomTechInput, AiBadge, DeleteBtn, EmptyState, EmptyStateLabel, WideButton
 } from './TechInventoryPanel.styles';
