@@ -1,68 +1,13 @@
 'use client';
 
-import styled from 'styled-components';
 import { Trash2 } from 'lucide-react';
 import {
   RightPanel, PanelContent, SidebarTitle, SearchInput, CloseBtn,
-  SectionTitle, ActionButton, TechChip, TechCategory, CategoryLabel
+  SectionTitle, TechChip, TechCategory, CategoryLabel
 } from './editorStyles';
-
-const GenerateSection = styled.div`
-  margin-bottom: 32px;
-`;
-
-const AiBadge = styled.span`
-  font-family: var(--font-sans);
-  font-size: 9px;
-  font-weight: 800;
-  background: rgba(0, 0, 0, 0.05);
-  color: #666;
-  padding: 2px 6px;
-  border-radius: 4px;
-  margin-left: 8px;
-  text-transform: uppercase;
-  letter-spacing: 0.02em;
-`;
-
-const DeleteBtn = styled.button`
-  margin-left: auto;
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 4px;
-  color: #ccc;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s;
-  
-  &:hover {
-    color: #ef4444;
-  }
-`;
-
-const EmptyState = styled.div`
-  text-align: center;
-  padding: 32px 24px;
-  border: 1px dashed rgba(0, 0, 0, 0.1);
-  border-radius: 12px;
-  background: rgba(0, 0, 0, 0.01);
-`;
-
-const EmptyStateLabel = styled.div`
-  font-family: var(--font-sans);
-  font-size: 12px;
-  font-weight: 600;
-  color: #999;
-  margin-bottom: 16px;
-`;
-
-const WideButton = styled(ActionButton)`
-  width: 100%;
-  justify-content: center;
-  padding: 10px;
-  font-size: 12px;
-`;
+import {
+  GenerateSection, CustomTechInput, AiBadge, DeleteBtn, EmptyState, EmptyStateLabel, WideButton
+} from './TechInventoryPanel.styles';
 
 export default function TechInventoryPanel({
   open, searchTerm, onSearchTermChange,
@@ -88,11 +33,10 @@ export default function TechInventoryPanel({
 
           <SectionTitle>Custom Generation</SectionTitle>
           <GenerateSection>
-            <SearchInput
+            <CustomTechInput
               placeholder="Describe custom tech..."
               value={customTechPrompt}
               onChange={e => onCustomTechPromptChange(e.target.value)}
-              style={{ marginBottom: '12px' }}
               onKeyPress={e => e.key === 'Enter' && onGenerateTech()}
             />
             <WideButton

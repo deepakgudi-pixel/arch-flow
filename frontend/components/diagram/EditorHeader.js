@@ -1,8 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import styled from 'styled-components';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence } from 'framer-motion';
 import { 
   Hexagon, 
   ChevronDown, 
@@ -26,193 +25,13 @@ import {
   Sparkles
 } from 'lucide-react';
 import {
-  Header, HeaderLeft, Logo, LogoIcon, DiagramNameWrap, DiagramName,
-  HeaderCenter, HeaderRight
+  Header, HeaderLeft, Logo, LogoIcon, DiagramNameWrap, DiagramName
 } from './editorStyles';
-import { ActionButton } from './editorStyles';
-
-const CenterStack = styled(HeaderCenter)`
-  flex-direction: row;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  flex: 2;
-`;
-
-const StatusRail = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 8px;
-`;
-
-const FocusChip = styled(motion.div)`
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 12px;
-  background: rgba(0, 0, 0, 0.05);
-  border-radius: 999px;
-  border: 1px solid rgba(0, 0, 0, 0.05);
-`;
-
-const FocusLabel = styled.div`
-  font-family: var(--font-sans);
-  font-size: 11px;
-  font-weight: 700;
-  color: #666;
-  text-transform: uppercase;
-  letter-spacing: 0.02em;
-`;
-
-const FocusValue = styled.div`
-  font-family: var(--font-sans);
-  font-size: 13px;
-  font-weight: 700;
-  color: #000;
-`;
-
-const StatusChip = styled(motion.div)`
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  border-radius: 999px;
-  background: ${props => props.$tone === 'alert' ? '#FFFBEB' : '#F0F9FF'};
-  color: ${props => props.$tone === 'alert' ? '#B45309' : '#0369A1'};
-  border: 1px solid ${props => props.$tone === 'alert' ? 'rgba(180, 83, 9, 0.1)' : 'rgba(3, 105, 161, 0.1)'};
-  font-family: var(--font-sans);
-  font-size: 12px;
-  font-weight: 700;
-`;
-
-const SaveStatus = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 11px;
-  font-weight: 600;
-  color: ${props => props.$tone === 'error' ? '#dc2626' : '#999'};
-  margin-top: -2px;
-`;
-
-const ActionRail = styled(HeaderRight)`
-  gap: 12px;
-  flex: 1;
-  justify-content: flex-end;
-`;
-
-const PrimaryGroup = styled.div`
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 4px;
-  background: rgba(0, 0, 0, 0.03);
-  border-radius: 12px;
-`;
-
-const PrimaryAction = styled(ActionButton)`
-  border: none;
-  background: ${props => props.$active ? '#000000' : 'transparent'};
-  color: ${props => props.$active ? '#ffffff' : '#444'};
-  border-radius: 8px;
-  padding: 8px 12px;
-  font-weight: 700;
-
-  &:hover:not(:disabled) {
-    background: ${props => props.$active ? '#000000' : 'rgba(0, 0, 0, 0.05)'};
-    color: ${props => props.$active ? '#ffffff' : '#000'};
-    transform: none;
-    box-shadow: none;
-  }
-
-  &:disabled {
-    cursor: not-allowed;
-  }
-`;
-
-const ReviewCount = styled.span`
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 20px;
-  height: 20px;
-  padding: 0 6px;
-  border-radius: 999px;
-  background: ${props => props.$active ? '#ffffff' : '#000000'};
-  color: ${props => props.$active ? '#000000' : '#ffffff'};
-  font-size: 10px;
-  line-height: 1;
-`;
-
-const UtilityWrapper = styled.div`
-  position: relative;
-  display: inline-flex;
-  flex-direction: column;
-  align-items: flex-end;
-`;
-
-const UtilityTrigger = styled(ActionButton)`
-  background: #ffffff;
-  padding: 8px 14px;
-  font-weight: 700;
-`;
-
-const UtilityDropdownShell = styled(motion.div)`
-  position: absolute;
-  top: calc(100% + 8px);
-  right: 0;
-  z-index: 1000;
-  min-width: 220px;
-`;
-
-const UtilityDropdown = styled.div`
-  background: #ffffff;
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  border-radius: 12px;
-  box-shadow: none;
-  overflow: hidden;
-  padding: 6px;
-`;
-
-const UtilityItem = styled.div`
-  padding: 10px 12px;
-  cursor: pointer;
-  font-family: var(--font-sans);
-  font-size: 13px;
-  font-weight: 600;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  background: ${props => props.$danger ? 'transparent' : 'transparent'};
-  color: ${props => props.$danger ? '#DC2626' : '#444'};
-  transition: all 0.2s;
-
-  &:hover {
-    background: ${props => props.$danger ? '#FEF2F2' : '#F9F9F9'};
-    color: ${props => props.$danger ? '#B91C1C' : '#000'};
-  }
-
-  svg {
-    width: 16px;
-    height: 16px;
-    opacity: 0.7;
-  }
-`;
-
-const Divider = styled.div`
-  height: 1px;
-  background: rgba(0, 0, 0, 0.05);
-  margin: 4px 0;
-`;
-
-const UtilityMeta = styled.span`
-  color: #999;
-  font-size: 10px;
-  font-weight: 600;
-  text-transform: uppercase;
-`;
+import {
+  CenterStack, FocusChip, FocusLabel, FocusValue, StatusChip, SaveStatus, ActionRail,
+  PrimaryGroup, PrimaryAction, ReviewCount, UtilityWrapper, UtilityTrigger, UtilityDropdownShell,
+  UtilityDropdown, UtilityItem, UtilityItemLabel, Divider, UtilityMeta
+} from './EditorHeader.styles';
 
 export default function EditorHeader({
   diagramName, onDiagramNameChange, onDiagramNameBlur,
@@ -334,10 +153,10 @@ export default function EditorHeader({
 
       <ActionRail>
         <PrimaryGroup>
-          <PrimaryAction onClick={onUndo} disabled={!canUndo} style={{ opacity: canUndo ? 1 : 0.35 }}>
+          <PrimaryAction onClick={onUndo} disabled={!canUndo} $muted={!canUndo}>
             <Undo2 size={15} />
           </PrimaryAction>
-          <PrimaryAction onClick={onRedo} disabled={!canRedo} style={{ opacity: canRedo ? 1 : 0.35 }}>
+          <PrimaryAction onClick={onRedo} disabled={!canRedo} $muted={!canRedo}>
             <Redo2 size={15} />
           </PrimaryAction>
           <PrimaryAction $active={assistantPanelOpen} onClick={onToggleAssistantPanel}>
@@ -358,9 +177,9 @@ export default function EditorHeader({
         </PrimaryGroup>
 
         <UtilityWrapper>
-          <UtilityTrigger onClick={onToggleExportMenu}>
+          <UtilityTrigger onClick={onToggleExportMenu} $open={showExportMenu}>
             Actions
-            <ChevronDown size={14} style={{ transform: showExportMenu ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
+            <ChevronDown size={14} />
           </UtilityTrigger>
           <AnimatePresence>
             {showExportMenu && (
@@ -372,17 +191,17 @@ export default function EditorHeader({
               >
                 <UtilityDropdown>
                   {utilityItems.map((item, idx) => item.divider ? (
-                    <Divider key={`divider_${idx}`} style={{ margin: '4px 0' }} />
+                    <Divider key={`divider_${idx}`} />
                   ) : (
                     <UtilityItem
                       key={item.label}
                       $danger={item.danger}
                       onClick={() => { onToggleExportMenu(); item.onClick(); }}
                     >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <UtilityItemLabel>
                         {item.icon}
                         <span>{item.label}</span>
-                      </div>
+                      </UtilityItemLabel>
                       {item.meta ? <UtilityMeta>{item.meta}</UtilityMeta> : null}
                     </UtilityItem>
                   ))}
