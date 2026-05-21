@@ -1,0 +1,11 @@
+{
+  "name": "archflow",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "test": "npm run test:backend && npm run test:frontend",
+    "test:backend": "npm --prefix backend test",
+    "test:frontend": "npm --prefix frontend run build && npm --prefix frontend run smoke:editor",
+    "test:smoke": "npm --prefix frontend run smoke:editor"
+  }
+}

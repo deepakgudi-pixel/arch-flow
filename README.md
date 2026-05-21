@@ -384,9 +384,32 @@ npm run eval:harness -- --max-prompts 12 --runs 2
 
 Archflow includes automated smoke checks to catch regressions in critical flows without manual clicking.
 
+### Full Local Test Suite
+
+From the repository root:
+
+```bash
+npm test
+```
+
+Runs:
+- backend unit/regression tests for diagram hardening, review suggestion normalization, eval checks, and architecture reliability
+- frontend production build
+- Playwright editor smoke test
+
+### GitHub Actions
+
+The repo includes a GitHub Actions workflow at `.github/workflows/test.yml`.
+
+On every push to `master` and every pull request, CI runs:
+- backend dependency install + `npm test`
+- frontend dependency install + `npm run build`
+- Playwright Chromium install
+- editor smoke test
+
 ### Editor Smoke Test (Playwright)
 
-A Playwright browser test that verifies the core editor panels open and close correctly — AI Assistant, Review, Library, History, and the Actions menu.
+A Playwright browser test that verifies the core editor panels open and close correctly — AI Assistant, Review, Library, History, and the Actions menu. It also verifies review teaching surfaces such as System Walkthrough, Why It Matters, How To Fix, and score breakdown.
 
 ```bash
 cd frontend
