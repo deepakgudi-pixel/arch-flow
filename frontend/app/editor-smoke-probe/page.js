@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import styled from 'styled-components';
 import EditorHeader from '@/components/diagram/EditorHeader';
 import DiagramAssistantPanel from '@/components/diagram/DiagramAssistantPanel';
@@ -45,6 +45,7 @@ function buildMockVersion(id, promptText, createdAt, nodes, edges) {
 }
 
 export default function EditorSmokeProbePage() {
+  const [hydrated, setHydrated] = useState(false);
   const [diagramName, setDiagramName] = useState('Smoke Probe Diagram');
   const [assistantPanelOpen, setAssistantPanelOpen] = useState(false);
   const [reviewPanelOpen, setReviewPanelOpen] = useState(false);
@@ -131,6 +132,10 @@ export default function EditorSmokeProbePage() {
     }),
     [],
   );
+
+  useEffect(() => {
+    setHydrated(true);
+  }, []);
 
   const closeUtilityPanels = () => {
     setAssistantPanelOpen(false);
@@ -243,7 +248,9 @@ export default function EditorSmokeProbePage() {
           <CanvasNote>Editor Smoke Probe</CanvasNote>
           <EmptyCanvas>
             <EmptyIcon>⬡</EmptyIcon>
-            <EmptyText>INTERACTIVE_EDITOR_SHELL_READY</EmptyText>
+            <EmptyText>
+              {hydrated ? 'INTERACTIVE_EDITOR_SHELL_HYDRATED' : 'INTERACTIVE_EDITOR_SHELL_READY'}
+            </EmptyText>
           </EmptyCanvas>
           {activeUtilityPanel ? <PanelHost>{activeUtilityPanel}</PanelHost> : null}
         </CanvasWrapper>

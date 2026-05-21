@@ -3,7 +3,7 @@ import { expect, test } from '@playwright/test';
 test('editor smoke probe supports critical panel flows', async ({ page }) => {
   await page.goto('/editor-smoke-probe');
 
-  await expect(page.getByText('INTERACTIVE_EDITOR_SHELL_READY')).toBeVisible();
+  await expect(page.getByText('INTERACTIVE_EDITOR_SHELL_HYDRATED')).toBeVisible();
   await expect(page.locator('input').first()).toHaveValue('Smoke Probe Diagram');
 
   await page.getByRole('button', { name: 'Assistant' }).click();
