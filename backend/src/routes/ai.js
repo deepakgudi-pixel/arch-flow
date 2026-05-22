@@ -24,6 +24,7 @@ import {
 import { callOpenRouterForJSON, DIAGRAM_MODEL, TECH_MODEL } from '../lib/openRouter.js';
 import { buildDiagramUserMessage, generateDiagramFromPrompt } from '../lib/diagramGenerator.js';
 import { recordAIFailure } from '../lib/aiFailures.js';
+import { saveGenerationVersionHandler } from './diagramRouteHandlers.js';
 
 const router = express.Router();
 
@@ -236,18 +237,15 @@ router.post('/generate-diagram', aiLimiter, optionalAuth, validate({
 
     // Persistent storage (Versioning + Caching)
     try {
-      await pool.query(
-        `INSERT INTO diagram_versions (diagram_id, prompt_hash, prompt_text, nodes, edges, raw_response)
-         VALUES ($1, $2, $3, $4, $5, $6)`,
-        [
-          diagramId || null,
-          cacheKey,
-          `AI_SYNTHESIS: ${description}`,
-          JSON.stringify(result.nodes),
-          JSON.stringify(result.edges),
-          responseText
-        ]
-      );
+      await saveGenerationVersionHandler({
+        db: pool,
+        diagramId,
+        promptHash: cacheKey,
+        promptText: `AI_SYNTHESIS: ${description}`,
+        nodes: result.nodes,
+        edges: result.edges,
+        rawResponse: responseText
+      });
     } catch (vErr) {
       logger.error('Failed to save diagram version', { error: vErr.message, diagramId });
     }
@@ -273,11 +271,15 @@ router.post('/generate-diagram', aiLimiter, optionalAuth, validate({
     // Even on error, save partial if it exists
     if (responseText.length > 50) {
       try {
-        await pool.query(
-          `INSERT INTO diagram_versions (diagram_id, prompt_hash, prompt_text, nodes, edges, raw_response)
-           VALUES ($1, $2, $3, $4, $5, $6)`,
-          [diagramId || null, cacheKey, description, '[]', '[]', responseText]
-        );
+        await saveGenerationVersionHandler({
+          db: pool,
+          diagramId,
+          promptHash: cacheKey,
+          promptText: description,
+          nodes: [],
+          edges: [],
+          rawResponse: responseText
+        });
       } catch (saveErr) {
         logger.error('Failed to save partial response', { error: saveErr.message });
       }

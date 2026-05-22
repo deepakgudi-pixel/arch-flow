@@ -22,7 +22,7 @@ const PanelHost = styled.div`
   top: 0;
   right: 0;
   bottom: 0;
-  z-index: 5;
+  z-index: 200;
   border-left: 4px solid #000000;
   background: #ffffff;
 `;

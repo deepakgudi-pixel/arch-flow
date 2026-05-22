@@ -11,6 +11,7 @@ import {
   Cpu
 } from 'lucide-react';
 import { BottomBar, PromptInput, TemplateSelect } from '../editorStyles';
+import { architectureExamples, getArchitectureExamplePrompt } from '@/lib/architectureExamples';
 import {
   PromptBarPositioner, GenerateButton, IconWrapper, PromptActions, TemplateSelectWrap,
   ButtonContent, SpinnerWrap
@@ -21,6 +22,18 @@ export default function PromptBar({
   template, onTemplateChange,
   loading, onGenerate
 }) {
+  const handleTemplateChange = (event) => {
+    const nextTemplate = event.target.value;
+    onTemplateChange(nextTemplate);
+
+    if (nextTemplate.startsWith('example:')) {
+      const examplePrompt = getArchitectureExamplePrompt(nextTemplate.replace('example:', ''));
+      if (examplePrompt) {
+        onPromptChange(examplePrompt);
+      }
+    }
+  };
+
   return (
     <PromptBarPositioner>
       <BottomBar
@@ -42,13 +55,22 @@ export default function PromptBar({
 
         <PromptActions>
           <TemplateSelectWrap>
-            <TemplateSelect value={template} onChange={e => onTemplateChange(e.target.value)}>
-              <option value="blank">Blank Canvas</option>
-              <option value="saas">SaaS Platform</option>
-              <option value="ecommerce">E-Commerce</option>
-              <option value="mobile">Mobile Backend</option>
-              <option value="realtime">Realtime System</option>
-              <option value="microservices">Microservices</option>
+            <TemplateSelect value={template} onChange={handleTemplateChange} aria-label="Architecture template">
+              <optgroup label="Starter systems">
+                <option value="blank">Blank Canvas</option>
+                <option value="saas">SaaS Platform</option>
+                <option value="ecommerce">E-Commerce</option>
+                <option value="mobile">Mobile Backend</option>
+                <option value="realtime">Realtime System</option>
+                <option value="microservices">Microservices</option>
+              </optgroup>
+              <optgroup label="Recruiter-ready examples">
+                {architectureExamples.map(example => (
+                  <option key={example.id} value={`example:${example.id}`}>
+                    {example.name} · {example.audience}
+                  </option>
+                ))}
+              </optgroup>
             </TemplateSelect>
           </TemplateSelectWrap>
 

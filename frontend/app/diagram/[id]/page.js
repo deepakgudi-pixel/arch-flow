@@ -43,6 +43,7 @@ import DiagramAssistantPanel from '@/components/diagram/DiagramAssistantPanel';
 import PromptBar from '@/components/diagram/PromptBar';
 import InviteModal from '@/components/diagram/InviteModal';
 import SynthesisTerminal from '@/components/diagram/SynthesisTerminal';
+import GuidedModePanel from '@/components/diagram/GuidedModePanel';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import Toast from '@/components/ui/Toast';
 import {
@@ -84,6 +85,16 @@ export default function DiagramPage() {
       setIsDesktop(true);
     }
   }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    if (!window.localStorage.getItem('archflow-guided-mode-dismissed')) {
+      setGuidedModeOpen(true);
+    }
+  }, []);
   const [searchTerm, setSearchTerm] = useState('');
   const [toast, setToast] = useState(null);
   const [showInviteModal, setShowInviteModal] = useState(false);
@@ -98,6 +109,7 @@ export default function DiagramPage() {
   const [assistantPanelOpen, setAssistantPanelOpen] = useState(false);
   const [reviewPanelOpen, setReviewPanelOpen] = useState(false);
   const [historyPanelOpen, setHistoryPanelOpen] = useState(false);
+  const [guidedModeOpen, setGuidedModeOpen] = useState(false);
   const autoSynthEdgeIdsRef = useRef(new Set());
   const protocolRepairTimeoutRef = useRef(null);
   const {
@@ -193,6 +205,22 @@ export default function DiagramPage() {
     simulateFlow,
     setToast
   });
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !diagramId) {
+      return;
+    }
+
+    const promptKey = `archflow-example-prompt:${diagramId}`;
+    const examplePrompt = window.localStorage.getItem(promptKey);
+
+    if (examplePrompt) {
+      setPrompt(examplePrompt);
+      window.localStorage.removeItem(promptKey);
+      setToast({ message: 'SHOWCASE_PROMPT_READY: Review then synthesize', error: false });
+      setTimeout(() => setToast(null), 3200);
+    }
+  }, [diagramId, setPrompt, setToast]);
   const {
     assistantPrompt,
     setAssistantPrompt,
@@ -835,6 +863,7 @@ export default function DiagramPage() {
           onUndo={handleUndo}
           onRedo={handleRedo}
           onOptimize={handleOptimizeTo100}
+          onOpenGuidedMode={() => setGuidedModeOpen(true)}
         />
 
         <MainArea>
@@ -932,6 +961,29 @@ export default function DiagramPage() {
               loading={loading}
               onGenerate={handleGenerate}
             />
+
+            {guidedModeOpen && (
+              <GuidedModePanel
+                onClose={() => {
+                  setGuidedModeOpen(false);
+                  window.localStorage.setItem('archflow-guided-mode-dismissed', 'true');
+                }}
+                onOpenAssistant={() => {
+                  setGuidedModeOpen(false);
+                  setAssistantPanelOpen(true);
+                  setReviewPanelOpen(false);
+                  setRightPanelOpen(false);
+                  setHistoryPanelOpen(false);
+                }}
+                onOpenReview={() => {
+                  setGuidedModeOpen(false);
+                  setReviewPanelOpen(true);
+                  setAssistantPanelOpen(false);
+                  setRightPanelOpen(false);
+                  setHistoryPanelOpen(false);
+                }}
+              />
+            )}
           </CanvasWrapper>
 
           <TechInventoryPanel

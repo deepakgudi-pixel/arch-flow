@@ -14,6 +14,8 @@ test('editor smoke probe supports critical panel flows', async ({ page }) => {
   await page.getByRole('button', { name: /Review/ }).click();
   await expect(page.getByRole('heading', { name: 'Architecture Review' })).toBeVisible();
   await expect(page.getByText('System Walkthrough')).toBeVisible();
+  await expect(page.getByText('Architecture Readout')).toBeVisible();
+  await expect(page.getByText(/Click to highlight/i)).toBeVisible();
   await expect(page.getByText('Why It Matters')).toBeVisible();
   await expect(page.getByText('How To Fix')).toBeVisible();
   await page.getByRole('button', { name: /Show score breakdown/i }).click();
@@ -34,4 +36,7 @@ test('editor smoke probe supports critical panel flows', async ({ page }) => {
   await expect(page.getByRole('heading', { name: /system history/i })).toBeVisible();
   await page.getByLabel('Close history').click();
   await expect(page.getByRole('heading', { name: /system history/i })).toBeHidden();
+
+  await page.getByLabel('Architecture template').selectOption('example:stripe');
+  await expect(page.locator('input').last()).toHaveValue(/Design Stripe/i);
 });

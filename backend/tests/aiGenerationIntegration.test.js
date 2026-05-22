@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { generateDiagramFromPrompt } from '../src/lib/diagramGenerator.js';
+import { buildDiagramUserMessage, generateDiagramFromPrompt } from '../src/lib/diagramGenerator.js';
 
 function activeFindings(quality) {
   return quality.findings.filter(finding => ['critical', 'warning'].includes(finding.severity));
@@ -82,4 +82,15 @@ test('generateDiagramFromPrompt retries with repair instructions when mocked AI 
   } finally {
     console.error = originalConsoleError;
   }
+});
+
+test('buildDiagramUserMessage expands recruiter-ready architecture examples', () => {
+  const netflixPrompt = buildDiagramUserMessage('make it resilient', 'example:netflix');
+  const stripePrompt = buildDiagramUserMessage('include compliance', 'example:stripe');
+
+  assert.match(netflixPrompt, /Netflix-scale video streaming architecture/i);
+  assert.match(netflixPrompt, /CDN delivery/i);
+  assert.match(netflixPrompt, /make it resilient/i);
+  assert.match(stripePrompt, /Stripe-scale fintech architecture/i);
+  assert.match(stripePrompt, /compliance audit logs/i);
 });

@@ -15,9 +15,14 @@ export const NodeWrapper = styled.div`
   opacity: ${props => props.$dimmed ? 0.32 : 1};
   filter: ${props => props.$dimmed ? 'grayscale(0.16)' : 'none'};
   box-shadow: none;
+  ${props => props.$highlighted && `
+    border-color: #ff3d00;
+    box-shadow: 0 0 0 4px rgba(255, 61, 0, 0.14);
+  `}
   ${props => props.$selected && `
     transform: translate(-2px, -2px);
     border-width: 4px;
+    border-color: #ff3d00;
   `}
 `;
 

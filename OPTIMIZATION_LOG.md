@@ -1,5 +1,139 @@
 # Archflow Optimization Log
 
+**log:** 2026-05-23 01:10:00 IST (+0530)
+
+## Overview
+Showcase-Ready Productization Pass. Focus areas: making the product easier to understand for recruiters, adding beginner guidance, improving review-to-canvas inspection, and strengthening CI/testing around persistence and route behavior.
+
+---
+
+## 1. Beginner-Friendly Guided Mode
+**Why:** New users and portfolio reviewers should not need to infer the product workflow from a blank editor.
+
+**What changed:**
+- added a Guided Mode overlay in the diagram editor
+- explains the core loop:
+  - start from a real system
+  - inspect the diagram
+  - review weak spots
+  - improve safely through staged suggestions or optimization
+- added an Actions menu entry to reopen Guided Mode
+
+**How this helps Archflow:**
+- makes the app friendlier for students and early-career developers
+- makes the first-run experience less dependent on prior system design knowledge
+
+---
+
+## 2. Recruiter-Ready Showcase Examples
+**Why:** A reviewer should understand Archflow in seconds without inventing a prompt.
+
+**What changed:**
+- added example prompts for Netflix, Uber, WhatsApp, Stripe, YouTube, and Slack
+- added dashboard Showcase Examples cards
+- clicking a showcase card creates a demo workspace and preloads the architecture prompt into the editor
+- added the same examples to the prompt bar template selector
+
+**How this helps Archflow:**
+- creates a fast demo path for interviews and portfolio reviews
+- makes the product value concrete through recognizable systems
+
+---
+
+## 3. "Why This Architecture Works" Narrative
+**Why:** A generated architecture is more valuable when users understand the reasoning, not just the boxes and arrows.
+
+**What changed:**
+- added typed architecture narrative helpers
+- Review Panel now includes a diagram-level readout explaining:
+  - why the architecture is review-ready
+  - which reliability layers are present
+  - how the current internal quality gate reads
+
+**How this helps Archflow:**
+- turns review into teaching
+- gives users language they can reuse in interviews and technical discussions
+
+---
+
+## 4. Clickable Review Findings + Stronger Highlighting
+**Why:** Review findings should point users to the exact diagram area they need to inspect.
+
+**What changed:**
+- review findings now include clear click-to-highlight hints
+- focused nodes have stronger selected/review-highlight styling
+- smoke tests verify the review teaching and highlight hint surfaces
+
+**How this helps Archflow:**
+- closes the loop between review text and visual architecture
+- makes the review panel feel connected to the canvas instead of detached from it
+
+---
+
+## 5. Typecheck/Lint CI Hardening
+**Why:** The codebase is now large enough that build-only verification is not enough.
+
+**What changed:**
+- added frontend `typecheck` script using `next typegen && tsc --noEmit`
+- added a lightweight frontend architecture lint script for obvious shipped-code mistakes
+- updated GitHub Actions to run lint and typecheck before frontend build
+- ignored TypeScript incremental build artifacts
+
+**How this helps Archflow:**
+- catches type and code hygiene regressions earlier
+- improves employer confidence in the engineering process
+
+---
+
+## 6. Stronger API/DB Integration-Style Tests
+**Why:** The product story depends on saving diagrams, preserving history, and enforcing access control.
+
+**What changed:**
+- extracted testable diagram route handlers for:
+  - diagram update/save
+  - version listing
+  - AI generation version persistence
+  - invite code generation
+- added tests for:
+  - diagram update persistence
+  - manual history creation
+  - non-owner permission denial
+  - AI generation persistence payloads
+  - version list date normalization
+  - auth middleware guard behavior
+- backend suite now covers 25 tests
+
+**How this helps Archflow:**
+- strengthens the backend reliability story
+- makes persistence behavior easier to verify without spinning up a real database in every local test
+
+---
+
+## 7. Production Smoke Route Fix
+**Why:** The editor smoke probe should remain testable even when Clerk keys are unavailable or mismatched locally.
+
+**What changed:**
+- adjusted middleware so `/editor-smoke-probe` bypasses Clerk immediately
+- switched Playwright default host to `127.0.0.1` for more stable local smoke runs
+- fixed smoke probe panel stacking so review interactions remain clickable after adding new teaching content
+
+**How this helps Archflow:**
+- keeps smoke tests reliable
+- prevents auth configuration from blocking local editor regression tests
+
+---
+
+## 8. Current Verification
+Passed locally:
+
+- `npm --prefix backend test` — 25 passing backend tests
+- `npm --prefix frontend run lint`
+- `npm --prefix frontend run typecheck`
+- `npm --prefix frontend run build`
+- `npm --prefix frontend run smoke:editor`
+
+---
+
 **log:** 2026-05-13 21:10:00 IST (+0530)
 
 ## Overview

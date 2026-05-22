@@ -8,6 +8,7 @@ import {
   buildReviewLearningSummary,
   getFindingLearningProfile
 } from '@/lib/learningInsights';
+import { buildArchitectureNarrative } from '@/lib/architectureNarrative';
 import { CloseBtn } from '../editorStyles';
 import {
   Panel, PanelHeader, TitleRow, TitleCluster, Title, ScoreRow, ScoreCircle, ScoreMeta,
@@ -20,7 +21,7 @@ import {
   BreakdownPanel, BreakdownRow, BreakdownLabel, BreakdownValue, ScoreDivider, AutoFixesList,
   AutoFixItem, BadgeRow, SuggestionMetaStack, LearningSummary, LearningTitle, LearningText,
   FindingLesson, LessonLabel, LessonText, StudyGuideList, StudyCard, StudyTitle, StudyText,
-  StudyInspect
+  StudyInspect, NarrativeCard, NarrativeList, NarrativeItem, FindingInspectHint
 } from './ReviewPanel.styles';
 
 function severityIcon(severity) {
@@ -74,6 +75,12 @@ export default function ReviewPanel({
   const score = architectureScore || { score: 0, grade: 'F', criticalCount, warningCount, infoCount, categoryCoverage: 0, coveragePct: 0, breakdown: { deductions: {}, bonuses: {} } };
   const learningSummary = buildReviewLearningSummary(safeFindings, nodeCount, edgeCount);
   const studyGuide = buildDiagramStudyGuide(nodes, edges);
+  const narrative = buildArchitectureNarrative({
+    nodes,
+    edges,
+    findings: safeFindings,
+    score
+  });
   const [displayScore, setDisplayScore] = useState(0);
   const [showBreakdown, setShowBreakdown] = useState(false);
   const prevScore = useRef(0);
@@ -197,6 +204,16 @@ export default function ReviewPanel({
           <LearningTitle>{learningSummary.title}</LearningTitle>
           <LearningText>{learningSummary.detail}</LearningText>
         </LearningSummary>
+        <NarrativeCard>
+          <LearningTitle>{narrative.title}</LearningTitle>
+          <LearningText>{narrative.summary}</LearningText>
+          <NarrativeList>
+            {narrative.strengths.map(strength => (
+              <NarrativeItem key={strength}>{strength}</NarrativeItem>
+            ))}
+          </NarrativeList>
+          <LessonText>{narrative.reviewNote}</LessonText>
+        </NarrativeCard>
         <SummaryGrid>
           <SummaryCard>
             <SummaryLabel>Critical</SummaryLabel>
@@ -347,6 +364,9 @@ export default function ReviewPanel({
                       <LessonLabel>How To Fix</LessonLabel>
                       <LessonText>{lesson.fix}</LessonText>
                     </FindingLesson>
+                    <FindingInspectHint>
+                      Click to highlight {finding.edgeIds?.length ? 'the exact flow' : finding.nodeIds?.length ? 'the affected component' : 'this review signal'} on the canvas
+                    </FindingInspectHint>
                   </FindingCard>
                 );
               })}

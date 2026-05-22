@@ -9,6 +9,8 @@
     "dev": "next dev",
     "dev:webpack": "next dev --webpack",
     "build": "next build",
+    "typecheck": "next typegen && tsc --noEmit",
+    "lint": "node scripts/lint-architecture.mjs",
     "start": "next start",
     "auth:smoke": "node scripts/auth-smoke.mjs",
     "smoke:editor": "PLAYWRIGHT_START_SERVER=1 playwright test",

@@ -13,7 +13,7 @@
   <img src="https://img.shields.io/badge/PostgreSQL-Neon-4169E1?style=flat-square&logo=postgresql" alt="PostgreSQL">
   <img src="https://img.shields.io/badge/Redis-Upstash-FF4438?style=flat-square&logo=redis" alt="Redis">
   <img src="https://img.shields.io/badge/Electron-Mac-47848F?style=flat-square&logo=electron" alt="Electron">
-  <img src="https://img.shields.io/badge/version-1.5-00ff9d?style=flat-square" alt="Version 1.5">
+  <img src="https://img.shields.io/badge/version-1.6-00ff9d?style=flat-square" alt="Version 1.6">
   <img src="https://img.shields.io/badge/status-active-00ff9d?style=flat-square" alt="Status: Active">
 </p>
 
@@ -21,11 +21,11 @@
 
 # Archflow
 
-**Archflow** is a production-grade AI system design generator with an iterative architecture assistant, real-time review scoring, and undo/redo. Describe any application — Instagram, YouTube, fintech, e-commerce, IoT — and get a complete, production-ready system diagram that scores **100/100** with zero findings.
+**Archflow** is an AI-assisted system design workspace for generating, reviewing, teaching, and improving architecture diagrams. Describe any application — Instagram, YouTube, fintech, e-commerce, IoT — and get a hardened system diagram with review scoring, guided learning, clickable findings, and an architecture assistant.
 
-> from "build me Instagram" to a perfect-score architecture diagram in seconds
+> from "build me Instagram" to a review-ready architecture diagram users can understand, inspect, and improve
 
-Archflow optimizes for **trust**, **transparency**, and **iterative workflow** — every AI-generated diagram arrives at 100/100, every AI suggestion improves the score, and the scoring breakdown is fully transparent.
+Archflow optimizes for **trust**, **transparency**, and **iterative workflow** — AI output is hardened by deterministic rules, review findings teach the user what matters, and visible showcase examples make the product easy to demo in seconds.
 
 ---
 
@@ -85,6 +85,7 @@ flowchart TB
 - [What Archflow Helps With](#what-archflow-helps-with)
 - [Product Principles](#product-principles)
 - [User-Facing Features](#user-facing-features)
+- [Showcase Demo Path](#showcase-demo-path)
 - [Architecture Assistant Flow](#architecture-assistant-flow)
 - [Architecture Assistant Reliability](#architecture-assistant-reliability)
 - [Connection Clarity](#connection-clarity)
@@ -107,6 +108,8 @@ flowchart TB
 - understand **why** a technology was chosen
 - understand which units are connected, in which direction, and through which named flow
 - ask the architecture assistant what is missing, weak, or worth verifying in the current diagram
+- start from recognizable demo prompts like Netflix, Uber, WhatsApp, Stripe, YouTube, and Slack
+- learn the system through guided mode, review explanations, and "why this architecture works" summaries
 - stage suggested technologies into Architectural Review before they touch the live diagram
 - inspect assumptions and potential risks in the architecture
 - replace one part of the system without regenerating everything
@@ -122,6 +125,8 @@ flowchart TB
 - **Rules for manual editing, not AI policing** — connection mode (Strict/Guided/Sandbox) applies when users manually modify diagrams, not to AI output
 - **Surgical iteration over full regeneration** — changing one part of the system should not blow away the rest
 - **Architecture score as a signal, not a grade** — the score helps gauge completeness, it's not a gamified ranking
+- **Teaching beats magic** — the product should explain the architecture, not only generate it
+- **Recruiter/demo clarity matters** — recognizable showcase examples make the product value obvious quickly
 - **Flow clarity over label overload** — connections should be understandable without turning the canvas into a wall of overlapping text
 
 ---
@@ -175,6 +180,13 @@ flowchart TB
 - Surgical editing — replace individual nodes without regenerating the entire diagram
 - Auto-layout spaces nodes into clean category lanes for readability
 
+### Guided Learning & Showcase Examples
+- **Beginner-friendly Guided Mode** — explains the core workflow: start from a system, inspect the diagram, review weak spots, and improve safely
+- **Dashboard showcase examples** — one-click demo launchers for Netflix, Uber, WhatsApp, Stripe, YouTube, and Slack
+- **Prompt handoff into the editor** — showcase demos create a workspace and pre-fill the right architecture prompt so the user can synthesize immediately
+- **Recruiter-ready demo path** — examples make Archflow understandable without requiring someone to invent a prompt first
+- **Architecture narrative summaries** — Review Panel explains why the architecture works, what reliability layers are present, and how the current internal quality gate reads
+
 ### AI Architecture Assistant (Copilot)
 - **Full diagram awareness** — understands every node, edge, protocol, review finding, and category count in the current diagram before answering
 - **Finding-targeted suggestions** — every suggestion MUST directly resolve a finding from the review system (NO_AUTH_LAYER → auth, MISSING_CACHE_LAYER → REDIS, etc.). No irrelevant suggestions.
@@ -192,6 +204,8 @@ flowchart TB
 - Dedicated review drawer with **animated** architecture score (0–100 with letter grade A–F), finding counts, and adaptive layer coverage stats
 - **Transparent score breakdown** — click "Show score breakdown" to see the exact math: `100 - critical(-15) - warning(-8) + auth(+2) + cache(+3) = 93`
 - **Finding-level coaching** — every finding includes "Why this matters" and "How to fix" guidance so review doubles as a learning experience
+- **Clickable findings** — each review finding can focus the affected node or edge on the canvas, with stronger visual highlighting for selected/review-focused components
+- **Why this architecture works** — diagram-level narrative explains the system in plain architectural terms after generation or editing
 - **Score always moves in the right direction** — accepting AI suggestions improves the score (no hidden edge penalties, no redundant threshold charges)
 - **Adaptive category coverage** — coverage percentage is computed against relevant categories only (mobile doesn't count if absent, auth counts if clients exist)
 - **Connection mode selector** — Strict (block invalid connections), Guided (flag unusual patterns), Sandbox (zero warnings for free sketching)
@@ -271,6 +285,20 @@ The architecture assistant is meant to feel helpful without becoming a black-box
 - assistant chat history and pending review suggestions are restored after refresh so in-progress review work is not lost
 
 This keeps the product collaborative: the assistant can move fast, but the user still stays in control of what becomes part of the architecture.
+
+---
+
+## Showcase Demo Path
+
+Archflow now has a short recruiter-friendly path:
+
+1. Open the dashboard.
+2. Choose a recognizable showcase example such as **Stripe**, **Uber**, **Netflix**, **YouTube**, **WhatsApp**, or **Slack**.
+3. Archflow creates a demo workspace and preloads the architecture prompt.
+4. Generate the diagram.
+5. Open Architecture Review to see the score, findings, "why this architecture works" narrative, and clickable inspection flow.
+
+This path is intentionally optimized for portfolio reviews and interviews: the reviewer can understand the product value before reading the code.
 
 ---
 
@@ -393,7 +421,7 @@ npm test
 ```
 
 Runs:
-- backend unit/regression tests for diagram hardening, review suggestion normalization, eval checks, and architecture reliability
+- backend unit/regression/integration-style tests for diagram hardening, review suggestion normalization, auth guards, save/version persistence, eval checks, and architecture reliability
 - frontend production build
 - Playwright editor smoke test
 
@@ -403,13 +431,14 @@ The repo includes a GitHub Actions workflow at `.github/workflows/test.yml`.
 
 On every push to `master` and every pull request, CI runs:
 - backend dependency install + `npm test`
+- frontend lint + typecheck
 - frontend dependency install + `npm run build`
 - Playwright Chromium install
 - editor smoke test
 
 ### Editor Smoke Test (Playwright)
 
-A Playwright browser test that verifies the core editor panels open and close correctly — AI Assistant, Review, Library, History, and the Actions menu. It also verifies review teaching surfaces such as System Walkthrough, Why It Matters, How To Fix, and score breakdown.
+A Playwright browser test that verifies the core editor panels open and close correctly — AI Assistant, Review, Library, History, and the Actions menu. It also verifies review teaching surfaces such as System Walkthrough, Architecture Readout, Why It Matters, How To Fix, clickable highlight hints, score breakdown, and showcase prompt selection.
 
 ```bash
 cd frontend

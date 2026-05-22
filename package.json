@@ -6,6 +6,8 @@
     "test": "npm run test:backend && npm run test:frontend",
     "test:backend": "npm --prefix backend test",
     "test:frontend": "npm --prefix frontend run build && npm --prefix frontend run smoke:editor",
-    "test:smoke": "npm --prefix frontend run smoke:editor"
+    "test:smoke": "npm --prefix frontend run smoke:editor",
+    "typecheck": "npm --prefix frontend run typecheck",
+    "lint": "npm --prefix frontend run lint"
   }
 }

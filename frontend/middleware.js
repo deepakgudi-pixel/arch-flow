@@ -37,7 +37,7 @@ function canUseAuthSmokeBypass(request) {
   return request.headers.get(AUTH_SMOKE_HEADER) === AUTH_SMOKE_TOKEN;
 }
 
-export default clerkMiddleware(async (auth, request) => {
+const authMiddleware = clerkMiddleware(async (auth, request) => {
   if (isEditorSmokeRoute(request)) {
     const requestHeaders = new Headers(request.headers);
     requestHeaders.set('x-archflow-smoke-route', '1');
@@ -69,6 +69,21 @@ export default clerkMiddleware(async (auth, request) => {
     await auth.protect();
   }
 });
+
+export default function middleware(request, event) {
+  if (isEditorSmokeRoute(request)) {
+    const requestHeaders = new Headers(request.headers);
+    requestHeaders.set('x-archflow-smoke-route', '1');
+
+    return NextResponse.next({
+      request: {
+        headers: requestHeaders
+      }
+    });
+  }
+
+  return authMiddleware(request, event);
+}
 
 export const config = {
   matcher: [

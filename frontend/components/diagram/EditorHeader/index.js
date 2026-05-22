@@ -16,6 +16,7 @@ import {
   Search,
   LayoutGrid,
   Bot,
+  BookOpen,
   CheckCircle2,
   Loader2,
   AlertCircle,
@@ -46,9 +47,15 @@ export default function EditorHeader({
   simulateFlow, onToggleSimulateFlow,
   onOpenInvite,
   saveStatus = 'saved',
-  canUndo, canRedo, onUndo, onRedo, onOptimize,
+  canUndo, canRedo, onUndo, onRedo, onOptimize, onOpenGuidedMode,
 }) {
   const utilityItems = [
+    {
+      label: 'Guided mode',
+      icon: <BookOpen />,
+      onClick: onOpenGuidedMode
+    },
+    { divider: true },
     {
       label: 'Optimize to 100',
       icon: <Sparkles />,

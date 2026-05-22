@@ -32,10 +32,10 @@ The difference is that I treated trust as the main problem, not just generation.
 The biggest thing I learned is that users judge architecture output emotionally before they judge it technically. If the diagram looks messy, unclear, or random, trust drops immediately. Readability, control, and explanation matter as much as the raw generation quality.
 
 ### 7. What was the hardest product decision you made?
-The hardest decision was choosing not to turn the app into a scoring product. A public architecture score sounds attractive at first, but it pushes users to chase a number instead of understanding the system. I decided the app should help people learn, inspect, and refine, not feel graded by a black box.
+The hardest decision was deciding how much scoring to expose. A score is useful because it gives users a fast health signal, but it can also make people chase a number instead of understanding architecture. I kept the score transparent and tied it to findings, lessons, and "how to fix" guidance so it supports learning instead of replacing judgment.
 
-### 8. Why did you avoid a public scoring system?
-Because it creates the wrong behavior. Users start asking why they got 72 instead of 84 instead of thinking about architecture tradeoffs. It also makes the AI feel like it is grading itself. I kept evaluation internal for quality control and made the user-facing experience about findings, assumptions, risks, and clarity instead.
+### 8. How do you prevent the score from becoming a gimmick?
+The score is not the product. It is a summary of deterministic review signals. The real value is in the linked findings, clickable canvas focus, "Why this matters" explanations, "How to fix" guidance, and architecture narrative. The score tells users where to look; the review explains what to learn.
 
 ---
 
@@ -45,7 +45,7 @@ Because it creates the wrong behavior. Users start asking why they got 72 instea
 The user gives a product prompt, the backend sends a structured request to the model, the response is normalized into nodes and edges, and then the frontend renders it as a diagram. After generation, the system can auto-arrange the graph, infer or repair connection labels, and surface review notes in the sidebars and review drawer.
 
 ### 10. How do you make the output feel trustworthy?
-I do it in layers. First, the output is structured into explicit units and flows rather than dumped as raw text. Second, the UI explains why a unit was chosen and what assumptions or risks are attached to it. Third, the user can inspect a single connection, replace one technology without regenerating the full system, and review architecture findings without the canvas getting cluttered.
+I do it in layers. First, the output is structured into explicit units and flows rather than dumped as raw text. Second, the generation pipeline normalizes and hardens the diagram before users see it. Third, the UI explains why a unit was chosen and what assumptions or risks are attached to it. Fourth, users can click review findings to focus the exact node or edge involved instead of hunting through the canvas.
 
 ### 11. What do you do when the model returns bad or malformed output?
 I hardened the pipeline so the app is not dependent on perfect model behavior. The parser can recover JSON from noisy outputs, smaller AI calls retry when they return invalid JSON, the diagram generator normalizes and validates nodes and edges, and failures are logged so they can feed back into the internal evaluator instead of just silently breaking the experience.
@@ -70,7 +70,7 @@ AI-driven parts include initial architecture generation, technology suggestions,
 ## Technical Architecture Questions
 
 ### 17. What is your frontend stack and why did you choose it?
-The frontend uses Next.js App Router, React 18, React Flow, styled-components, and Framer Motion. That stack gave me a strong combination of application structure, flexible diagram rendering, custom UI styling, and interaction polish without overcomplicating the editor.
+The frontend uses Next.js App Router, React 19, React Flow, styled-components, Framer Motion, and incremental TypeScript helpers. That stack gave me a strong combination of application structure, flexible diagram rendering, custom UI styling, interaction polish, and typed contracts without forcing a risky full migration.
 
 ### 18. What is your backend stack and why?
 The backend uses Node.js, Express, PostgreSQL via Neon, Redis/Upstash, Clerk for auth, and OpenRouter for model access. The goal was to keep the backend simple and pragmatic while supporting persistence, auth, caching, and AI integration cleanly.
@@ -82,7 +82,7 @@ There is a primary diagram record and a version history model. The live diagram 
 I separated background persistence from explicit versioning. Autosave keeps the main diagram up to date using snapshot comparison, debouncing, and queued saves, but it does not create a new version entry every time. Manual save flows can still record a deliberate snapshot in history.
 
 ### 21. How do you manage auth and protected routes?
-Clerk handles identity, and middleware protects non-public routes. The app also now has a dedicated local auth smoke check so I can verify sign-in routes and protected-route behavior consistently in development instead of assuming auth still works after changes.
+Clerk handles identity, and middleware protects non-public routes. The app also has dedicated smoke routes for auth/editor checks so I can verify critical flows consistently in development. The editor smoke probe bypasses Clerk intentionally so local UI regression tests do not fail because of auth key drift.
 
 ### 22. How do you prevent schema drift in the database?
 I added real numbered migrations, a `schema_migrations` table, and startup compatibility checks for required columns. That moves the app away from fragile "hope the DB matches the code" behavior and toward a repeatable migration process.
@@ -92,6 +92,9 @@ Connections are stored as explicit edges, and protocol or flow labels can be inf
 
 ### 24. How do you make surgical edits without regenerating the full graph?
 Users can replace a selected node with same-category alternatives. That swap updates the chosen tech immediately and only recalculates nearby connection wording rather than regenerating the entire architecture. It keeps the rest of the diagram stable and makes refinement feel controlled.
+
+### 24a. How do you test persistence and version history?
+I extracted the core route behaviors into testable handlers and added integration-style tests around diagram update, manual version creation, AI generation persistence, non-owner permission denial, and version listing. These tests mock the database boundary but verify the SQL intent and payloads that matter for product behavior.
 
 ---
 
@@ -117,6 +120,9 @@ I removed manual protocol repair as a visible action and made it automatic. I al
 
 ### 31. How do you balance power and simplicity in the editor?
 The pattern I use is: keep the default interaction simple, but let detail appear when the user focuses. A beginner should be able to generate, inspect, and edit without learning a control surface full of expert toggles. Power should emerge through selection, sidebars, history, review, and replace workflows.
+
+### 31a. How do beginners learn the workflow?
+The editor includes Guided Mode, which explains the loop: start from a real system, inspect the diagram, review weak spots, and improve safely. The Review Panel also teaches through "Why this matters," "How to fix," a System Walkthrough, and a "Why this architecture works" narrative.
 
 ---
 
@@ -145,7 +151,7 @@ Because users may enter real product ideas, auth, data protection, access contro
 ## Business and Founder-Type Questions
 
 ### 38. Can this be a real paid product?
-Yes. I think it is strong enough to ship as a paid v1. The product has a real use case, a clearer user experience, a stronger trust story than a typical AI wrapper, and enough technical hardening to justify charging early users.
+Yes, but the current priority is using it as a job-winning showcase project. After getting a job, I would productize it over a 1-3 month MVP timeline: public demo mode, billing, usage limits, better onboarding, shareable diagrams, and early user feedback loops.
 
 ### 39. Who would pay for it first?
 The earliest paying users are likely indie founders, startup teams, junior-to-mid engineers learning system design, and small product or engineering teams that need faster architecture communication without buying a heavyweight enterprise platform.
@@ -157,7 +163,7 @@ I would start simple: a free tier for limited diagrams or generations, a paid in
 The wedge is education plus practical architecture planning. The product is strongest when it helps people understand systems while also producing something useful enough to share with a team. Collaboration can become a larger growth layer later, but it should not be the first identity of the product.
 
 ### 42. What would you build next?
-The next highest-value work would be stronger production monitoring, deeper large-diagram stress handling, better cost controls, richer modification workflows on existing diagrams, and more real-world validation around what kinds of architectures users come back to most often.
+The next highest-value product work would be a public beta path, billing/usage limits, shareable public diagrams, richer example templates, production monitoring, deeper large-diagram stress handling, better cost controls, and more real-world validation around what kinds of architectures users come back to most often.
 
 ### 43. What would make users come back weekly?
 Users will come back if the artifact stays useful over time. That means version history, continuing from an existing system instead of starting from zero, reusable architecture templates, clearer review surfaces, team discussion value, and a feeling that the tool helps them think, not just generate once.
@@ -173,4 +179,4 @@ I am proud that the product moved beyond "AI output" and became a trust-oriented
 Real production usage will still teach things that local testing cannot. I would not claim full enterprise readiness, complete observability, full compliance posture, or proven large-scale traffic behavior yet. What I can say is that the foundations are strong and the weak points are known.
 
 ### 46. Why do you think this project is a strong interview story?
-Because it shows product thinking, AI reliability thinking, frontend UX refinement, backend hardening, schema discipline, auth handling, and the ability to make tradeoffs instead of just stacking features. It is a good example of turning an interesting idea into a more defensible product.
+Because it shows product thinking, AI reliability thinking, frontend UX refinement, backend hardening, schema discipline, auth handling, TypeScript/lint/CI discipline, integration-style testing, and the ability to make tradeoffs instead of just stacking features. It is a good example of turning an interesting idea into a more defensible product.

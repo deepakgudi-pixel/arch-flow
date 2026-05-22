@@ -63,6 +63,14 @@ OUTPUT ONLY THIS JSON (no other text):
 
 export function buildDiagramUserMessage(description, template) {
   if (template) {
+    const exampleHints = {
+      'example:netflix': 'Design a Netflix-scale video streaming architecture with catalog APIs, playback services, recommendations, encoding, object storage, CDN delivery, analytics, auth, traffic management, async processing, and observability.',
+      'example:uber': 'Design an Uber-scale realtime marketplace architecture with rider/driver clients, trip matching, location streaming, pricing, payments, notifications, maps, fraud checks, async workflows, and observability.',
+      'example:whatsapp': 'Design a WhatsApp-scale messaging architecture with mobile clients, realtime messaging, presence, media storage, push notifications, contact sync, auth, queues, and global reliability.',
+      'example:stripe': 'Design a Stripe-scale fintech architecture with payment APIs, checkout, ledger, fraud detection, webhooks, reconciliation, compliance audit logs, tokenization, auth, queues, and observability.',
+      'example:youtube': 'Design a YouTube-scale video platform with uploads, transcoding, recommendations, search, comments, subscriptions, object storage, CDN delivery, analytics, moderation, and observability.',
+      'example:slack': 'Design a Slack-scale collaboration architecture with workspaces, channels, realtime chat, search, file uploads, notifications, presence, enterprise auth, integrations, queues, and observability.'
+    };
     const templateHints = {
       saas: 'Design a full SaaS platform with frontend, backend API, auth, database, storage, and observability.',
       ecommerce: 'Design an e-commerce system with product catalog, cart, checkout, payments, and inventory.',
@@ -70,7 +78,7 @@ export function buildDiagramUserMessage(description, template) {
       realtime: 'Design a realtime system with WebSocket connections, event streaming, caching, and presence.',
       microservices: 'Design a microservices architecture with API gateway, service discovery, event bus, and distributed data stores.'
     };
-    const hint = templateHints[template] || 'Design a production-grade system architecture.';
+    const hint = exampleHints[template] || templateHints[template] || 'Design a production-grade system architecture.';
     return `${hint} ${description}`;
   }
   return `Design a production-grade system architecture for: ${description}`;

@@ -17,6 +17,7 @@ import { Field, Hint, Input, Label } from '@/components/ui/Input';
 import EmptyState from '@/components/ui/EmptyState';
 import { Toast } from '@/components/ui/Toast';
 import { templateOptions } from '@/lib/templates';
+import { architectureExamples } from '@/lib/architectureExamples';
 
 const Stack = styled.div`
   display: grid;
@@ -155,6 +156,46 @@ const DiagramGrid = styled.div`
   gap: 32px;
 `;
 
+const ShowcaseGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+
+  @media (max-width: 1024px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+const ShowcaseCard = styled.button`
+  text-align: left;
+  border: 2px solid #000000;
+  background: #ffffff;
+  padding: 18px;
+  display: grid;
+  gap: 12px;
+  cursor: pointer;
+  transition: transform 0.2s ease, background 0.2s ease;
+
+  &:hover {
+    background: #f7f7f7;
+    transform: translateY(-2px);
+  }
+`;
+
+const ShowcaseTitle = styled.div`
+  font-family: var(--font-mono);
+  font-size: 1rem;
+  font-weight: 900;
+  color: #000000;
+  text-transform: uppercase;
+`;
+
+const ShowcaseText = styled.p`
+  font-size: 12px;
+  line-height: 1.5;
+  color: #444444;
+`;
+
 const TemplateGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -278,6 +319,7 @@ function DashboardContent() {
   const [joinCode, setJoinCode] = useState('');
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [diagramToDelete, setDiagramToDelete] = useState(null);
+  const [launchingExampleId, setLaunchingExampleId] = useState(null);
 
   useEffect(() => {
     if (isLoaded && !isSignedIn) {
@@ -396,6 +438,27 @@ function DashboardContent() {
     }
   };
 
+  const launchShowcaseExample = async (example) => {
+    setLaunchingExampleId(example.id);
+
+    try {
+      const diagram = await api.createDiagram({
+        name: `${example.name} Architecture Demo`,
+        template: 'blank'
+      });
+
+      window.localStorage.setItem(
+        `archflow-example-prompt:${diagram.id}`,
+        example.prompt
+      );
+      router.push(`/diagram/${diagram.id}`);
+    } catch (error) {
+      console.error('Failed to launch showcase example:', error);
+      setToast({ message: 'Showcase example failed to launch. Try again.', tone: 'error' });
+      setLaunchingExampleId(null);
+    }
+  };
+
   const deleteDiagram = async (id, event) => {
     if (event) event.stopPropagation();
     setDiagramToDelete(id);
@@ -504,6 +567,34 @@ function DashboardContent() {
             {joining ? 'SYNCING...' : 'ESTABLISH_CONNECTION'}
           </Button>
         </JoinTerminal>
+
+        <section>
+          <Toolbar>
+            <div style={{ display: 'grid', gap: '8px' }}>
+              <h2 style={{ fontSize: '1.8rem', fontWeight: 900, textTransform: 'uppercase' }}>Showcase Examples</h2>
+              <CardText>Launch a recognizable system so recruiters can understand Archflow in seconds.</CardText>
+            </div>
+            <Badge $tone="brand">AI_READY_DEMOS</Badge>
+          </Toolbar>
+
+          <ShowcaseGrid>
+            {architectureExamples.map(example => (
+              <ShowcaseCard
+                key={example.id}
+                type="button"
+                onClick={() => launchShowcaseExample(example)}
+                disabled={Boolean(launchingExampleId)}
+              >
+                <Badge $tone="neutral">{example.audience}</Badge>
+                <ShowcaseTitle>{example.name}</ShowcaseTitle>
+                <ShowcaseText>{example.prompt}</ShowcaseText>
+                <Button as="span" $variant="accent" $size="sm">
+                  {launchingExampleId === example.id ? 'LAUNCHING...' : 'OPEN_DEMO_PROMPT'}
+                </Button>
+              </ShowcaseCard>
+            ))}
+          </ShowcaseGrid>
+        </section>
 
         <section>
           <Toolbar>

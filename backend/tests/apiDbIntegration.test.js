@@ -1,7 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { runMigrations, verifySchemaCompatibility } from '../src/db/migrate.js';
+import { clerkAuth, optionalAuth } from '../src/middleware/clerkAuth.js';
 import { validate } from '../src/middleware/validate.js';
+import {
+  buildInviteCode,
+  listDiagramVersionsHandler,
+  saveGenerationVersionHandler,
+  updateDiagramHandler
+} from '../src/routes/diagramRouteHandlers.js';
 
 function createMigrationPool() {
   const calls = [];
@@ -102,4 +109,185 @@ test('API validation middleware accepts valid payloads and rejects invalid ones'
   const valid = runValidation(schema, { name: 'Demo', template: 'saas' });
   assert.equal(valid.nextCalled, true);
   assert.equal(valid.response.payload, null);
+});
+
+test('auth middleware protects write endpoints while optional auth allows public reads', async () => {
+  const protectedResponse = {
+    statusCode: 200,
+    payload: null,
+    status(code) {
+      this.statusCode = code;
+      return this;
+    },
+    json(payload) {
+      this.payload = payload;
+      return this;
+    }
+  };
+  let protectedNextCalled = false;
+
+  await clerkAuth(
+    { headers: {} },
+    protectedResponse,
+    () => {
+      protectedNextCalled = true;
+    }
+  );
+
+  assert.equal(protectedNextCalled, false);
+  assert.equal(protectedResponse.statusCode, 401);
+  assert.equal(protectedResponse.payload.error, 'No token provided');
+
+  const optionalReq = { headers: {} };
+  let optionalNextCalled = false;
+
+  await optionalAuth(optionalReq, {}, () => {
+    optionalNextCalled = true;
+  });
+
+  assert.equal(optionalNextCalled, true);
+  assert.equal(optionalReq.user, null);
+});
+
+test('diagram update persists nodes and creates manual history when requested', async () => {
+  const calls = [];
+  const db = {
+    async query(sql, params = []) {
+      calls.push({ sql, params });
+
+      if (/SELECT user_id, nodes, edges FROM diagrams/i.test(sql)) {
+        return {
+          rows: [
+            {
+              user_id: 'user_1',
+              nodes: [{ id: 'old_node', name: 'Old API' }],
+              edges: [{ id: 'old_edge', source: 'old_node', target: 'db' }]
+            }
+          ]
+        };
+      }
+
+      return { rows: [] };
+    }
+  };
+  const nodes = [{ id: 'api', name: 'API', category: 'backend' }];
+  const edges = [{ id: 'e1', source: 'api', target: 'db', label: 'SQL' }];
+
+  const result = await updateDiagramHandler({
+    db,
+    diagramId: 'd_test',
+    userId: 'user_1',
+    name: 'Updated System',
+    nodes,
+    edges,
+    recordVersion: true
+  });
+
+  assert.equal(result.status, 200);
+  assert.deepEqual(result.body, { success: true });
+  const updateCall = calls.find(call => /UPDATE diagrams SET/i.test(call.sql));
+  assert.ok(updateCall);
+  assert.equal(updateCall.params[0], 'Updated System');
+  assert.equal(updateCall.params[1], JSON.stringify(nodes));
+  assert.equal(updateCall.params[2], JSON.stringify(edges));
+
+  const versionCall = calls.find(call => /INSERT INTO diagram_versions/i.test(call.sql));
+  assert.ok(versionCall);
+  assert.equal(versionCall.params[0], 'd_test');
+  assert.equal(versionCall.params[1], JSON.stringify(nodes));
+  assert.equal(versionCall.params[2], JSON.stringify(edges));
+  assert.equal(versionCall.params[3], 'MANUAL_UPDATE');
+});
+
+test('diagram update denies non-owner and does not write history', async () => {
+  const calls = [];
+  const db = {
+    async query(sql, params = []) {
+      calls.push({ sql, params });
+      return { rows: [] };
+    }
+  };
+
+  const result = await updateDiagramHandler({
+    db,
+    diagramId: 'd_private',
+    userId: 'user_other',
+    nodes: [{ id: 'api' }],
+    edges: [],
+    recordVersion: true
+  });
+
+  assert.equal(result.status, 403);
+  assert.equal(result.body.error, 'Permission denied');
+  assert.equal(calls.filter(call => /UPDATE diagrams SET/i.test(call.sql)).length, 0);
+  assert.equal(calls.filter(call => /INSERT INTO diagram_versions/i.test(call.sql)).length, 0);
+});
+
+test('generation persistence stores prompt hash, raw response, nodes, and edges', async () => {
+  const calls = [];
+  const db = {
+    async query(sql, params = []) {
+      calls.push({ sql, params });
+      return { rows: [] };
+    }
+  };
+  const nodes = [{ id: 'api', name: 'API', category: 'backend' }];
+  const edges = [{ id: 'e1', source: 'api', target: 'db', label: 'SQL' }];
+
+  await saveGenerationVersionHandler({
+    db,
+    diagramId: 'd_ai',
+    promptHash: 'hash_123',
+    promptText: 'AI_SYNTHESIS: Stripe',
+    nodes,
+    edges,
+    rawResponse: '{"nodes":[]}'
+  });
+
+  assert.equal(calls.length, 1);
+  assert.match(calls[0].sql, /INSERT INTO diagram_versions/);
+  assert.deepEqual(calls[0].params, [
+    'd_ai',
+    'hash_123',
+    'AI_SYNTHESIS: Stripe',
+    JSON.stringify(nodes),
+    JSON.stringify(edges),
+    '{"nodes":[]}'
+  ]);
+});
+
+test('diagram version listing enforces access and normalizes dates', async () => {
+  const createdAt = new Date('2026-05-23T10:20:30.000Z');
+  const db = {
+    async query(sql) {
+      if (/SELECT user_id FROM diagrams/i.test(sql)) {
+        return { rows: [{ user_id: 'user_1' }] };
+      }
+
+      if (/SELECT id, prompt_text, nodes, edges/i.test(sql)) {
+        return {
+          rows: [
+            {
+              id: 'v1',
+              prompt_text: 'MANUAL_UPDATE',
+              nodes: [{ id: 'api' }],
+              edges: [],
+              created_at: createdAt
+            }
+          ]
+        };
+      }
+
+      return { rows: [] };
+    }
+  };
+
+  const result = await listDiagramVersionsHandler({ db, diagramId: 'd_test', userId: 'user_1' });
+
+  assert.equal(result.status, 200);
+  assert.equal(result.body[0].created_at, createdAt.toISOString());
+});
+
+test('invite code generation stays uppercase and deterministic for supplied bytes', () => {
+  assert.equal(buildInviteCode(Buffer.from('abcdef123456', 'hex')), 'ABCDEF123456');
 });

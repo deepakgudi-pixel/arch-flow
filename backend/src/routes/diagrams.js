@@ -4,6 +4,11 @@ import { clerkAuth, optionalAuth } from '../middleware/clerkAuth.js';
 import { ensureUserExists } from '../services/userSync.js';
 import { validate } from '../middleware/validate.js';
 import { logger } from '../lib/logger.js';
+import {
+  buildInviteCode,
+  listDiagramVersionsHandler,
+  updateDiagramHandler
+} from './diagramRouteHandlers.js';
 
 const router = express.Router();
 
@@ -211,40 +216,17 @@ router.put('/:id', clerkAuth, validate({
     const { name, nodes, edges, recordVersion = false } = req.body;
     const { id: userId } = req.user;
 
-    const existing = await pool.query(
-      `SELECT user_id, nodes, edges FROM diagrams d 
-       WHERE d.id = $1 AND (d.user_id = $2 OR EXISTS(SELECT 1 FROM diagram_collaborators WHERE diagram_id = $1 AND user_id = $2))`,
-      [id, userId]
-    );
+    const result = await updateDiagramHandler({
+      db: pool,
+      diagramId: id,
+      userId,
+      name,
+      nodes,
+      edges,
+      recordVersion
+    });
 
-    if (existing.rows.length === 0) {
-      return res.status(403).json({ error: 'Permission denied' });
-    }
-
-    await pool.query(
-      'UPDATE diagrams SET name = COALESCE($1, name), nodes = COALESCE($2, nodes), edges = COALESCE($3, edges), updated_at = NOW() WHERE id = $4',
-      [name, nodes ? JSON.stringify(nodes) : null, edges ? JSON.stringify(edges) : null, id]
-    );
-
-    // Create a manual version if nodes/edges changed
-    if (recordVersion && (nodes || edges)) {
-      try {
-        await pool.query(
-          `INSERT INTO diagram_versions (diagram_id, nodes, edges, prompt_text)
-           VALUES ($1, $2, $3, $4)`,
-          [
-            id, 
-            nodes ? JSON.stringify(nodes) : JSON.stringify(existing.rows[0].nodes),
-            edges ? JSON.stringify(edges) : JSON.stringify(existing.rows[0].edges),
-            'MANUAL_UPDATE'
-          ]
-        );
-      } catch (vErr) {
-        logger.error('Failed to save manual diagram version', { error: vErr.message, id });
-      }
-    }
-
-    res.json({ success: true });
+    res.status(result.status).json(result.body);
   } catch (err) {
     logger.error('Error updating diagram', { error: err.message });
     res.status(500).json({ error: 'Failed to update diagram' });
@@ -256,26 +238,8 @@ router.get('/:id/versions', clerkAuth, async (req, res) => {
     const { id } = req.params;
     const { id: userId } = req.user;
 
-    const existing = await pool.query(
-      `SELECT user_id FROM diagrams d 
-       WHERE d.id = $1 AND (d.user_id = $2 OR EXISTS(SELECT 1 FROM diagram_collaborators WHERE diagram_id = $1 AND user_id = $2))`,
-      [id, userId]
-    );
-
-    if (existing.rows.length === 0) {
-      return res.status(403).json({ error: 'Permission denied' });
-    }
-
-    const versions = await pool.query(
-      `SELECT id, prompt_text, nodes, edges, created_at AT TIME ZONE 'UTC' as created_at
-       FROM diagram_versions WHERE diagram_id = $1 ORDER BY created_at DESC`,
-      [id]
-    );
-
-    res.json(versions.rows.map(v => ({
-      ...v,
-      created_at: v.created_at instanceof Date ? v.created_at.toISOString() : v.created_at
-    })));
+    const result = await listDiagramVersionsHandler({ db: pool, diagramId: id, userId });
+    res.status(result.status).json(result.body);
   } catch (err) {
     logger.error('Error fetching diagram versions', { error: err.message, id });
     res.status(500).json({ error: 'Failed to fetch versions' });
@@ -335,7 +299,7 @@ router.post('/:id/invite', clerkAuth, async (req, res) => {
 
     let code = result.rows[0].invite_code;
     if (!code) {
-      code = crypto.randomBytes(6).toString('hex').toUpperCase();
+      code = buildInviteCode();
       await pool.query('UPDATE diagrams SET invite_code = $1 WHERE id = $2', [code, id]);
     }
 

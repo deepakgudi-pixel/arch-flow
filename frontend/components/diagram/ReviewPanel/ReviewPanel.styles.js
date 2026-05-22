@@ -458,6 +458,28 @@ export const LearningSummary = styled.div`
   gap: 5px;
 `;
 
+export const NarrativeCard = styled.div`
+  padding: 12px 14px;
+  border: 1px solid rgba(5, 95, 70, 0.14);
+  border-radius: 12px;
+  background: #f6fffb;
+  display: grid;
+  gap: 8px;
+`;
+
+export const NarrativeList = styled.ul`
+  display: grid;
+  gap: 6px;
+  padding-left: 16px;
+  margin: 0;
+`;
+
+export const NarrativeItem = styled.li`
+  font-size: 11px;
+  line-height: 1.5;
+  color: #333333;
+`;
+
 export const LearningTitle = styled.div`
   font-family: var(--font-sans);
   font-size: 11px;
@@ -526,4 +548,14 @@ export const StudyInspect = styled.p`
   font-size: 11px;
   line-height: 1.55;
   color: #555555;
+`;
+
+export const FindingInspectHint = styled.div`
+  border-top: 1px solid rgba(0, 0, 0, 0.05);
+  padding-top: 8px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 900;
+  color: #000000;
+  text-transform: uppercase;
 `;
