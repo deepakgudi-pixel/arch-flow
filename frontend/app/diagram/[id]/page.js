@@ -15,18 +15,11 @@ import ReactFlow, {
   ControlButton,
   MiniMap,
   useNodesState,
-  useEdgesState,
-  getRectOfNodes
+  useEdgesState
 } from 'reactflow';
 import 'reactflow/dist/style.css';
-import { toPng } from 'html-to-image';
-import api, { setToken } from '@/lib/api';
+import api from '@/lib/api';
 import { formatTechDisplayLabel } from '@/lib/displayNames';
-import {
-  clearReviewDraftFromStorage,
-  loadReviewDraftFromStorage,
-  saveReviewDraftToStorage
-} from '@/lib/reviewDraftStorage';
 import {
   estimateEdgeLabelDimensions,
   getEdgeLabelBasePosition,
@@ -64,21 +57,14 @@ import {
 import {
   AUTO_LAYOUT,
   GENERIC_PROTOCOL_LABELS,
-  REVIEW_NEW_NODE_TOKEN,
-  buildAssistantDraftStorageKey,
-  buildAutoLayoutResult,
-  buildPersistedEdgesPayload,
-  buildPersistedNodesPayload,
-  computeSuggestedNodePosition,
-  createReviewSuggestionId,
-  enrichSuggestionConnections,
-  formatDate,
-  formatStagedSuggestionNames,
-  isZoneNode,
-  mergeReviewSuggestions,
-  normalizeSuggestionValue,
-  serializeDiagramSnapshot
+  buildAutoLayoutResult
 } from './editorPageUtils';
+import { useDiagramExport } from './hooks/useDiagramExport';
+import { useDiagramGeneration } from './hooks/useDiagramGeneration';
+import { useDiagramPersistence } from './hooks/useDiagramPersistence';
+import { useReviewAssistant } from './hooks/useReviewAssistant';
+import { useDiagramSelection } from './hooks/useDiagramSelection';
+import { useUndoRedo } from './hooks/useUndoRedo';
 
 export default function DiagramPage() {
   const params = useParams();
@@ -89,13 +75,8 @@ export default function DiagramPage() {
 
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
-  const [diagramName, setDiagramName] = useState('Untitled diagram');
   const [leftSidebarOpen, setLeftSidebarOpen] = useState(false);
   const [rightPanelOpen, setRightPanelOpen] = useState(true);
-  const [selectedNode, setSelectedNode] = useState(null);
-  const [prompt, setPrompt] = useState('');
-  const [template, setTemplate] = useState('blank');
-  const [loading, setLoading] = useState(false);
   const [isDesktop, setIsDesktop] = useState(false);
 
   useEffect(() => {
@@ -103,10 +84,6 @@ export default function DiagramPage() {
       setIsDesktop(true);
     }
   }, []);
-  const [streamingContent, setStreamingContent] = useState('');
-  const [isStreaming, setIsStreaming] = useState(false);
-  const [streamError, setStreamError] = useState(null);
-  const [inventory, setInventory] = useState({ builtIn: {}, community: [] });
   const [searchTerm, setSearchTerm] = useState('');
   const [toast, setToast] = useState(null);
   const [showInviteModal, setShowInviteModal] = useState(false);
@@ -121,564 +98,132 @@ export default function DiagramPage() {
   const [assistantPanelOpen, setAssistantPanelOpen] = useState(false);
   const [reviewPanelOpen, setReviewPanelOpen] = useState(false);
   const [historyPanelOpen, setHistoryPanelOpen] = useState(false);
-  const [assistantPrompt, setAssistantPrompt] = useState('');
-  const [assistantMessages, setAssistantMessages] = useState([]);
-  const [reviewSuggestions, setReviewSuggestions] = useState([]);
-  const [generationAutoFixes, setGenerationAutoFixes] = useState([]);
-  const [reviewAssistantLoading, setReviewAssistantLoading] = useState(false);
-  const [showConfirmHistory, setShowConfirmHistory] = useState(false);
-  const [undoStack, setUndoStack] = useState([]);
-  const [redoStack, setRedoStack] = useState([]);
-  const isUndoingRef = useRef(false);
-  const isRedoingRef = useRef(false);
-  const skipHistoryRef = useRef(false);
-  const [versions, setVersions] = useState([]);
-  const [versionsLoading, setVersionsLoading] = useState(false);
-  const [connectionMode, setConnectionMode] = useState('guided');
-  const [connectionRules, setConnectionRules] = useState([]);
-  const [selectedEdge, setSelectedEdge] = useState(null);
   const autoSynthEdgeIdsRef = useRef(new Set());
-  const replacementRefreshSeqByNodeRef = useRef(new Map());
-  const autoSaveTimeoutRef = useRef(null);
   const protocolRepairTimeoutRef = useRef(null);
-  const [saveStatus, setSaveStatus] = useState('saved');
-  const lastSavedSnapshotRef = useRef('');
-  const saveInFlightRef = useRef(false);
-  const queuedSaveOptionsRef = useRef(null);
-  const loadCompleteRef = useRef(false);
-  const hydratedAssistantDraftKeyRef = useRef(null);
-  const assistantDraftStorageKey = buildAssistantDraftStorageKey(user?.id, diagramId);
-
-  useEffect(() => {
-    if (!assistantDraftStorageKey) {
-      return;
-    }
-
-    if (hydratedAssistantDraftKeyRef.current === assistantDraftStorageKey) {
-      return;
-    }
-
-    let cancelled = false;
-
-    const restoreAssistantDraft = async () => {
-      const draft = await loadReviewDraftFromStorage(assistantDraftStorageKey);
-
-      if (cancelled) {
-        return;
-      }
-
-      setAssistantMessages(draft?.assistantMessages || []);
-      setReviewSuggestions(draft?.reviewSuggestions || []);
-      hydratedAssistantDraftKeyRef.current = assistantDraftStorageKey;
-
-      if (draft && (draft.assistantMessages.length > 0 || draft.reviewSuggestions.length > 0)) {
-        setToast({ message: 'REVIEW_DRAFT_RESTORED', error: false });
-        setTimeout(() => setToast(null), 2200);
-      }
-    };
-
-    restoreAssistantDraft();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [assistantDraftStorageKey]);
-
-  useEffect(() => {
-    if (!assistantDraftStorageKey) {
-      return;
-    }
-
-    if (hydratedAssistantDraftKeyRef.current !== assistantDraftStorageKey) {
-      return;
-    }
-
-    if (assistantMessages.length === 0 && reviewSuggestions.length === 0) {
-      clearReviewDraftFromStorage(assistantDraftStorageKey);
-      return;
-    }
-
-    saveReviewDraftToStorage(assistantDraftStorageKey, {
-      assistantMessages,
-      reviewSuggestions
-    });
-  }, [assistantDraftStorageKey, assistantMessages, reviewSuggestions]);
-
-  useEffect(() => {
-    if (isLoaded && !isSignedIn) {
-      router.push('/sign-in');
-    }
-  }, [isLoaded, isSignedIn, router]);
-
-  useEffect(() => {
-    if (!isSignedIn || !diagramId) {
-      return;
-    }
-
-    let cancelled = false;
-
-    const initializeDiagramPage = async () => {
-      try {
-        const token = await getToken();
-
-        if (cancelled) {
-          return;
-        }
-
-        if (token) {
-          setToken(token);
-        }
-      } catch (err) {
-        console.error('Failed to resolve auth token for diagram page:', err);
-      }
-
-      if (cancelled) {
-        return;
-      }
-
-      loadDiagram();
-      loadInventory();
-      loadVersions();
-      loadReviewContext();
-    };
-
-    initializeDiagramPage();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [diagramId, getToken, isSignedIn]);
-
-  const loadVersions = async () => {
-    setVersionsLoading(true);
-    try {
-      const data = await api.getDiagramVersions(diagramId);
-      setVersions(data || []);
-    } catch (err) {
-      console.error('Failed to load versions:', err);
-    } finally {
-      setVersionsLoading(false);
-    }
-  };
-
-  const loadReviewContext = async () => {
-    let nextConnectionMode = 'guided';
-    let nextConnectionRules = [];
-
-    try {
-      const settingsData = await api.getSettings();
-      nextConnectionMode = settingsData.connection_mode || 'guided';
-    } catch (err) {
-      console.error('Failed to load review settings, using guided mode:', err);
-    }
-
-    try {
-      const rulesData = await api.getConnectionRules();
-      nextConnectionRules = rulesData || [];
-    } catch (err) {
-      console.error('Failed to load connection rules, using local fallbacks:', err);
-    }
-
-    setConnectionMode(nextConnectionMode);
-    setConnectionRules(nextConnectionRules);
-  };
-
-  useEffect(() => {
-    if (!selectedNode?.id) {
-      return;
-    }
-
-    const refreshedNode = nodes.find(node => node.id === selectedNode.id) || null;
-
-    if (!refreshedNode) {
-      setSelectedNode(null);
-      if (!selectedEdge) {
-        setLeftSidebarOpen(false);
-      }
-      return;
-    }
-
-    if (refreshedNode !== selectedNode) {
-      setSelectedNode(refreshedNode);
-    }
-  }, [nodes, selectedEdge, selectedNode]);
-
-  useEffect(() => {
-    if (!selectedEdge?.id) {
-      return;
-    }
-
-    const refreshedEdge = edges.find(edge => edge.id === selectedEdge.id) || null;
-
-    if (!refreshedEdge) {
-      setSelectedEdge(null);
-      if (!selectedNode) {
-        setLeftSidebarOpen(false);
-      }
-      return;
-    }
-
-    if (refreshedEdge !== selectedEdge) {
-      setSelectedEdge(refreshedEdge);
-    }
-  }, [edges, selectedEdge, selectedNode]);
-
-  const loadDiagram = async () => {
-    try {
-      const data = await api.getDiagram(diagramId);
-      setDiagramName(data.name);
-
-      const loadedNodes = (data.nodes || [])
-        .filter(node => !isZoneNode(node))
-        .map(node => ({
-          id: node.id,
-          type: 'customNode',
-          position: node.position || { x: 0, y: 0 },
-          data: {
-            label: node.name || node.data?.label,
-            role: node.role || node.data?.role,
-            category: node.category || node.data?.category,
-            reason: node.reason || node.data?.reason,
-            icon: node.icon || node.data?.icon,
-            products: node.products || node.data?.products || []
-          }
-        }));
-
-      const loadedEdges = (data.edges || []).map((edge, idx) => ({
-        id: edge.id || `e_${idx}_${Date.now()}`,
-        source: edge.source,
-        target: edge.target,
-        label: edge.label || 'CONNECTION',
-        animated: simulateFlow
-      }));
-
-      lastSavedSnapshotRef.current = serializeDiagramSnapshot(
-        data.name,
-        buildPersistedNodesPayload(loadedNodes),
-        buildPersistedEdgesPayload(loadedEdges)
-      );
-      loadCompleteRef.current = true;
-      setNodes(loadedNodes);
-      setEdges(loadedEdges);
-    } catch (err) {
-      console.error('Failed to load diagram:', err);
-      setToast({ message: 'CRITICAL_FAILURE: LOAD_ABORTED', error: true });
-      setTimeout(() => setToast(null), 3000);
-    }
-  };
-
-  const loadInventory = async () => {
-    try {
-      const data = await api.getInventory();
-      setInventory({
-        builtIn: data.builtIn,
-        community: data.community
-      });
-    } catch (error) {
-      console.error('Failed to load inventory:', error);
-    }
-  };
-
-  const buildPersistedDiagramState = useCallback((overrides = {}) => {
-    const nextName = overrides.name ?? diagramName;
-    const nextNodes = overrides.nodes ?? nodes;
-    const nextEdges = overrides.edges ?? edges;
-    const nodesData = buildPersistedNodesPayload(nextNodes);
-    const edgesData = buildPersistedEdgesPayload(nextEdges);
-
-    return {
-      name: nextName,
-      nodesData,
-      edgesData,
-      snapshot: serializeDiagramSnapshot(nextName, nodesData, edgesData)
-    };
-  }, [diagramName, edges, nodes]);
-
-  const nodesRef = useRef(nodes);
-  const edgesRef = useRef(edges);
-  nodesRef.current = nodes;
-  edgesRef.current = edges;
-
-  const saveDiagram = useCallback(async ({
-    showToast = true,
-    recordVersion = false,
-    overrides = {}
-  } = {}) => {
-    if (!diagramId) return;
-
-    if (saveInFlightRef.current) {
-      queuedSaveOptionsRef.current = {
-        showToast: queuedSaveOptionsRef.current?.showToast || showToast,
-        recordVersion: queuedSaveOptionsRef.current?.recordVersion || recordVersion,
-        overrides
-      };
-      return;
-    }
-
-    setSaveStatus('saving');
-    saveInFlightRef.current = true;
-
-    try {
-      const effectiveOverrides = Object.keys(overrides).length > 0
-        ? { nodes: overrides.nodes || nodesRef.current, edges: overrides.edges || edgesRef.current, diagramName: overrides.diagramName || diagramName }
-        : {};
-      const payload = buildPersistedDiagramState(effectiveOverrides);
-
-      if (!recordVersion && payload.snapshot === lastSavedSnapshotRef.current) {
-        saveInFlightRef.current = false;
-        setSaveStatus('saved');
-        return;
-      }
-
-      await api.updateDiagram(diagramId, {
-        name: payload.name,
-        nodes: payload.nodesData,
-        edges: payload.edgesData,
-        recordVersion
-      });
-      lastSavedSnapshotRef.current = payload.snapshot;
-      setSaveStatus('saved');
-
-      if (recordVersion) {
-        loadVersions();
-      }
-
-      if (showToast) {
-        setToast({ message: 'SYSTEM_SYNC: SUCCESS', error: false, warning: false });
-        setTimeout(() => setToast(null), 2000);
-      }
-    } catch (err) {
-      console.error('Failed to save:', err);
-      setSaveStatus('error');
-      if (showToast) {
-        setToast({ message: 'SYNC_ERROR: DATA_UNSAVED', error: true });
-        setTimeout(() => setToast(null), 3000);
-      }
-    } finally {
-      saveInFlightRef.current = false;
-
-      if (queuedSaveOptionsRef.current) {
-        const queuedSaveOptions = queuedSaveOptionsRef.current;
-        queuedSaveOptionsRef.current = null;
-        setTimeout(() => {
-          saveDiagram(queuedSaveOptions);
-        }, 0);
-      }
-    }
-  }, [buildPersistedDiagramState, diagramId]);
-
-  useEffect(() => {
-    if (skipHistoryRef.current) { skipHistoryRef.current = false; return; }
-    if (isUndoingRef.current || isRedoingRef.current) return;
-    if (nodes.length === 0 && edges.length === 0) return;
-    setUndoStack(prev => [...prev.slice(-50), { nodes, edges }]);
-    setRedoStack([]);
-  }, [nodes, edges]);
-
-  useEffect(() => {
-    if (!diagramId || !loadCompleteRef.current) {
-      return undefined;
-    }
-
-    const { snapshot } = buildPersistedDiagramState();
-    if (snapshot === lastSavedSnapshotRef.current) {
-      return undefined;
-    }
-
-    if (autoSaveTimeoutRef.current) {
-      clearTimeout(autoSaveTimeoutRef.current);
-    }
-
-    const autoSaveDelay = nodes.length >= 24 ? 9000 : 4500;
-    autoSaveTimeoutRef.current = setTimeout(() => {
-      saveDiagram({ showToast: false, recordVersion: false });
-    }, autoSaveDelay);
-
-    return () => {
-      if (autoSaveTimeoutRef.current) {
-        clearTimeout(autoSaveTimeoutRef.current);
-      }
-    };
-  }, [buildPersistedDiagramState, diagramId, nodes.length, saveDiagram]);
-
-  const handleGenerate = async () => {
-    if (!prompt.trim()) {
-      setToast({ message: 'INPUT_REQUIRED: PROMPT_EMPTY', error: true });
-      setTimeout(() => setToast(null), 3000);
-      return;
-    }
-
-    setLoading(true);
-    setIsStreaming(true);
-    setStreamingContent('');
-    setStreamError(null);
-    
-    try {
-      await api.streamDiagram(
-        { 
-          description: prompt, 
-          template: template === 'blank' ? null : template,
-          diagramId: diagramId // Ensure the AI knows which diagram this belongs to
-        },
-        (chunk) => {
-          setStreamingContent(prev => prev + chunk);
-        },
-        (result) => {
-          let newNodes = result.nodes.map(node => ({
-            id: node.id,
-            type: 'customNode',
-            position: node.position,
-            data: { 
-              label: node.name, 
-              role: node.role, 
-              category: node.category, 
-              reason: node.reason, 
-              icon: node.icon,
-              products: node.products || [] 
-            }
-          }));
-
-          let newEdges = result.edges.map(edge => ({
-            id: edge.id,
-            source: edge.source,
-            target: edge.target,
-            label: edge.label,
-            animated: simulateFlow
-          }));
-
-          // Auto-optimize to 100/100 before the user sees it
-          const techNodes = newNodes.filter(n => n.type === 'customNode');
-          const existingLabels = new Set(techNodes.map(n => normalizeTechLabel(n.data.label)));
-          const existingCategories = new Set(techNodes.map(n => n.data.category));
-          const hasBackend = existingCategories.has('backend');
-          const primaryBackend = techNodes.find(n => n.data?.category === 'backend');
-          const additions = [];
-
-          const optiMap = [
-            { title: 'NO_AUTH_LAYER', label: 'CLERK', category: 'auth', icon: 'shield', role: 'Authentication and user management', check: () => !existingCategories.has('auth') && hasBackend },
-            { title: 'NO_OBSERVABILITY_LAYER', label: 'GRAFANA', category: 'devops', icon: 'bar-chart', role: 'Monitoring and observability', check: () => !existingCategories.has('devops') && techNodes.length >= 5 && hasBackend },
-            { title: 'MISSING_CACHE_LAYER', label: 'REDIS', category: 'database', icon: 'database', role: 'Caching and session store', check: () => !existingLabels.has('REDIS') && newNodes.filter(n => n.data?.category === 'database').length >= 2 && hasBackend },
-            { title: 'MISSING_ASYNC_PROCESSING', label: 'KAFKA', category: 'queue', icon: 'message-square', role: 'Async message broker', check: () => !existingCategories.has('queue') && newNodes.filter(n => n.data?.category === 'backend').length >= 2 && hasBackend },
-            { title: 'NO_STORAGE_LAYER', label: 'S3', category: 'storage', icon: 'hard-drive', role: 'Object storage for assets', check: () => !existingCategories.has('storage') && techNodes.length >= 4 && hasBackend },
-            { title: 'MISSING_TRAFFIC_MANAGEMENT', label: 'NGINX', category: 'devops', icon: 'server', role: 'Reverse proxy and load balancer', check: () => !existingLabels.has('NGINX') && techNodes.length >= 6 && hasBackend },
-            { title: 'SINGLE_DATASTORE_PRESSURE', label: `${primaryBackend?.name || 'DB'}_REPLICA`, category: 'database', icon: 'database', role: 'Read replica for scaling', check: () => hasBackend && existingCategories.has('database') && newNodes.filter(n => n.data?.category === 'database').length === 1 },
-          ];
-
-          const findings = buildArchitectureReview({ nodes: newNodes, edges: newEdges, connectionRules, connectionMode });
-          const score = buildArchitectureScore(findings, newNodes, newEdges);
-          let extraFixes = 0;
-
-          if (score.score < 100) {
-            findings.forEach(finding => {
-              const match = optiMap.find(o => o.title === finding.title && o.check());
-              if (!match) return;
-              if (additions.some(a => a.label === match.label)) return;
-              const id = `node_genfix_${Date.now()}_${additions.length}`;
-              const rightmostX = Math.max(...techNodes.map(n => n.position?.x || 0), 120);
-              const anchorY = Math.round((techNodes.reduce((s, n) => s + (n.position?.y || 0), 0) / Math.max(techNodes.length, 1)));
-              additions.push({ id, match, x: rightmostX + 220 + additions.length * 60, y: anchorY + additions.length * 80 });
-            });
-
-            additions.forEach(({ id, match, x, y }) => {
-              existingLabels.add(match.label);
-              existingCategories.add(match.category);
-              newNodes.push({
-                id, type: 'customNode',
-                position: { x, y },
-                data: { label: match.label, category: match.category, role: match.role, reason: `Auto-optimized: missing ${match.category} layer`, icon: match.icon, products: [] }
-              });
-              if (primaryBackend) {
-                const label = match.category === 'auth' ? 'OIDC' : match.category === 'queue' ? 'KAFKA' : match.category === 'storage' ? 'S3' : 'HTTPS';
-                newEdges.push({ id: `e_genfix_${id}`, source: primaryBackend.id, target: id, label, animated: simulateFlow });
-              }
-              extraFixes++;
-            });
-          }
-
-          setNodes(newNodes);
-          setEdges(newEdges);
-          setPrompt('');
-          setIsStreaming(false);
-          loadVersions();
-          saveDiagram({ showToast: false, recordVersion: false, overrides: { nodes: newNodes, edges: newEdges } });
-          const autoFixesList = [...(result.autoFixes || [])];
-          if (extraFixes > 0) {
-            autoFixesList.push(...additions.map(a => `Auto-optimized: Added ${a.match.label} (${a.match.category}) for 100/100`));
-          }
-          setGenerationAutoFixes(autoFixesList);
-          const fixCount = autoFixesList.length;
-          const message = fixCount > 0
-            ? 'Architecture ready — ' + fixCount + ' auto-fix' + (fixCount > 1 ? 'es' : '') + ' applied'
-            : 'Architecture ready';
-          setToast({ message, error: false });
-          setTimeout(() => setToast(null), 3000);
-        },
-        (error) => {
-          setStreamError(error);
-          setToast({ message: 'Generation failed — ' + error, error: true });
-          setTimeout(() => setToast(null), 3000);
-        }
-      );
-    } catch (err) {
-      console.error('Generation failed:', err);
-      setToast({ message: 'Generation failed — ' + err.message, error: true });
-      setIsStreaming(false);
-      setTimeout(() => setToast(null), 3000);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSelectVersion = (version) => {
-    const newNodes = version.nodes
-      .filter(node => !isZoneNode(node))
-      .map(node => ({
-        id: node.id,
-        type: 'customNode',
-        position: node.position,
-        data: {
-          label: node.name,
-          role: node.role,
-          category: node.category,
-          reason: node.reason,
-          icon: node.icon,
-          products: node.products || []
-        }
-      }));
-
-    const newEdges = version.edges.map(edge => ({
-      id: edge.id,
-      source: edge.source,
-      target: edge.target,
-      label: edge.label,
-      animated: simulateFlow
-    }));
-
-    setNodes(newNodes);
-    setEdges(newEdges);
-    saveDiagram({ showToast: false, recordVersion: false, overrides: { nodes: newNodes, edges: newEdges } });
-    setToast({ message: 'LOADED_SNAPSHOT_' + version.id.substring(0, 8), error: false });
-    setTimeout(() => setToast(null), 2000);
-  };
-
-  const handleClearHistory = () => {
-    setShowConfirmHistory(true);
-  };
-
-  const confirmClearHistory = async () => {
-    try {
-      await api.clearDiagramVersions(diagramId);
-      setVersions([]);
-      setShowConfirmHistory(false);
-      setToast({ message: 'HISTORY_PURGED', error: false });
-      setTimeout(() => setToast(null), 2000);
-    } catch (err) {
-      console.error('Failed to clear history:', err);
-      setShowConfirmHistory(false);
-      setToast({ message: 'PURGE_FAILED', error: true });
-      setTimeout(() => setToast(null), 3000);
-    }
-  };
+  const {
+    selectedNode,
+    setSelectedNode,
+    selectedEdge,
+    setSelectedEdge,
+    handleReplaceNode,
+    handleFocusFinding,
+    handleNodeClick,
+    handleEdgeClick,
+    handleSelectNodeFlow,
+    handlePaneClick,
+    deleteSelected
+  } = useDiagramSelection({
+    nodes,
+    edges,
+    setNodes,
+    setEdges,
+    setLeftSidebarOpen,
+    setRightPanelOpen,
+    setHistoryPanelOpen,
+    simulateFlow,
+    setToast
+  });
+  const {
+    diagramName,
+    inventory,
+    versions,
+    versionsLoading,
+    connectionMode,
+    connectionRules,
+    saveStatus,
+    showConfirmHistory,
+    setShowConfirmHistory,
+    loadInventory,
+    loadVersions,
+    saveDiagram,
+    handleSelectVersion,
+    handleClearHistory,
+    confirmClearHistory,
+    updateDiagramName,
+    handleNameBlur
+  } = useDiagramPersistence({
+    diagramId,
+    isLoaded,
+    isSignedIn,
+    getToken,
+    router,
+    nodes,
+    edges,
+    setNodes,
+    setEdges,
+    simulateFlow,
+    setToast
+  });
+  const {
+    canUndo,
+    canRedo,
+    handleUndo,
+    handleRedo,
+    skipHistoryRef
+  } = useUndoRedo({ nodes, edges, setNodes, setEdges });
+  const { exportJSON, exportPNG } = useDiagramExport({
+    diagramName,
+    nodes,
+    edges,
+    rfInstance,
+    setShowExportMenu,
+    setToast
+  });
+
+  const {
+    prompt,
+    setPrompt,
+    template,
+    setTemplate,
+    loading,
+    streamingContent,
+    isStreaming,
+    setIsStreaming,
+    streamError,
+    generationAutoFixes,
+    handleGenerate
+  } = useDiagramGeneration({
+    diagramId,
+    connectionMode,
+    connectionRules,
+    saveDiagram,
+    loadVersions,
+    setNodes,
+    setEdges,
+    simulateFlow,
+    setToast
+  });
+  const {
+    assistantPrompt,
+    setAssistantPrompt,
+    assistantMessages,
+    reviewSuggestions,
+    reviewAssistantLoading,
+    handleSendAssistantPrompt,
+    handleAcceptReviewSuggestion,
+    handleDeclineReviewSuggestion
+  } = useReviewAssistant({
+    userId: user?.id,
+    diagramId,
+    diagramName,
+    nodes,
+    edges,
+    connectionMode,
+    connectionRules,
+    saveDiagram,
+    rfInstance,
+    simulateFlow,
+    setNodes,
+    setEdges,
+    setSelectedNode,
+    setSelectedEdge,
+    setLeftSidebarOpen,
+    setRightPanelOpen,
+    setAssistantPanelOpen,
+    setReviewPanelOpen,
+    setHistoryPanelOpen,
+    setToast
+  });
 
   const handleGenerateTech = async () => {
     if (!customTechPrompt.trim()) return;
@@ -711,345 +256,6 @@ export default function DiagramPage() {
       setToast({ message: 'TECH_REMOVAL_FAILED', error: true });
       setTimeout(() => setToast(null), 3000);
     }
-  };
-
-  const openReviewQueue = useCallback(() => {
-    setAssistantPanelOpen(false);
-    setRightPanelOpen(false);
-    setHistoryPanelOpen(false);
-    setReviewPanelOpen(true);
-    setLeftSidebarOpen(false);
-  }, []);
-
-  const handleSendAssistantPrompt = useCallback(async (presetPrompt) => {
-    const question = String(presetPrompt ?? assistantPrompt).trim();
-
-    if (!question || reviewAssistantLoading) {
-      return;
-    }
-
-    const userMessage = {
-      id: createReviewSuggestionId(),
-      role: 'user',
-      content: question
-    };
-    const conversationMessages = [...assistantMessages, userMessage]
-      .map(message => ({ role: message.role, content: message.content }))
-      .slice(-8);
-
-    setAssistantMessages(current => [...current, userMessage]);
-    setAssistantPrompt('');
-    setReviewAssistantLoading(true);
-
-    try {
-      const currentReviewFindings = buildArchitectureReview({
-        nodes,
-        edges,
-        connectionRules,
-        connectionMode
-      });
-      const result = await api.reviewDiagram({
-        question,
-        diagramName,
-        nodes: buildPersistedNodesPayload(nodes),
-        edges: buildPersistedEdgesPayload(edges),
-        reviewFindings: currentReviewFindings,
-        messages: conversationMessages
-      });
-      const suggestions = (Array.isArray(result.suggestions) ? result.suggestions : [])
-        .map(suggestion => enrichSuggestionConnections(suggestion, nodes, edges, connectionRules));
-      const stagedNames = formatStagedSuggestionNames(suggestions);
-      const assistantContent = suggestions.length > 0
-        ? `${result.message}\n\nAdded to Architecture Review: ${stagedNames}.`
-        : result.message;
-
-      setAssistantMessages(current => [
-        ...current,
-        {
-          id: createReviewSuggestionId(),
-          role: 'assistant',
-          content: assistantContent,
-          suggestionsCount: suggestions.length
-        }
-      ]);
-
-      if (suggestions.length > 0) {
-        setReviewSuggestions(current => mergeReviewSuggestions(current, suggestions));
-        setToast({ message: `ARCH_REVIEW_UPDATED: ${suggestions.length}_ITEMS`, warning: true });
-        setTimeout(() => setToast(null), 2500);
-      }
-    } catch (err) {
-      console.error('Assistant review failed:', err);
-      const isContextTooLarge = err?.status === 400 || /too large/i.test(err?.message);
-      const errorContent = isContextTooLarge
-        ? 'The diagram is too large to review in a single pass. Try breaking it into smaller sections, or remove some nodes and connections first.'
-        : `I couldn't review the diagram right now. ${err.message}`;
-      setAssistantMessages(current => [
-        ...current,
-        {
-          id: createReviewSuggestionId(),
-          role: 'assistant',
-          content: errorContent
-        }
-      ]);
-      setToast({ message: isContextTooLarge ? 'DIAGRAM_TOO_LARGE_FOR_REVIEW' : 'AI_REVIEW_FAILED', error: true });
-      setTimeout(() => setToast(null), 3000);
-    } finally {
-      setReviewAssistantLoading(false);
-    }
-  }, [
-    assistantMessages,
-    assistantPrompt,
-    connectionMode,
-    connectionRules,
-    diagramName,
-    edges,
-    nodes,
-    openReviewQueue,
-    reviewAssistantLoading
-  ]);
-
-  const handleDeclineReviewSuggestion = useCallback((suggestion) => {
-    setReviewSuggestions(current => current.filter(item => item.id !== suggestion.id));
-    setToast({ message: `REVIEW_DECLINED: ${suggestion.name.toUpperCase()}`, warning: true });
-    setTimeout(() => setToast(null), 2000);
-  }, []);
-
-  const handleAcceptReviewSuggestion = useCallback((suggestion) => {
-    const techNodes = nodes.filter(node => node.type === 'customNode');
-    const validNodeIds = new Set(techNodes.map(node => node.id));
-    const enrichedSuggestion = enrichSuggestionConnections(suggestion, nodes, edges, connectionRules);
-    const existingNode = techNodes.find(node => (
-      normalizeSuggestionValue(node.data?.label) === normalizeSuggestionValue(enrichedSuggestion.name) &&
-      (node.data?.category || 'backend') === enrichedSuggestion.category
-    ));
-    const nextNodeId = existingNode?.id || `node_${Date.now()}`;
-    const suggestionNode = existingNode || {
-      id: nextNodeId,
-      type: 'customNode',
-      position: computeSuggestedNodePosition(enrichedSuggestion, nodes),
-      data: {
-        label: enrichedSuggestion.name,
-        role: enrichedSuggestion.role,
-        reason: enrichedSuggestion.reason,
-        category: enrichedSuggestion.category,
-        icon: enrichedSuggestion.icon || 'Layers',
-        products: Array.isArray(enrichedSuggestion.products) ? enrichedSuggestion.products : []
-      }
-    };
-    const nextNodes = existingNode ? nodes : [...nodes, suggestionNode];
-    const existingEdgeKeys = new Set(edges.map(edge => `${edge.source}->${edge.target}`));
-    const appendedEdges = [];
-
-    (enrichedSuggestion.connections || []).forEach((connection, index) => {
-      const source = connection.source === REVIEW_NEW_NODE_TOKEN ? nextNodeId : connection.source;
-      const target = connection.target === REVIEW_NEW_NODE_TOKEN ? nextNodeId : connection.target;
-
-      if (
-        !source ||
-        !target ||
-        source === target ||
-        (source !== nextNodeId && !validNodeIds.has(source)) ||
-        (target !== nextNodeId && !validNodeIds.has(target))
-      ) {
-        return;
-      }
-
-      const edgeKey = `${source}->${target}`;
-
-      if (existingEdgeKeys.has(edgeKey)) {
-        return;
-      }
-
-      existingEdgeKeys.add(edgeKey);
-      appendedEdges.push({
-        id: `e_${Date.now()}_${index}`,
-        source,
-        target,
-        label: connection.label || 'HTTPS',
-        animated: simulateFlow
-      });
-    });
-
-    const nextEdges = appendedEdges.length > 0 ? [...edges, ...appendedEdges] : edges;
-
-    setNodes(nextNodes);
-    setEdges(nextEdges);
-    setReviewSuggestions(current => current.filter(item => item.id !== suggestion.id));
-    setSelectedNode(null);
-    setSelectedEdge(null);
-    setLeftSidebarOpen(false);
-
-    saveDiagram({
-      showToast: false,
-      recordVersion: true,
-      overrides: {
-        nodes: nextNodes,
-        edges: nextEdges
-      }
-    });
-
-    if (rfInstance) {
-      setTimeout(() => {
-        rfInstance.fitView({ padding: 0.16, duration: 320 });
-      }, 80);
-    }
-
-    setToast({
-      message: existingNode
-        ? `REVIEW_ACCEPTED: ${enrichedSuggestion.name.toUpperCase()}_LINKED`
-        : `REVIEW_ACCEPTED: ${enrichedSuggestion.name.toUpperCase()}_ADDED`,
-      error: false
-    });
-    setTimeout(() => setToast(null), 2200);
-  }, [connectionRules, edges, nodes, rfInstance, saveDiagram, simulateFlow]);
-
-  const refreshEdgeLabelsForNode = useCallback(async (nodeId, nextNodes, baselineEdges = edges) => {
-    const edgeUpdates = await Promise.all(baselineEdges.map(async edge => {
-      if (edge.source !== nodeId && edge.target !== nodeId) {
-        return null;
-      }
-
-      const sourceNode = nextNodes.find(node => node.id === edge.source);
-      const targetNode = nextNodes.find(node => node.id === edge.target);
-
-      if (!sourceNode || !targetNode) {
-        return null;
-      }
-
-      try {
-        const result = await api.inferConnection({
-          source: { name: sourceNode.data.label, category: sourceNode.data.category },
-          target: { name: targetNode.data.label, category: targetNode.data.category }
-        });
-
-        return [
-          edge.id,
-          {
-            label: result.label || edge.label,
-            animated: simulateFlow
-          }
-        ];
-      } catch (err) {
-        console.error('Failed to refresh edge label during node replacement:', err);
-        return null;
-      }
-    }));
-
-    return new Map(edgeUpdates.filter(Boolean));
-  }, [edges, simulateFlow]);
-
-  const handleReplaceNode = (replacement) => {
-    if (!selectedNode) {
-      return;
-    }
-
-    const targetNodeId = selectedNode.id;
-    const replacementReason = `Replaced manually with ${replacement.name} to preserve the ${selectedNode.data.category} layer while changing only this unit.`;
-    const nextNodes = nodes.map(node => node.id === selectedNode.id ? ({
-      ...node,
-      data: {
-        ...node.data,
-        label: replacement.name,
-        icon: replacement.icon || node.data.icon,
-        products: replacement.products || node.data.products || [],
-        reason: replacementReason
-      }
-    }) : node);
-    const nextSelectedNode = nextNodes.find(node => node.id === selectedNode.id) || null;
-    const baselineEdges = edges;
-    const nextRefreshSeq = (replacementRefreshSeqByNodeRef.current.get(targetNodeId) || 0) + 1;
-
-    replacementRefreshSeqByNodeRef.current.set(targetNodeId, nextRefreshSeq);
-
-    setNodes(nextNodes);
-    setSelectedNode(nextSelectedNode);
-    setSelectedEdge(null);
-    setLeftSidebarOpen(true);
-    setToast({ message: `UNIT_REPLACED: ${replacement.name}`, error: false });
-    setTimeout(() => setToast(null), 2000);
-
-    refreshEdgeLabelsForNode(targetNodeId, nextNodes, baselineEdges)
-      .then(edgeUpdates => {
-        if (replacementRefreshSeqByNodeRef.current.get(targetNodeId) !== nextRefreshSeq) {
-          return;
-        }
-
-        setEdges(currentEdges => currentEdges.map(edge => (
-          edgeUpdates.has(edge.id)
-            ? { ...edge, ...edgeUpdates.get(edge.id) }
-            : edge
-        )));
-      })
-      .catch(err => {
-        console.error('Failed to complete background edge refresh after node replacement:', err);
-      });
-  };
-
-  const handleFocusFinding = useCallback((finding) => {
-    const targetEdgeId = finding.edgeIds?.[0];
-    const targetEdge = targetEdgeId ? edges.find(edge => edge.id === targetEdgeId) : null;
-
-    if (targetEdge) {
-      setSelectedEdge(targetEdge);
-      setSelectedNode(null);
-      setLeftSidebarOpen(true);
-      setRightPanelOpen(false);
-      setHistoryPanelOpen(false);
-      return;
-    }
-
-    const targetNodeId = finding.nodeIds?.[0];
-
-    if (!targetNodeId) {
-      return;
-    }
-
-    const targetNode = nodes.find(node => node.id === targetNodeId);
-
-    if (!targetNode) {
-      return;
-    }
-
-    setSelectedNode(targetNode);
-    setSelectedEdge(null);
-    setLeftSidebarOpen(true);
-    setRightPanelOpen(false);
-    setHistoryPanelOpen(false);
-  }, [edges, nodes]);
-
-  const handleNodeClick = (event, node) => {
-    if (node.type !== 'customNode') {
-      return;
-    }
-
-    setSelectedNode(node);
-    setSelectedEdge(null);
-    setLeftSidebarOpen(true);
-  };
-
-  const handleEdgeClick = (event, edge) => {
-    setSelectedEdge(edge);
-    setSelectedNode(null);
-    setLeftSidebarOpen(true);
-  };
-
-  const handleSelectNodeFlow = useCallback((edgeId) => {
-    const targetEdge = edges.find(edge => edge.id === edgeId);
-
-    if (!targetEdge) {
-      return;
-    }
-
-    setSelectedEdge(targetEdge);
-    setSelectedNode(null);
-    setLeftSidebarOpen(true);
-  }, [edges]);
-
-  const handlePaneClick = () => {
-    setSelectedNode(null);
-    setSelectedEdge(null);
-    setLeftSidebarOpen(false);
   };
 
   const onConnect = useCallback(async (params) => {
@@ -1246,78 +452,6 @@ export default function DiagramPage() {
     e.dataTransfer.dropEffect = 'move';
   };
 
-  const deleteSelected = () => {
-    if (selectedNode) {
-      setNodes(nds => nds.filter(n => n.id !== selectedNode.id));
-      setEdges(eds => eds.filter(e => e.source !== selectedNode.id && e.target !== selectedNode.id));
-      setSelectedNode(null);
-      setSelectedEdge(null);
-      setLeftSidebarOpen(false);
-      return;
-    }
-
-    if (selectedEdge) {
-      setEdges(eds => eds.filter(edge => edge.id !== selectedEdge.id));
-      setSelectedEdge(null);
-      setLeftSidebarOpen(false);
-    }
-  };
-
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      if (document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'TEXTAREA') return;
-
-      if ((e.metaKey || e.ctrlKey) && e.key === 'z' && !e.shiftKey) {
-        e.preventDefault();
-        setUndoStack(prev => {
-          if (prev.length === 0) return prev;
-          const last = prev[prev.length - 1];
-          skipHistoryRef.current = true;
-          isUndoingRef.current = true;
-          setRedoStack(r => [...r, { nodes, edges }]);
-          setNodes(last.nodes);
-          setEdges(last.edges);
-          setTimeout(() => { isUndoingRef.current = false; }, 0);
-          return prev.slice(0, -1);
-        });
-        return;
-      }
-
-      if ((e.metaKey || e.ctrlKey) && e.key === 'z' && e.shiftKey) {
-        e.preventDefault();
-        setRedoStack(prev => {
-          if (prev.length === 0) return prev;
-          const last = prev[prev.length - 1];
-          skipHistoryRef.current = true;
-          isRedoingRef.current = true;
-          setUndoStack(u => [...u, { nodes, edges }]);
-          setNodes(last.nodes);
-          setEdges(last.edges);
-          setTimeout(() => { isRedoingRef.current = false; }, 0);
-          return prev.slice(0, -1);
-        });
-        return;
-      }
-
-      if (e.key === 'Delete' || e.key === 'Backspace') {
-        if (selectedNode || selectedEdge) {
-          e.preventDefault();
-          deleteSelected();
-        }
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedNode, selectedEdge, nodes, edges]);
-
-  const updateDiagramName = (e) => {
-    setDiagramName(e.target.value);
-  };
-
-  const handleNameBlur = () => {
-    saveDiagram({ showToast: false, recordVersion: false });
-  };
-
   const layoutNodes = useCallback(() => {
     const layoutResult = buildAutoLayoutResult(nodes, edges);
 
@@ -1345,101 +479,6 @@ export default function DiagramPage() {
   useEffect(() => {
     setEdges(eds => eds.map(edge => ({ ...edge, animated: simulateFlow })));
   }, [simulateFlow, setEdges]);
-
-  const exportJSON = () => {
-    const data = {
-      name: diagramName,
-      nodes: nodes.filter(node => node.type === 'customNode'),
-      edges,
-      exportedAt: new Date().toISOString()
-    };
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `archflow_${diagramName.toLowerCase().replace(/\s+/g, '_')}.json`;
-    link.click();
-    URL.revokeObjectURL(url);
-    setShowExportMenu(false);
-
-    setToast({ message: 'EXPORT_JSON: SUCCESS', error: false });
-    setTimeout(() => setToast(null), 2000);
-  };
-
-  const exportPNG = async () => {
-    if (!rfInstance) return;
-
-    setToast({ message: 'RENDER_4K_BLUEPRINT...', warning: true });
-
-    try {
-      const nodesBounds = getRectOfNodes(nodes);
-      const padding = 150;
-      
-      // Calculate dynamic dimensions for a pixel-perfect render
-      const exportWidth = nodesBounds.width + (padding * 2);
-      const exportHeight = nodesBounds.height + (padding * 2);
-
-      const dataUrl = await toPng(document.querySelector('.react-flow__viewport'), {
-        backgroundColor: '#ffffff',
-        width: exportWidth,
-        height: exportHeight,
-        pixelRatio: 2, // High-resolution upscale
-        skipFonts: true, // Avoid cross-origin cssRules error from external stylesheets
-        style: {
-          width: exportWidth,
-          height: exportHeight,
-          // Shift the viewport so the nodes start at our padded origin
-          transform: `translate(${-nodesBounds.x + padding}px, ${-nodesBounds.y + padding}px) scale(1)`,
-        },
-      });
-
-      const link = document.createElement('a');
-      link.download = `archflow_${diagramName.toLowerCase().replace(/\s+/g, '_')}_v1.png`;
-      link.href = dataUrl;
-      link.click();
-
-      setShowExportMenu(false);
-      setToast({ message: 'HI_RES_EXPORT: SUCCESS', error: false });
-      setTimeout(() => setToast(null), 2000);
-    } catch (err) {
-      console.error('PNG Export failed:', err);
-      setToast({ message: 'EXPORT_FAILED: RENDER_BUFFER_OVERFLOW', error: true });
-      setTimeout(() => setToast(null), 3000);
-    }
-  };
-
-  const canUndo = undoStack.length > 0;
-  const canRedo = redoStack.length > 0;
-
-  const handleUndo = useCallback(() => {
-    if (undoStack.length === 0) return;
-    setUndoStack(prev => {
-      if (prev.length === 0) return prev;
-      const last = prev[prev.length - 1];
-      skipHistoryRef.current = true;
-      isUndoingRef.current = true;
-      setRedoStack(r => [...r, { nodes, edges }]);
-      setNodes(last.nodes);
-      setEdges(last.edges);
-      setTimeout(() => { isUndoingRef.current = false; }, 0);
-      return prev.slice(0, -1);
-    });
-  }, [undoStack, nodes, edges]);
-
-  const handleRedo = useCallback(() => {
-    if (redoStack.length === 0) return;
-    setRedoStack(prev => {
-      if (prev.length === 0) return prev;
-      const last = prev[prev.length - 1];
-      skipHistoryRef.current = true;
-      isRedoingRef.current = true;
-      setUndoStack(u => [...u, { nodes, edges }]);
-      setNodes(last.nodes);
-      setEdges(last.edges);
-      setTimeout(() => { isRedoingRef.current = false; }, 0);
-      return prev.slice(0, -1);
-    });
-  }, [redoStack, nodes, edges]);
 
   const handleOptimizeTo100 = useCallback(() => {
     const findings = buildArchitectureReview({ nodes, edges, connectionRules, connectionMode });
