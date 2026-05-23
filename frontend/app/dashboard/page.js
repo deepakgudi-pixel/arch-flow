@@ -142,44 +142,175 @@ const DiagramGrid = styled.div`
   gap: 32px;
 `;
 
-const ShowcaseGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 18px;
+const ShowcaseLauncher = styled.div`
+  border: 3px solid #000000;
+  background: #ffffff;
+`;
 
-  @media (max-width: 1024px) {
+const ShowcaseHeader = styled.div`
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 24px;
+  align-items: end;
+  padding: 28px 32px;
+  border-bottom: 3px solid #000000;
+  background:
+    linear-gradient(90deg, rgba(0, 0, 0, 0.04) 1px, transparent 1px),
+    linear-gradient(180deg, rgba(0, 0, 0, 0.04) 1px, transparent 1px),
+    #f7f7f7;
+  background-size: 18px 18px;
+
+  @media (max-width: 760px) {
     grid-template-columns: 1fr;
+    align-items: start;
   }
 `;
 
-const ShowcaseCard = styled.button`
-  text-align: left;
-  border: 2px solid #000000;
-  background: #ffffff;
-  padding: 18px;
+const ShowcaseKicker = styled.div`
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 900;
+  color: #555555;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+`;
+
+const ShowcaseHeading = styled.h2`
+  margin: 8px 0 10px;
+  font-family: var(--font-sans);
+  font-size: clamp(1.8rem, 4vw, 3.35rem);
+  line-height: 0.95;
+  font-weight: 900;
+  color: #000000;
+  text-transform: uppercase;
+  max-width: 760px;
+`;
+
+const ShowcaseIntro = styled.p`
+  max-width: 760px;
+  color: #3f3f3f;
+  font-size: 0.98rem;
+  line-height: 1.55;
+`;
+
+const ShowcaseCount = styled.div`
   display: grid;
-  gap: 12px;
+  gap: 4px;
+  justify-items: end;
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  color: #000000;
+
+  strong {
+    font-size: 2.6rem;
+    line-height: 1;
+  }
+
+  span {
+    font-size: 0.7rem;
+    font-weight: 900;
+    color: #666666;
+  }
+
+  @media (max-width: 760px) {
+    justify-items: start;
+  }
+`;
+
+const ShowcaseList = styled.div`
+  display: grid;
+`;
+
+const ShowcaseRow = styled.button`
+  width: 100%;
+  text-align: left;
+  border: 0;
+  border-bottom: 1px solid #d8d8d8;
+  background: #ffffff;
+  display: grid;
+  grid-template-columns: 56px minmax(140px, 0.25fr) minmax(0, 1fr) auto;
+  gap: 18px;
+  align-items: center;
+  padding: 18px 24px;
   cursor: pointer;
-  transition: transform 0.2s ease, background 0.2s ease;
+  transition: background 0.18s ease, color 0.18s ease;
 
   &:hover {
-    background: #f7f7f7;
-    transform: translateY(-2px);
+    background: #000000;
+    color: #ffffff;
   }
+
+  &:hover p,
+  &:hover ${Badge} {
+    color: #ffffff;
+  }
+
+  &:last-child {
+    border-bottom: 0;
+  }
+
+  &:disabled {
+    cursor: wait;
+    opacity: 0.65;
+  }
+
+  @media (max-width: 900px) {
+    grid-template-columns: 44px minmax(0, 1fr) auto;
+  }
+
+  @media (max-width: 640px) {
+    grid-template-columns: 1fr;
+    gap: 10px;
+    padding: 20px;
+  }
+`;
+
+const ShowcaseIndex = styled.div`
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  font-weight: 900;
+  color: currentColor;
+  opacity: 0.6;
 `;
 
 const ShowcaseTitle = styled.div`
   font-family: var(--font-mono);
   font-size: 1rem;
   font-weight: 900;
-  color: #000000;
+  color: currentColor;
   text-transform: uppercase;
 `;
 
 const ShowcaseText = styled.p`
-  font-size: 12px;
-  line-height: 1.5;
+  font-size: 13px;
+  line-height: 1.45;
   color: #444444;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+
+  @media (max-width: 900px) {
+    grid-column: 2 / -1;
+  }
+
+  @media (max-width: 640px) {
+    grid-column: auto;
+  }
+`;
+
+const ShowcaseAction = styled.span`
+  justify-self: end;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 900;
+  color: currentColor;
+  text-transform: uppercase;
+  white-space: nowrap;
+
+  @media (max-width: 640px) {
+    justify-self: start;
+  }
 `;
 
 const TemplateGrid = styled.div`
@@ -543,31 +674,42 @@ function DashboardContent() {
         </JoinTerminal>
 
         <section>
-          <Toolbar>
-            <div style={{ display: 'grid', gap: '8px' }}>
-              <h2 style={{ fontSize: '1.8rem', fontWeight: 900, textTransform: 'uppercase' }}>Showcase Examples</h2>
-              <CardText>Launch a recognizable system so recruiters can understand Archflow in seconds.</CardText>
-            </div>
-            <Badge $tone="brand">AI_READY_DEMOS</Badge>
-          </Toolbar>
+          <ShowcaseLauncher>
+            <ShowcaseHeader>
+              <div>
+                <ShowcaseKicker>AI_READY_DEMOS</ShowcaseKicker>
+                <ShowcaseHeading>Launch a system recruiters already understand.</ShowcaseHeading>
+                <ShowcaseIntro>
+                  Start from a recognizable architecture, synthesize the diagram, then open Review to see the reliability layers and teaching narrative.
+                </ShowcaseIntro>
+              </div>
+              <ShowcaseCount>
+                <strong>{architectureExamples.length}</strong>
+                <span>demo systems</span>
+              </ShowcaseCount>
+            </ShowcaseHeader>
 
-          <ShowcaseGrid>
-            {architectureExamples.map(example => (
-              <ShowcaseCard
-                key={example.id}
-                type="button"
-                onClick={() => launchShowcaseExample(example)}
-                disabled={Boolean(launchingExampleId)}
-              >
-                <Badge $tone="neutral">{example.audience}</Badge>
-                <ShowcaseTitle>{example.name}</ShowcaseTitle>
-                <ShowcaseText>{example.prompt}</ShowcaseText>
-                <Button as="span" $variant="accent" $size="sm">
-                  {launchingExampleId === example.id ? 'LAUNCHING...' : 'OPEN_DEMO_PROMPT'}
-                </Button>
-              </ShowcaseCard>
-            ))}
-          </ShowcaseGrid>
+            <ShowcaseList>
+              {architectureExamples.map((example, index) => (
+                <ShowcaseRow
+                  key={example.id}
+                  type="button"
+                  onClick={() => launchShowcaseExample(example)}
+                  disabled={Boolean(launchingExampleId)}
+                >
+                  <ShowcaseIndex>{String(index + 1).padStart(2, '0')}</ShowcaseIndex>
+                  <div>
+                    <Badge $tone="neutral">{example.audience}</Badge>
+                    <ShowcaseTitle style={{ marginTop: '8px' }}>{example.name}</ShowcaseTitle>
+                  </div>
+                  <ShowcaseText>{example.prompt}</ShowcaseText>
+                  <ShowcaseAction>
+                    {launchingExampleId === example.id ? 'LAUNCHING...' : 'OPEN_DEMO_PROMPT'}
+                  </ShowcaseAction>
+                </ShowcaseRow>
+              ))}
+            </ShowcaseList>
+          </ShowcaseLauncher>
         </section>
 
         <section>
