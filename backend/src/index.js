@@ -18,17 +18,28 @@ import { logger } from './lib/logger.js';
 
 const app = express();
 const PORT = process.env.PORT || 4000;
-const DEFAULT_ALLOWED_ORIGINS = ['http://localhost:3000', 'http://127.0.0.1:3000'];
+const DEFAULT_ALLOWED_ORIGINS = [
+  'http://localhost:3000',
+  'http://127.0.0.1:3000',
+  'https://arch-flow.vercel.app'
+];
+
+function normalizeOrigin(origin) {
+  return String(origin || '').trim().replace(/\/+$/, '');
+}
 
 function parseAllowedOrigins(value) {
   return String(value || '')
     .split(',')
-    .map(origin => origin.trim())
+    .map(normalizeOrigin)
     .filter(Boolean);
 }
 
-const allowedOrigins = parseAllowedOrigins(process.env.CORS_ORIGINS || process.env.FRONTEND_URL);
-const corsOrigins = allowedOrigins.length > 0 ? allowedOrigins : DEFAULT_ALLOWED_ORIGINS;
+const allowedOrigins = [
+  ...parseAllowedOrigins(process.env.CORS_ORIGINS),
+  ...parseAllowedOrigins(process.env.FRONTEND_URL)
+];
+const corsOrigins = [...new Set([...DEFAULT_ALLOWED_ORIGINS, ...allowedOrigins])];
 
 // Trust the first proxy (e.g. Vercel, Nginx)
 app.set('trust proxy', 1);
@@ -37,7 +48,7 @@ app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
 app.use(cors({
   credentials: true,
   origin(origin, callback) {
-    callback(null, !origin || corsOrigins.includes(origin));
+    callback(null, !origin || corsOrigins.includes(normalizeOrigin(origin)));
   }
 }));
 app.use(express.json({ limit: '1mb' }));
