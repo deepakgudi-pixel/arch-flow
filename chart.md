@@ -21,7 +21,7 @@ graph TD
     A --- D[Technical Architecture<br/>Strong]
     A --- E[UX and Diagram Clarity<br/>Strong]
     A --- F[Auth and Access Control<br/>Strong]
-    A --- G[Internal QA and Evaluation<br/>Strong]
+    A --- G[Internal QA, CI, and Evaluation<br/>Strong]
 
     A --- H[Production Monitoring<br/>Partial]
     A --- I[Scale and Performance Proof<br/>Partial]
@@ -48,13 +48,13 @@ graph TD
 |---|---|---|---|---|
 | Product Vision | Strong | Clear user problem, learning-first direction, trust-first product principles, no public score pressure | The app has a real point of view and the product decisions are consistent with it | More live user interviews and paid usage data would strengthen it further |
 | AI Reliability | Strong | Structured generation flow, hardened JSON parsing, retry logic for smaller calls, normalization, protocol repair, failure capture | The app is not blindly trusting raw model output anymore; it has containment and recovery layers | Model behavior can still drift over time because AI providers change |
-| Technical Architecture | Strong | Next.js frontend, Express backend, PostgreSQL, Redis, Clerk, OpenRouter, diagram persistence, version history, autosave logic | The system has clear separation of concerns and real implementation depth across frontend and backend | Very large-scale concurrency and cost behavior are still not deeply proven |
+| Technical Architecture | Strong | Next.js frontend, Express backend, PostgreSQL, Redis, Clerk, OpenRouter, diagram persistence, version history, autosave logic, transactional save/delete handlers | The system has clear separation of concerns, transaction-safe persistence paths, and real implementation depth across frontend and backend | Very large-scale concurrency and cost behavior are still not deeply proven |
 | UX and Diagram Clarity | Strong | Smarter auto-arrange, focused flow inspection, sidebars, connection details, readable tech labels, cleaner controls | The product is intentionally designed to reduce confusion rather than just expose more knobs | Extremely dense graphs can still reveal edge-case readability problems |
-| Auth and Access Control | Strong | Clerk middleware, protected routes, frontend env guards, local auth smoke verification, protected probe route | Auth is no longer "assumed working"; it has repeatable local verification and clear route protection | Still dependent on third-party Clerk behavior and future version changes |
-| Internal QA and Evaluation | Strong | Eval harness, prompt matrix, history prompt mining, AI failure logging, Markdown scoreboard | Quality is now measurable internally instead of being judged only by feel | The evaluator will get stronger as more real prompts and failure cases accumulate |
+| Auth and Access Control | Strong | Clerk middleware, protected routes, frontend env guards, local auth smoke verification, protected probe route, access-control tests for diagram update/delete/version flows | Auth is no longer "assumed working"; it has repeatable local verification, route protection, and backend tests around important ownership boundaries | Still dependent on third-party Clerk behavior and future version changes |
+| Internal QA, CI, and Evaluation | Strong | Eval harness, prompt matrix, history prompt mining, AI failure logging, Markdown scoreboard, 30 backend tests, frontend lint/typecheck/build, Playwright smoke, GitHub Actions on Ubuntu and macOS | Quality is now measurable internally and automatically checked in CI instead of being judged only by feel | The evaluator will get stronger as more real prompts and failure cases accumulate |
 | Production Monitoring | Partial | Build verification, auth smoke checks, migration checks, internal evals | There is a decent pre-ship quality loop already | Full observability like Sentry, alerting, dashboards, and tracing is not yet a mature part of the stack |
 | Scale and Performance Proof | Partial | Debounced autosave, queued saves, focused rendering behavior, layout improvements for dense graphs | The app has some performance-aware design choices already | No serious load testing, real traffic proof, or long-session stress proof has been demonstrated yet |
-| Security, Privacy, Compliance | Partial | Protected routes, env-based secrets, narrow local-only smoke bypass, structured auth model | Basic product security thinking is present and the local bypass was carefully scoped | Formal privacy policy depth, retention controls, compliance posture, enterprise security guarantees, and legal docs are still not deeply built out |
+| Security, Privacy, Compliance | Partial | Protected routes, env-based secrets, narrow local-only smoke bypass, structured auth model, high-severity dependency audit gates, upgraded Clerk/Express packages | Basic product security thinking is present, high/critical dependency issues are guarded in CI, and the local bypass was carefully scoped | Formal privacy policy depth, retention controls, compliance posture, enterprise security guarantees, and legal docs are still not deeply built out |
 | Billing and Monetization Ops | Not Yet Covered | The product can be sold conceptually and has a plausible pricing direction | The value proposition is strong enough for a paid v1 | Stripe, subscriptions, invoices, quotas, usage enforcement, and billing ops are not implemented yet |
 | Real Customer Validation | Not Yet Proven | The product feels ready to ship and has a clear story | It is reasonable to launch and charge as a v1 | There is no real paid user retention, cohort learning, or revenue proof yet |
 
@@ -79,7 +79,7 @@ graph TD
 ### 3. Technical Architecture
 **Covered:** Yes, strongly.
 
-**Why:** There is real implementation depth here: frontend editor logic, backend persistence, version history, migrations, auth, evaluation, and repair flows.
+**Why:** There is real implementation depth here: frontend editor logic, backend persistence, version history, migrations, auth, evaluation, repair flows, structured logging, and transaction-safe diagram save/delete paths.
 
 **What is still missing:** Large-scale production pressure has not yet validated every infrastructure choice.
 
@@ -93,21 +93,21 @@ graph TD
 ### 5. Auth and Access Control
 **Covered:** Yes, strongly.
 
-**Why:** The app has real protected routes, Clerk integration, env checks, and now a reproducible local smoke verification path.
+**Why:** The app has real protected routes, Clerk integration, env checks, a reproducible local smoke verification path, and backend tests around owner/collaborator boundaries.
 
 **What is still missing:** The system still depends on external auth vendor behavior, so dependency drift remains a maintenance concern.
 
-### 6. Internal QA and Evaluation
+### 6. Internal QA, CI, and Evaluation
 **Covered:** Yes, strongly.
 
-**Why:** This is one of the most important strategic strengths. The internal evaluator gives the product a way to improve quality systematically instead of only through intuition.
+**Why:** This is one of the most important strategic strengths. The internal evaluator gives the product a way to improve quality systematically instead of only through intuition, while CI verifies backend tests, frontend lint/typecheck/build, audits, and Playwright smoke coverage on Ubuntu and macOS.
 
 **What is still missing:** More historical data and more real prompt coverage will make the evaluator stronger over time.
 
 ### 7. Production Monitoring
 **Covered:** Partially.
 
-**Why:** There are good verification loops already, especially before release.
+**Why:** There are good verification loops already, especially before release, and structured backend logging makes future observability easier.
 
 **Why not fully covered:** Observability for a live paid product still needs deeper tooling like error dashboards, alerting, and tracing.
 
@@ -121,7 +121,7 @@ graph TD
 ### 9. Security, Privacy, Compliance
 **Covered:** Partially.
 
-**Why:** Basic product security is taken seriously and auth is real.
+**Why:** Basic product security is taken seriously, auth is real, high-severity dependency audit gates are in CI, and access-control behavior has tests.
 
 **Why not fully covered:** Legal/compliance readiness is a different layer from basic app auth, and that layer is not fully built yet.
 
@@ -149,8 +149,8 @@ If someone asks, "What parts of this app are strongest right now?" the best answ
 - AI reliability strategy
 - technical architecture
 - UX clarity
-- auth hardening
-- internal evaluation
+- auth hardening and access-control tests
+- CI, audit gates, and internal evaluation
 
 If someone asks, "What is not fully covered yet?" the honest answer is:
 

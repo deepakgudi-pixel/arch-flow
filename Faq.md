@@ -45,7 +45,7 @@ The score is not the product. It is a summary of deterministic review signals. T
 The user gives a product prompt, the backend sends a structured request to the model, the response is normalized into nodes and edges, and then the frontend renders it as a diagram. After generation, the system can auto-arrange the graph, infer or repair connection labels, and surface review notes in the sidebars and review drawer.
 
 ### 10. How do you make the output feel trustworthy?
-I do it in layers. First, the output is structured into explicit units and flows rather than dumped as raw text. Second, the generation pipeline normalizes and hardens the diagram before users see it. Third, the UI explains why a unit was chosen and what assumptions or risks are attached to it. Fourth, users can click review findings to focus the exact node or edge involved instead of hunting through the canvas.
+I do it in layers. First, the output is structured into explicit units and flows rather than dumped as raw text. Second, the generation pipeline normalizes and hardens the diagram before users see it. Third, the backend review gate only accepts generated diagrams that pass the deterministic quality target. Fourth, the UI explains why a unit was chosen and what assumptions or risks are attached to it. Fifth, users can click review findings to focus the exact node or edge involved instead of hunting through the canvas.
 
 ### 11. What do you do when the model returns bad or malformed output?
 I hardened the pipeline so the app is not dependent on perfect model behavior. The parser can recover JSON from noisy outputs, smaller AI calls retry when they return invalid JSON, the diagram generator normalizes and validates nodes and edges, and failures are logged so they can feed back into the internal evaluator instead of just silently breaking the experience.
@@ -76,13 +76,13 @@ The frontend uses Next.js App Router, React 19, React Flow, styled-components, F
 The backend uses Node.js, Express, PostgreSQL via Neon, Redis/Upstash, Clerk for auth, and OpenRouter for model access. The goal was to keep the backend simple and pragmatic while supporting persistence, auth, caching, and AI integration cleanly.
 
 ### 19. How do diagrams get stored and versioned?
-There is a primary diagram record and a version history model. The live diagram keeps the current state, while explicit version entries capture snapshots over time. That allows the app to autosave without creating noise and still lets users restore meaningful saved states later.
+There is a primary diagram record and a version history model. The live diagram keeps the current state, while explicit version entries capture snapshots over time. Diagram updates and manual history writes now run transactionally, so the app does not claim a save succeeded if the related history write failed.
 
 ### 20. How do you handle autosave and version history without spamming the database?
 I separated background persistence from explicit versioning. Autosave keeps the main diagram up to date using snapshot comparison, debouncing, and queued saves, but it does not create a new version entry every time. Manual save flows can still record a deliberate snapshot in history.
 
 ### 21. How do you manage auth and protected routes?
-Clerk handles identity, and middleware protects non-public routes. The app also has dedicated smoke routes for auth/editor checks so I can verify critical flows consistently in development. The editor smoke probe bypasses Clerk intentionally so local UI regression tests do not fail because of auth key drift.
+Clerk handles identity, and middleware protects non-public routes. The app also has dedicated smoke routes for auth/editor checks so I can verify critical flows consistently in development. The editor smoke probe bypasses Clerk intentionally so local UI regression tests do not fail because of auth key drift. Backend tests also cover owner/collaborator boundaries around diagram updates, version access, and deletion behavior.
 
 ### 22. How do you prevent schema drift in the database?
 I added real numbered migrations, a `schema_migrations` table, and startup compatibility checks for required columns. That moves the app away from fragile "hope the DB matches the code" behavior and toward a repeatable migration process.
@@ -94,7 +94,10 @@ Connections are stored as explicit edges, and protocol or flow labels can be inf
 Users can replace a selected node with same-category alternatives. That swap updates the chosen tech immediately and only recalculates nearby connection wording rather than regenerating the entire architecture. It keeps the rest of the diagram stable and makes refinement feel controlled.
 
 ### 24a. How do you test persistence and version history?
-I extracted the core route behaviors into testable handlers and added integration-style tests around diagram update, manual version creation, AI generation persistence, non-owner permission denial, and version listing. These tests mock the database boundary but verify the SQL intent and payloads that matter for product behavior.
+I extracted the core route behaviors into testable handlers and added integration-style tests around diagram update, manual version creation, AI generation persistence, non-owner permission denial, version listing, transactional deletes, and rollback behavior. These tests mock the database boundary but verify the SQL intent and payloads that matter for product behavior.
+
+### 24b. What makes the backend feel production-minded?
+The backend now has transaction-safe diagram update/delete handlers, structured logging through a shared logger, environment validation, migration checks, rate limiting on AI endpoints, and CI audit gates for high-severity production dependency issues. It is not enterprise-complete, but it is much more than a demo API.
 
 ---
 
@@ -129,22 +132,22 @@ The editor includes Guided Mode, which explains the loop: start from a real syst
 ## Scale and Production Questions
 
 ### 32. What happens if Clerk, Next.js, or OpenRouter changes behavior?
-I assume dependencies will drift over time, so I added guardrails instead of assuming permanence. That includes Turbo dev for local stability, auth smoke verification, environment checks, numbered DB migrations, hardened AI parsing, retry logic for JSON responses, and internal eval reports so regressions become visible earlier.
+I assume dependencies will drift over time, so I added guardrails instead of assuming permanence. That includes auth smoke verification, environment checks, numbered DB migrations, hardened AI parsing, retry logic for JSON responses, high-severity dependency audit gates, and internal eval reports so regressions become visible earlier.
 
 ### 33. What are the current failure points in production?
-The main remaining risks are dependency changes, long-tail AI weirdness, larger real-world diagram stress cases, and the fact that some production concerns like monitoring and billing systems are still not fully built out. The difference now is that those risks are known and partially guarded, rather than hidden.
+The main remaining risks are long-tail AI weirdness, larger real-world diagram stress cases, and the fact that some production concerns like monitoring and billing systems are still not fully built out. Dependency risk is better guarded now through package upgrades and CI audit checks, but long-term maintenance still matters.
 
 ### 34. How do you control AI cost?
 Right now the main controls are structured prompts, deterministic post-processing, fallback model behavior, and the fact that not every user action triggers a full regeneration. I would still consider usage quotas, per-user limits, and cost dashboards as next-stage production controls rather than something I would claim is already fully mature.
 
 ### 35. How would you monitor errors and regressions after launch?
-My current quality loop includes builds, auth smoke checks, migration checks, and the internal eval harness. The next production layer would be real error monitoring, request tracing, alerting, and usage analytics. So I have good foundations, but I would not overclaim that full observability is already complete.
+My current quality loop includes builds, CI on Ubuntu and macOS, dependency audit gates, auth/editor smoke checks, migration checks, structured backend logs, and the internal eval harness. The next production layer would be real error monitoring, request tracing, alerting, and usage analytics. So I have good foundations, but I would not overclaim that full observability is already complete.
 
 ### 36. How would you scale this if usage grows a lot?
 I would scale in layers: cache smarter, isolate expensive AI paths, add job queues for slower background work, monitor DB hotspots, and measure where the diagram editor becomes heavy with larger graphs. The architecture is organized enough to evolve that way, but it has not yet been proven under very large real-world traffic.
 
 ### 37. What security and privacy concerns matter for this product?
-Because users may enter real product ideas, auth, data protection, access control, and storage practices matter. Clerk protects user identity, routes are protected, and secrets are separated into environment variables, but formal privacy policy depth, data retention controls, and compliance posture are still areas I would treat as next-stage business hardening.
+Because users may enter real product ideas, auth, data protection, access control, and storage practices matter. Clerk protects user identity, routes are protected, secrets are separated into environment variables, high-severity dependency audits run in CI, and backend tests cover important access-control paths. Formal privacy policy depth, data retention controls, and compliance posture are still next-stage business hardening.
 
 ---
 
@@ -176,7 +179,7 @@ Users will come back if the artifact stays useful over time. That means version 
 I am proud that the product moved beyond "AI output" and became a trust-oriented workflow. The hard part was not adding generation. The hard part was making the output readable, explainable, editable, and worth returning to.
 
 ### 45. What is still not fully solved?
-Real production usage will still teach things that local testing cannot. I would not claim full enterprise readiness, complete observability, full compliance posture, or proven large-scale traffic behavior yet. What I can say is that the foundations are strong and the weak points are known.
+Real production usage will still teach things that local testing cannot. I would not claim full enterprise readiness, complete observability, full compliance posture, billing operations, or proven large-scale traffic behavior yet. What I can say is that the foundations are strong, the codebase has real guardrails, and the weak points are known.
 
 ### 46. Why do you think this project is a strong interview story?
 Because it shows product thinking, AI reliability thinking, frontend UX refinement, backend hardening, schema discipline, auth handling, TypeScript/lint/CI discipline, integration-style testing, and the ability to make tradeoffs instead of just stacking features. It is a good example of turning an interesting idea into a more defensible product.

@@ -1,5 +1,103 @@
 # Archflow Optimization Log
 
+**log:** 2026-05-23 13:35:00 IST (+0530)
+
+## Overview
+Codebase Maturity Hardening Pass. Focus areas: making the project stronger as an employer-facing showcase by tightening CI, dependency security, transactional persistence, structured logging, and backend access-control tests.
+
+---
+
+## 1. Cross-Platform CI + Audit Gates
+**Why:** A mature project should prove that it builds and tests outside one local machine.
+
+**What changed:**
+- GitHub Actions now runs on both `ubuntu-latest` and `macos-14`
+- CI installs Playwright Chromium with Linux dependencies on Ubuntu
+- backend and frontend production dependencies are audited at `high` severity and above
+- Playwright traces/screenshots are uploaded when smoke tests fail
+
+**How this helps Archflow:**
+- gives reviewers visible proof that the project has real guardrails
+- catches high/critical dependency problems before code is merged
+- makes browser test failures easier to diagnose in CI
+
+---
+
+## 2. Dependency Security Upgrade
+**Why:** The project had high/critical audit findings from older Clerk-related dependencies and backend framework transitive packages.
+
+**What changed:**
+- upgraded frontend `@clerk/nextjs` to `^6.39.4`
+- upgraded backend `@clerk/backend` to `^3.4.13`
+- upgraded backend `express` to `^4.22.2`
+- verified backend audit has zero vulnerabilities at the high gate
+- verified frontend high/critical audit gate passes
+
+**How this helps Archflow:**
+- removes the most important production dependency security warnings
+- keeps the remaining frontend audit note honest: npm still reports a moderate Next/PostCSS advisory with no direct fix
+
+---
+
+## 3. Transactional Diagram Persistence
+**Why:** Diagram save/delete behavior should never leave partial state behind. For a reliability tool, persistence needs to be boring in the best way.
+
+**What changed:**
+- diagram update and manual version writes now commit or roll back together
+- diagram delete now removes collaborators, versions, and the diagram inside one transaction
+- failed history writes now fail the save instead of silently logging and returning success
+- delete rollback behavior is covered by tests
+
+**How this helps Archflow:**
+- prevents inconsistent diagram/version history
+- protects collaboration and history data from partial delete failures
+- gives the backend a more senior production shape
+
+---
+
+## 4. Structured Backend Logging
+**Why:** Production logs should be machine-readable and consistent.
+
+**What changed:**
+- replaced backend route/service `console.*` calls with the shared logger
+- startup and database initialization now use structured log events
+- route errors include stable messages and scoped metadata like diagram id where useful
+
+**How this helps Archflow:**
+- makes future observability easier
+- improves debugging without scattering raw console output through API routes
+
+---
+
+## 5. Stronger API/DB Access Tests
+**Why:** Access control, version history, and rollback paths are core to the product's trust story.
+
+**What changed:**
+- added tests for transactional diagram delete success
+- added tests proving collaborators/non-owners cannot delete owner-only diagrams
+- added rollback tests for failed related deletes
+- expanded update/version tests around transaction boundaries and collaborator-aware access SQL
+- backend test suite now covers **30 passing tests**
+
+**How this helps Archflow:**
+- gives stronger proof that protected diagram behavior is intentional
+- makes persistence bugs easier to catch before they become user data problems
+
+---
+
+## 6. Current Verification
+Passed locally:
+
+- `npm --prefix backend test` — 30 passing backend tests
+- `npm --prefix frontend run lint`
+- `npm --prefix frontend run typecheck`
+- `npm --prefix frontend run build`
+- `npm --prefix backend audit --omit=dev --audit-level=high`
+- `npm --prefix frontend audit --omit=dev --audit-level=high`
+- Playwright editor smoke test
+
+---
+
 **log:** 2026-05-23 01:10:00 IST (+0530)
 
 ## Overview
@@ -101,7 +199,7 @@ Showcase-Ready Productization Pass. Focus areas: making the product easier to un
   - AI generation persistence payloads
   - version list date normalization
   - auth middleware guard behavior
-- backend suite now covers 25 tests
+- backend suite initially covered 25 tests, later expanded to 30 tests in the maturity hardening pass
 
 **How this helps Archflow:**
 - strengthens the backend reliability story
@@ -126,7 +224,7 @@ Showcase-Ready Productization Pass. Focus areas: making the product easier to un
 ## 8. Current Verification
 Passed locally:
 
-- `npm --prefix backend test` — 25 passing backend tests
+- `npm --prefix backend test` — 30 passing backend tests after the maturity hardening pass
 - `npm --prefix frontend run lint`
 - `npm --prefix frontend run typecheck`
 - `npm --prefix frontend run build`

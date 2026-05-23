@@ -92,7 +92,7 @@ flowchart TB
 - [Review Language](#review-language)
 - [What We Intentionally Avoid](#what-we-intentionally-avoid)
 - [Internal Quality Loop](#internal-quality-loop)
-- [Smoke Tests](#smoke-tests)
+- [Testing, CI & Security](#testing-ci--security)
 - [Tech Stack](#tech-stack)
 - [Mac Desktop Application](#mac-desktop-application)
 - [Getting Started](#getting-started)
@@ -215,6 +215,14 @@ flowchart TB
 - Staged suggestions can be accepted or declined individually
 - Accept-and-connect flow — approved suggestions are added to the diagram with rule-aware connection sanitization
 - Connection rules engine validates every edge against full 9×9 category matrix (81 rules covering all category pairs)
+
+### Reliability & Engineering Maturity
+- **Transactional persistence** — diagram updates, manual history writes, and diagram deletes use transaction-safe handlers so partial failures do not leave inconsistent data behind
+- **Structured backend logging** — API routes and infrastructure paths use a shared logger instead of ad hoc console output
+- **Access-control coverage** — tests cover non-owner denial, version access boundaries, collaborator-safe behavior, and rollback paths
+- **High-severity dependency audit gates** — CI blocks high/critical production dependency findings for both frontend and backend
+- **Cross-platform CI** — GitHub Actions verifies the project on both Ubuntu and macOS
+- **Playwright failure artifacts** — failed editor smoke runs upload traces/screenshots for faster debugging
 
 ### Interactive Diagram Canvas
 - Full React Flow-powered canvas with zoom, pan, snap-to-grid
@@ -385,7 +393,8 @@ It works by:
 | `backend/evals/README.md` | Eval system documentation |
 | `backend/src/scripts/eval-harness.js` | CLI workflow entry point |
 | `backend/src/lib/evalHarness.js` | Core eval harness logic |
-| `backend/src/lib/diagramGenerator.js` | Diagram generation logic |
+| `backend/src/lib/diagramGenerator.js` | Diagram generation entry point |
+| `backend/src/lib/diagramGenerator/` | Prompt building, normalization, hardening, layout, and review gate modules |
 
 ### Useful Commands
 
@@ -408,9 +417,9 @@ npm run eval:harness -- --max-prompts 12 --runs 2
 
 ---
 
-## Smoke Tests
+## Testing, CI & Security
 
-Archflow includes automated smoke checks to catch regressions in critical flows without manual clicking.
+Archflow includes automated backend tests, frontend verification, dependency audit gates, and browser smoke checks to catch regressions before they reach users.
 
 ### Full Local Test Suite
 
@@ -421,7 +430,7 @@ npm test
 ```
 
 Runs:
-- backend unit/regression/integration-style tests for diagram hardening, review suggestion normalization, auth guards, save/version persistence, eval checks, and architecture reliability
+- backend unit/regression/integration-style tests for diagram hardening, review suggestion normalization, auth guards, save/version/delete persistence, rollback behavior, access control, eval checks, and architecture reliability
 - frontend production build
 - Playwright editor smoke test
 
@@ -429,12 +438,20 @@ Runs:
 
 The repo includes a GitHub Actions workflow at `.github/workflows/test.yml`.
 
-On every push to `master` and every pull request, CI runs:
-- backend dependency install + `npm test`
-- frontend lint + typecheck
-- frontend dependency install + `npm run build`
+On every push to `master` and every pull request, CI runs on **Ubuntu** and **macOS**:
+- backend dependency install + production dependency audit (`high` severity and above)
+- frontend dependency install + production dependency audit (`high` severity and above)
+- backend test suite (`npm test`)
+- frontend architecture lint
+- frontend typecheck
+- frontend production build
 - Playwright Chromium install
 - editor smoke test
+- Playwright artifact upload on failure for easier debugging
+
+Current backend suite: **30 passing tests** covering generation reliability, review normalization, eval harness behavior, auth guards, persistence, access control, and transactional rollback paths.
+
+Security note: frontend high/critical production dependency findings are gated in CI. The remaining known frontend audit output is a moderate Next/PostCSS advisory that npm currently reports with no direct fix.
 
 ### Editor Smoke Test (Playwright)
 
@@ -646,7 +663,8 @@ archflow/
 │   │   ├── config/             # Environment validation
 │   │   ├── db/                 # Schema, pool, initialization, migrations
 │   │   ├── lib/
-│   │   │   ├── diagramGenerator.js   # AI generation + auto-fix layer + known architectures
+│   │   │   ├── diagramGenerator.js   # AI generation entry point
+│   │   │   ├── diagramGenerator/     # Prompt builder, normalizer, hardener, layout, review gate
 │   │   │   ├── openRouter.js         # OpenRouter API client, streaming, JSON repair
 │   │   │   ├── reviewDiagram.js      # Review context building, suggestion normalization
 │   │   │   ├── connectionRules.js    # 81-rule category connection matrix
@@ -655,15 +673,17 @@ archflow/
 │   │   │   └── ...                   # Redis, logger, AI failure logging
 │   │   ├── middleware/          # Clerk auth, request validation
 │   │   ├── routes/              # AI generation/review, diagrams CRUD, inventory, settings
+│   │   ├── routes/diagramRouteHandlers.js # Testable transactional diagram persistence handlers
 │   │   └── scripts/             # CLI eval harness, DB migration
 ├── frontend/
 │   ├── app/                    # Next.js App Router (dashboard, diagram editor, settings)
+│   │   └── diagram/[id]/hooks/ # Persistence, generation, review assistant, selection, undo/redo, export hooks
 │   ├── components/
 │   │   ├── diagram/            # Editor, review panel, prompt bar, synthesis terminal, node/edge UIs
 │   │   └── ui/                 # Shared components (toast, badge, modal, button, etc.)
 │   └── lib/
 │       ├── api.js              # API client + SSE streaming
-│       ├── diagramIntelligence.js  # 850+ line rules engine (20+ deterministic checks, trust profiles)
+│       ├── diagramIntelligence.js  # Rules engine (20+ deterministic checks, trust profiles)
 │       ├── templates.js        # Template options (SaaS, e-commerce, mobile, realtime, microservices)
 │       └── ...                 # Theme, display names, edge layout
 ├── desktop/                    # Electron Mac desktop shell

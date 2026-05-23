@@ -2,6 +2,8 @@
 
 This folder holds the lightweight architecture eval harness for Archflow.
 
+The eval harness is one part of the quality system. It complements the deterministic generation review gate, backend tests, CI audit gates, and Playwright smoke tests described in the main README.
+
 ## Why this exists
 
 You should not have to hand-write 25-50 full prompts to test output quality.
@@ -12,6 +14,7 @@ Instead, the harness:
 - runs the same prompt multiple times
 - scores each result with deterministic architecture checks
 - measures run-to-run stability
+- produces JSON and Markdown artifacts that make model/prompt regressions easier to review
 
 ## Quick usage
 
@@ -55,6 +58,21 @@ The harness currently checks:
 - expected layers are connected to the graph
 
 It also computes a stability score by comparing node and edge similarity across repeated runs.
+
+## Related quality checks
+
+For the broader project quality loop, use:
+
+```bash
+npm --prefix backend test
+npm --prefix frontend run lint
+npm --prefix frontend run typecheck
+npm --prefix frontend run build
+npm --prefix backend audit --omit=dev --audit-level=high
+npm --prefix frontend audit --omit=dev --audit-level=high
+```
+
+GitHub Actions runs the main verification path on Ubuntu and macOS. The eval harness is intentionally separate because real AI evaluation can be slower, cost-bearing, and environment-dependent.
 
 ## First practical workflow
 
