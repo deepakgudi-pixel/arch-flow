@@ -20,7 +20,8 @@ import {
 export default function PromptBar({
   prompt, onPromptChange,
   template, onTemplateChange,
-  loading, onGenerate
+  loading, onGenerate,
+  activeExample = null
 }) {
   const handleTemplateChange = (event) => {
     const nextTemplate = event.target.value;
@@ -56,6 +57,13 @@ export default function PromptBar({
         <PromptActions>
           <TemplateSelectWrap>
             <TemplateSelect value={template} onChange={handleTemplateChange} aria-label="Architecture template">
+              {activeExample && (
+                <optgroup label="Current demo">
+                  <option value={`example:${activeExample.id}`}>
+                    {activeExample.name} system design
+                  </option>
+                </optgroup>
+              )}
               <optgroup label="Starter systems">
                 <option value="blank">Blank Canvas</option>
                 <option value="saas">SaaS Platform</option>
@@ -64,13 +72,15 @@ export default function PromptBar({
                 <option value="realtime">Realtime System</option>
                 <option value="microservices">Microservices</option>
               </optgroup>
-              <optgroup label="Recruiter-ready examples">
-                {architectureExamples.map(example => (
-                  <option key={example.id} value={`example:${example.id}`}>
-                    {example.name} · {example.audience}
-                  </option>
-                ))}
-              </optgroup>
+              {!activeExample && (
+                <optgroup label="Recruiter-ready examples">
+                  {architectureExamples.map(example => (
+                    <option key={example.id} value={`example:${example.id}`}>
+                      {example.name} · {example.audience}
+                    </option>
+                  ))}
+                </optgroup>
+              )}
             </TemplateSelect>
           </TemplateSelectWrap>
 

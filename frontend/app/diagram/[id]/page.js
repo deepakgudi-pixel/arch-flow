@@ -19,6 +19,7 @@ import ReactFlow, {
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import api from '@/lib/api';
+import { architectureExamples } from '@/lib/architectureExamples';
 import { formatTechDisplayLabel } from '@/lib/displayNames';
 import {
   estimateEdgeLabelDimensions,
@@ -80,6 +81,7 @@ export default function DiagramPage() {
   const [rightPanelOpen, setRightPanelOpen] = useState(true);
   const [isDesktop, setIsDesktop] = useState(false);
   const [guidedModeOpen, setGuidedModeOpen] = useState(false);
+  const [activeExample, setActiveExample] = useState(null);
 
   useEffect(() => {
     if (typeof window !== 'undefined' && (window.archflowDesktopStorage || window.navigator.userAgent.includes('ArchflowDesktop'))) {
@@ -212,15 +214,31 @@ export default function DiagramPage() {
     }
 
     const promptKey = `archflow-example-prompt:${diagramId}`;
+    const metaKey = `archflow-example-meta:${diagramId}`;
     const examplePrompt = window.localStorage.getItem(promptKey);
+    const exampleMeta = window.localStorage.getItem(metaKey);
 
     if (examplePrompt) {
       setPrompt(examplePrompt);
       window.localStorage.removeItem(promptKey);
+      let parsedMeta = null;
+      try {
+        parsedMeta = exampleMeta ? JSON.parse(exampleMeta) : null;
+      } catch {
+        parsedMeta = null;
+      }
+      const inferredExample = architectureExamples.find(example => example.prompt === examplePrompt);
+      const nextExample = parsedMeta || inferredExample;
+
+      if (nextExample?.id) {
+        setActiveExample(nextExample);
+        setTemplate(`example:${nextExample.id}`);
+      }
+
       setToast({ message: 'SHOWCASE_PROMPT_READY: Review then synthesize', error: false });
       setTimeout(() => setToast(null), 3200);
     }
-  }, [diagramId, setPrompt, setToast]);
+  }, [diagramId, setPrompt, setTemplate, setToast]);
   const {
     assistantPrompt,
     setAssistantPrompt,
@@ -960,6 +978,7 @@ export default function DiagramPage() {
               onTemplateChange={setTemplate}
               loading={loading}
               onGenerate={handleGenerate}
+              activeExample={activeExample}
             />
 
             {guidedModeOpen && (

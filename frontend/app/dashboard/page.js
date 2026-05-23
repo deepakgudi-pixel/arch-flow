@@ -417,6 +417,14 @@ function DashboardContent() {
         `archflow-example-prompt:${diagram.id}`,
         example.prompt
       );
+      window.localStorage.setItem(
+        `archflow-example-meta:${diagram.id}`,
+        JSON.stringify({
+          id: example.id,
+          name: example.name,
+          audience: example.audience
+        })
+      );
       router.push(`/diagram/${diagram.id}`);
     } catch (error) {
       console.error('Failed to launch showcase example:', error);
