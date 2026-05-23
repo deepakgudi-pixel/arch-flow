@@ -10,14 +10,6 @@ jobs:
   test:
     name: Build and test
     runs-on: macos-14
-    env:
-      NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: pk_test_dummy
-      CLERK_SECRET_KEY: sk_test_dummy
-      NEXT_PUBLIC_CLERK_SIGN_IN_URL: /sign-in
-      NEXT_PUBLIC_CLERK_SIGN_UP_URL: /sign-up
-      NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL: /dashboard
-      NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL: /dashboard
-      NEXT_PUBLIC_API_URL: http://127.0.0.1:4000/api
 
     steps:
       - name: Checkout
@@ -55,11 +47,20 @@ jobs:
       - name: Run frontend typecheck
         run: npm run typecheck
         working-directory: frontend
+        env:
+          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: pk_test_dummy
+          NEXT_PUBLIC_API_URL: http://127.0.0.1:4000/api
 
       - name: Build frontend
         run: npm run build
         working-directory: frontend
+        env:
+          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: pk_test_dummy
+          NEXT_PUBLIC_API_URL: http://127.0.0.1:4000/api
 
       - name: Run editor smoke test
         run: npm run smoke:editor
         working-directory: frontend
+        env:
+          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: pk_test_dummy
+          NEXT_PUBLIC_API_URL: http://127.0.0.1:4000/api
