@@ -79,6 +79,7 @@ export default function DiagramPage() {
   const [leftSidebarOpen, setLeftSidebarOpen] = useState(false);
   const [rightPanelOpen, setRightPanelOpen] = useState(true);
   const [isDesktop, setIsDesktop] = useState(false);
+  const [guidedModeOpen, setGuidedModeOpen] = useState(false);
 
   useEffect(() => {
     if (typeof window !== 'undefined' && (window.archflowDesktopStorage || window.navigator.userAgent.includes('ArchflowDesktop'))) {
@@ -109,7 +110,6 @@ export default function DiagramPage() {
   const [assistantPanelOpen, setAssistantPanelOpen] = useState(false);
   const [reviewPanelOpen, setReviewPanelOpen] = useState(false);
   const [historyPanelOpen, setHistoryPanelOpen] = useState(false);
-  const [guidedModeOpen, setGuidedModeOpen] = useState(false);
   const autoSynthEdgeIdsRef = useRef(new Set());
   const protocolRepairTimeoutRef = useRef(null);
   const {

@@ -4,6 +4,7 @@ import { clerkAuth } from '../middleware/clerkAuth.js';
 import { ensureUserExists } from '../services/userSync.js';
 import { validate } from '../middleware/validate.js';
 import { syncCanonicalConnectionRules } from '../lib/connectionRules.js';
+import { logger } from '../lib/logger.js';
 
 const router = express.Router();
 
@@ -27,7 +28,7 @@ router.get('/', clerkAuth, async (req, res) => {
 
     res.json(result.rows[0]);
   } catch (err) {
-    console.error('Error fetching settings:', err);
+    logger.error('Error fetching settings', { error: err.message });
     res.status(500).json({ error: 'Failed to fetch settings' });
   }
 });
@@ -69,7 +70,7 @@ router.put('/', clerkAuth, validate({
 
     res.json({ success: true });
   } catch (err) {
-    console.error('Error updating settings:', err);
+    logger.error('Error updating settings', { error: err.message });
     res.status(500).json({ error: 'Failed to update settings' });
   }
 });
@@ -80,7 +81,7 @@ router.get('/connection-rules', async (req, res) => {
     const result = await pool.query('SELECT * FROM connection_rules');
     res.json(result.rows);
   } catch (err) {
-    console.error('Error fetching connection rules:', err);
+    logger.error('Error fetching connection rules', { error: err.message });
     res.status(500).json({ error: 'Failed to fetch connection rules' });
   }
 });

@@ -8,8 +8,14 @@ on:
 
 jobs:
   test:
-    name: Build and test
-    runs-on: macos-14
+    name: Build and test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - macos-14
 
     steps:
       - name: Checkout
@@ -32,8 +38,22 @@ jobs:
         run: npm ci
         working-directory: frontend
 
+      - name: Install Playwright Chromium on Linux
+        if: runner.os == 'Linux'
+        run: npx playwright install --with-deps chromium
+        working-directory: frontend
+
       - name: Install Playwright Chromium
+        if: runner.os != 'Linux'
         run: npx playwright install chromium
+        working-directory: frontend
+
+      - name: Audit backend production dependencies
+        run: npm audit --omit=dev --audit-level=high
+        working-directory: backend
+
+      - name: Audit frontend production dependencies
+        run: npm audit --omit=dev --audit-level=high
         working-directory: frontend
 
       - name: Run backend tests
@@ -64,3 +84,13 @@ jobs:
         env:
           NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: pk_test_dummy
           NEXT_PUBLIC_API_URL: http://127.0.0.1:4000/api
+
+      - name: Upload Playwright artifacts on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-artifacts-${{ matrix.os }}
+          path: |
+            frontend/test-results
+            frontend/playwright-report
+          if-no-files-found: ignore

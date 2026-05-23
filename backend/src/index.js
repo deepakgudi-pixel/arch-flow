@@ -18,12 +18,28 @@ import { logger } from './lib/logger.js';
 
 const app = express();
 const PORT = process.env.PORT || 4000;
+const DEFAULT_ALLOWED_ORIGINS = ['http://localhost:3000', 'http://127.0.0.1:3000'];
+
+function parseAllowedOrigins(value) {
+  return String(value || '')
+    .split(',')
+    .map(origin => origin.trim())
+    .filter(Boolean);
+}
+
+const allowedOrigins = parseAllowedOrigins(process.env.CORS_ORIGINS || process.env.FRONTEND_URL);
+const corsOrigins = allowedOrigins.length > 0 ? allowedOrigins : DEFAULT_ALLOWED_ORIGINS;
 
 // Trust the first proxy (e.g. Vercel, Nginx)
 app.set('trust proxy', 1);
 
 app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
-app.use(cors());
+app.use(cors({
+  credentials: true,
+  origin(origin, callback) {
+    callback(null, !origin || corsOrigins.includes(origin));
+  }
+}));
 app.use(express.json({ limit: '1mb' }));
 app.use((req, res, next) => {
   const requestId = req.headers['x-request-id'] || crypto.randomUUID().slice(0, 8);
@@ -90,11 +106,11 @@ assertBackendEnv();
 initializeDatabase().then(() => {
   if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
     app.listen(PORT, () => {
-      console.log(`Archflow API running on http://localhost:${PORT}`);
+      logger.info('API_SERVER_LISTENING', { url: `http://localhost:${PORT}` });
     });
   }
 }).catch(err => {
-  console.error('Failed to initialize DB:', err);
+  logger.error('Failed to initialize DB', { error: err.message });
 });
 
 process.on('unhandledRejection', err => {

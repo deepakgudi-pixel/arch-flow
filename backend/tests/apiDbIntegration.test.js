@@ -5,6 +5,7 @@ import { clerkAuth, optionalAuth } from '../src/middleware/clerkAuth.js';
 import { validate } from '../src/middleware/validate.js';
 import {
   buildInviteCode,
+  deleteDiagramHandler,
   listDiagramVersionsHandler,
   saveGenerationVersionHandler,
   updateDiagramHandler
@@ -185,6 +186,13 @@ test('diagram update persists nodes and creates manual history when requested', 
 
   assert.equal(result.status, 200);
   assert.deepEqual(result.body, { success: true });
+  assert.equal(calls.filter(call => String(call.sql).trim() === 'BEGIN').length, 1);
+  assert.equal(calls.filter(call => String(call.sql).trim() === 'COMMIT').length, 1);
+
+  const accessCall = calls.find(call => /SELECT user_id, nodes, edges FROM diagrams/i.test(call.sql));
+  assert.ok(accessCall);
+  assert.match(accessCall.sql, /diagram_collaborators/);
+
   const updateCall = calls.find(call => /UPDATE diagrams SET/i.test(call.sql));
   assert.ok(updateCall);
   assert.equal(updateCall.params[0], 'Updated System');
@@ -219,8 +227,53 @@ test('diagram update denies non-owner and does not write history', async () => {
 
   assert.equal(result.status, 403);
   assert.equal(result.body.error, 'Permission denied');
+  assert.equal(calls.filter(call => String(call.sql).trim() === 'BEGIN').length, 1);
+  assert.equal(calls.filter(call => String(call.sql).trim() === 'ROLLBACK').length, 1);
   assert.equal(calls.filter(call => /UPDATE diagrams SET/i.test(call.sql)).length, 0);
   assert.equal(calls.filter(call => /INSERT INTO diagram_versions/i.test(call.sql)).length, 0);
+});
+
+test('diagram update rolls back when manual history cannot be written', async () => {
+  const calls = [];
+  const db = {
+    async query(sql, params = []) {
+      calls.push({ sql, params });
+
+      if (/SELECT user_id, nodes, edges FROM diagrams/i.test(sql)) {
+        return {
+          rows: [
+            {
+              user_id: 'user_1',
+              nodes: [{ id: 'old_node', name: 'Old API' }],
+              edges: []
+            }
+          ]
+        };
+      }
+
+      if (/INSERT INTO diagram_versions/i.test(sql)) {
+        throw new Error('version insert failed');
+      }
+
+      return { rows: [] };
+    }
+  };
+
+  await assert.rejects(
+    () => updateDiagramHandler({
+      db,
+      diagramId: 'd_test',
+      userId: 'user_1',
+      nodes: [{ id: 'api', name: 'API' }],
+      edges: [],
+      recordVersion: true
+    }),
+    /version insert failed/
+  );
+
+  assert.equal(calls.filter(call => String(call.sql).trim() === 'BEGIN').length, 1);
+  assert.equal(calls.filter(call => String(call.sql).trim() === 'ROLLBACK').length, 1);
+  assert.equal(calls.filter(call => String(call.sql).trim() === 'COMMIT').length, 0);
 });
 
 test('generation persistence stores prompt hash, raw response, nodes, and edges', async () => {
@@ -286,6 +339,94 @@ test('diagram version listing enforces access and normalizes dates', async () =>
 
   assert.equal(result.status, 200);
   assert.equal(result.body[0].created_at, createdAt.toISOString());
+});
+
+test('diagram version listing denies users without owner or collaborator access', async () => {
+  const calls = [];
+  const db = {
+    async query(sql, params = []) {
+      calls.push({ sql, params });
+      return { rows: [] };
+    }
+  };
+
+  const result = await listDiagramVersionsHandler({ db, diagramId: 'd_private', userId: 'user_other' });
+
+  assert.equal(result.status, 403);
+  assert.equal(result.body.error, 'Permission denied');
+  assert.equal(calls.filter(call => /SELECT user_id FROM diagrams/i.test(call.sql)).length, 1);
+  assert.equal(calls.filter(call => /SELECT id, prompt_text, nodes, edges/i.test(call.sql)).length, 0);
+});
+
+test('diagram delete removes related records transactionally for owners', async () => {
+  const calls = [];
+  const db = {
+    async query(sql, params = []) {
+      calls.push({ sql, params });
+
+      if (/SELECT id FROM diagrams WHERE id = \$1 AND user_id = \$2/i.test(sql)) {
+        return { rows: [{ id: 'd_test' }] };
+      }
+
+      return { rows: [] };
+    }
+  };
+
+  const result = await deleteDiagramHandler({ db, diagramId: 'd_test', userId: 'user_1' });
+
+  assert.equal(result.status, 200);
+  assert.deepEqual(result.body, { success: true });
+  assert.equal(calls.filter(call => String(call.sql).trim() === 'BEGIN').length, 1);
+  assert.equal(calls.filter(call => String(call.sql).trim() === 'COMMIT').length, 1);
+  assert.ok(calls.find(call => /DELETE FROM diagram_collaborators/i.test(call.sql)));
+  assert.ok(calls.find(call => /DELETE FROM diagram_versions/i.test(call.sql)));
+  assert.ok(calls.find(call => /DELETE FROM diagrams WHERE id/i.test(call.sql)));
+});
+
+test('diagram delete denies collaborators and rolls back without deleting data', async () => {
+  const calls = [];
+  const db = {
+    async query(sql, params = []) {
+      calls.push({ sql, params });
+      return { rows: [] };
+    }
+  };
+
+  const result = await deleteDiagramHandler({ db, diagramId: 'd_private', userId: 'user_collab' });
+
+  assert.equal(result.status, 404);
+  assert.equal(result.body.error, 'Diagram not found');
+  assert.equal(calls.filter(call => String(call.sql).trim() === 'BEGIN').length, 1);
+  assert.equal(calls.filter(call => String(call.sql).trim() === 'ROLLBACK').length, 1);
+  assert.equal(calls.filter(call => /DELETE FROM/i.test(call.sql)).length, 0);
+});
+
+test('diagram delete rolls back if a related delete fails', async () => {
+  const calls = [];
+  const db = {
+    async query(sql, params = []) {
+      calls.push({ sql, params });
+
+      if (/SELECT id FROM diagrams WHERE id = \$1 AND user_id = \$2/i.test(sql)) {
+        return { rows: [{ id: 'd_test' }] };
+      }
+
+      if (/DELETE FROM diagram_versions/i.test(sql)) {
+        throw new Error('version delete failed');
+      }
+
+      return { rows: [] };
+    }
+  };
+
+  await assert.rejects(
+    () => deleteDiagramHandler({ db, diagramId: 'd_test', userId: 'user_1' }),
+    /version delete failed/
+  );
+
+  assert.equal(calls.filter(call => String(call.sql).trim() === 'BEGIN').length, 1);
+  assert.equal(calls.filter(call => String(call.sql).trim() === 'ROLLBACK').length, 1);
+  assert.equal(calls.filter(call => String(call.sql).trim() === 'COMMIT').length, 0);
 });
 
 test('invite code generation stays uppercase and deterministic for supplied bytes', () => {

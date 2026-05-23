@@ -16,11 +16,11 @@
     "wipe-all": "node wipe-all.js"
   },
   "dependencies": {
-    "@clerk/backend": "^1.0.0",
+    "@clerk/backend": "^3.4.13",
     "@upstash/redis": "^1.38.0",
     "cors": "^2.8.5",
     "dotenv": "^16.6.1",
-    "express": "^4.18.2",
+    "express": "^4.22.2",
     "express-rate-limit": "^8.5.1",
     "helmet": "^8.1.0",
     "pg": "^8.11.3",

@@ -3,18 +3,14 @@
 import styled from 'styled-components';
 import { useUser, SignOutButton } from '@clerk/nextjs';
 import { useEffect, useMemo, useState, Suspense } from 'react';
-import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Plus, Layout, Folder, Settings, Search, Trash2, ArrowRight, User, Users } from 'lucide-react';
 import api from '@/lib/api';
 import AppShell from '@/components/layout/AppShell';
-import PageHeader from '@/components/layout/PageHeader';
 import { Button } from '@/components/ui/Button';
 import { Card, CardEyebrow, CardHeader, CardMeta, CardText, CardTitle } from '@/components/ui/Card';
 import { Badge } from '@/components/ui/Badge';
 import Modal, { ModalFooter, ModalHeader, ModalText, ModalTitle } from '@/components/ui/Modal';
-import { Field, Hint, Input, Label } from '@/components/ui/Input';
-import EmptyState from '@/components/ui/EmptyState';
+import { Field, Input, Label } from '@/components/ui/Input';
 import { Toast } from '@/components/ui/Toast';
 import { templateOptions } from '@/lib/templates';
 import { architectureExamples } from '@/lib/architectureExamples';
@@ -138,16 +134,6 @@ const Toolbar = styled.div`
   padding: 24px 0;
   border-bottom: 3px solid #000000;
   margin-bottom: 32px;
-`;
-
-const QuickStartGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 32px;
-
-  @media (max-width: 1024px) {
-    grid-template-columns: 1fr;
-  }
 `;
 
 const DiagramGrid = styled.div`
@@ -309,13 +295,11 @@ function DashboardContent() {
   const [newName, setNewName] = useState('');
   const [newTemplate, setNewTemplate] = useState('blank');
   const [searchQuery, setSearchQuery] = useState('');
-  const [showOnlyTemplates, setShowOnlyTemplates] = useState(false);
   const [toast, setToast] = useState(null);
   const [creating, setCreating] = useState(false);
   const [stats, setStats] = useState({ totalNodes: 0, totalEdges: 0, topTech: [] });
   const searchParams = useSearchParams();
   const [joining, setJoining] = useState(false);
-  const [showJoinModal, setShowJoinModal] = useState(false);
   const [joinCode, setJoinCode] = useState('');
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [diagramToDelete, setDiagramToDelete] = useState(null);
@@ -345,22 +329,8 @@ function DashboardContent() {
   const visibleDiagrams = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
 
-    return diagrams.filter(diagram => {
-      const matchesQuery = !query || diagram.name.toLowerCase().includes(query);
-      const matchesFilter = !showOnlyTemplates || diagram.nodeCount > 0;
-      return matchesQuery && matchesFilter;
-    });
-  }, [diagrams, searchQuery, showOnlyTemplates]);
-
-  const totalNodes = useMemo(
-    () => diagrams.reduce((sum, diagram) => sum + (diagram.nodeCount || 0), 0),
-    [diagrams]
-  );
-
-  const totalConnections = useMemo(
-    () => diagrams.reduce((sum, diagram) => sum + (diagram.edgeCount || 0), 0),
-    [diagrams]
-  );
+    return diagrams.filter(diagram => !query || diagram.name.toLowerCase().includes(query));
+  }, [diagrams, searchQuery]);
 
   const resetCreateState = () => {
     setNewName('');
@@ -406,10 +376,6 @@ function DashboardContent() {
     } finally {
       setJoining(false);
     }
-  };
-
-  const openJoinModal = () => {
-    setShowJoinModal(true);
   };
 
   const submitJoin = () => {

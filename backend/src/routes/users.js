@@ -2,6 +2,7 @@ import express from 'express';
 import pool from '../db/pool.js';
 import { clerkAuth } from '../middleware/clerkAuth.js';
 import { ensureUserExists } from '../services/userSync.js';
+import { logger } from '../lib/logger.js';
 
 const router = express.Router();
 
@@ -24,7 +25,7 @@ router.post('/sync', clerkAuth, async (req, res) => {
 
     res.json({ success: true, user });
   } catch (err) {
-    console.error('Error syncing user:', err);
+    logger.error('Error syncing user', { error: err.message });
     res.status(500).json({ error: 'Failed to sync user' });
   }
 });
@@ -44,7 +45,7 @@ router.get('/me', clerkAuth, async (req, res) => {
 
     res.json(result.rows[0]);
   } catch (err) {
-    console.error('Error fetching user:', err);
+    logger.error('Error fetching user', { error: err.message });
     res.status(500).json({ error: 'Failed to fetch user' });
   }
 });

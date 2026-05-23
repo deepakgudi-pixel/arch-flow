@@ -1,6 +1,7 @@
 import dotenv from 'dotenv';
 import { createClerkClient } from '@clerk/backend';
 import pool from '../db/pool.js';
+import { logger } from '../lib/logger.js';
 
 dotenv.config();
 
@@ -51,7 +52,11 @@ export async function ensureUserExists(user) {
 
   if (byEmail.rows.length > 0) {
     // Identity Migration: Update the old ID to the new one
-    console.log(`🔄 Migrating identity for ${email}: ${byEmail.rows[0].id} -> ${user.id}`);
+    logger.info('USER_IDENTITY_MIGRATION', {
+      email,
+      previous_user_id: byEmail.rows[0].id,
+      next_user_id: user.id
+    });
     const updated = await pool.query(
       'UPDATE users SET id = $1 WHERE email = $2 RETURNING id, email',
       [user.id, email]

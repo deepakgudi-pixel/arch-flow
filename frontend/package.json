@@ -17,7 +17,7 @@
     "test:smoke": "npm run auth:smoke && npm run smoke:editor"
   },
   "dependencies": {
-    "@clerk/nextjs": "^6.31.9",
+    "@clerk/nextjs": "^6.39.4",
     "@reactflow/core": "^11.10.1",
     "date-fns": "^4.1.0",
     "framer-motion": "^12.38.0",

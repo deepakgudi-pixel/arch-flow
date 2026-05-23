@@ -344,7 +344,7 @@ OPERATIONAL_RULES:
       icon: parsed.icon || 'tech'
     });
   } catch (err) {
-    console.error('Error generating tech:', err);
+    logger.error('Error generating tech', { error: err.message });
     await recordAIFailure({
       kind: 'generate-tech',
       model: TECH_MODEL,
@@ -522,7 +522,7 @@ RULES:
       suggestions
     });
   } catch (err) {
-    console.error('Error reviewing diagram:', err);
+    logger.error('Error reviewing diagram', { error: err.message });
     await recordAIFailure({
       kind: 'review-diagram',
       model: DIAGRAM_REVIEW_MODEL,
@@ -575,7 +575,7 @@ router.post('/infer-connection', aiLimiter, optionalAuth, validate({
     responseText = rawResponse;
     res.json({ label: normalizeProtocolLabel(parsed.label) });
   } catch (err) {
-    console.error('Error inferring connection:', err);
+    logger.error('Error inferring connection', { error: err.message });
     await recordAIFailure({
       kind: 'infer-connection',
       model: TECH_MODEL,

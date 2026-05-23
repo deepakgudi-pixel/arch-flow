@@ -6,6 +6,7 @@ import { validate } from '../middleware/validate.js';
 import { logger } from '../lib/logger.js';
 import {
   buildInviteCode,
+  deleteDiagramHandler,
   listDiagramVersionsHandler,
   updateDiagramHandler
 } from './diagramRouteHandlers.js';
@@ -54,7 +55,7 @@ router.get('/', optionalAuth, async (req, res) => {
       }
     });
   } catch (err) {
-    console.error('Error fetching diagrams:', err);
+    logger.error('Error fetching diagrams', { error: err.message });
     res.status(500).json({ error: 'Failed to fetch diagrams' });
   }
 });
@@ -169,7 +170,7 @@ router.post('/', clerkAuth, validate({
 
     res.json({ id, name: name || 'Untitled diagram', nodes, edges });
   } catch (err) {
-    console.error('Error creating diagram:', err);
+    logger.error('Error creating diagram', { error: err.message });
     res.status(500).json({ error: 'Failed to create diagram' });
   }
 });
@@ -200,7 +201,7 @@ router.get('/:id', optionalAuth, async (req, res) => {
 
     res.json(diagram);
   } catch (err) {
-    console.error('Error fetching diagram:', err);
+    logger.error('Error fetching diagram', { error: err.message, id: req.params.id });
     res.status(500).json({ error: 'Failed to fetch diagram' });
   }
 });
@@ -267,22 +268,10 @@ router.delete('/:id', clerkAuth, async (req, res) => {
     const { id } = req.params;
     const { id: userId } = req.user;
 
-    const existing = await pool.query(
-      'SELECT id FROM diagrams WHERE id = $1 AND user_id = $2',
-      [id, userId]
-    );
-
-    if (existing.rows.length === 0) {
-      return res.status(404).json({ error: 'Diagram not found' });
-    }
-
-    await pool.query('DELETE FROM diagram_collaborators WHERE diagram_id = $1', [id]);
-    await pool.query('DELETE FROM diagram_versions WHERE diagram_id = $1', [id]);
-    await pool.query('DELETE FROM diagrams WHERE id = $1', [id]);
-
-    res.json({ success: true });
+    const result = await deleteDiagramHandler({ db: pool, diagramId: id, userId });
+    res.status(result.status).json(result.body);
   } catch (err) {
-    console.error('Error deleting diagram:', err);
+    logger.error('Error deleting diagram', { error: err.message, id: req.params.id });
     res.status(500).json({ error: 'Failed to delete diagram' });
   }
 });
@@ -305,6 +294,7 @@ router.post('/:id/invite', clerkAuth, async (req, res) => {
 
     res.json({ inviteCode: code });
   } catch (err) {
+    logger.error('Failed to manage invite', { error: err.message, id: req.params.id });
     res.status(500).json({ error: 'Failed to manage invite' });
   }
 });
@@ -330,6 +320,7 @@ router.post('/join/:code', clerkAuth, async (req, res) => {
 
     res.json({ id: diagram.id, success: true });
   } catch (err) {
+    logger.error('Failed to join diagram', { error: err.message, code: req.params.code });
     res.status(500).json({ error: 'Failed to join diagram' });
   }
 });
@@ -354,6 +345,7 @@ router.get('/:id/collaborators', clerkAuth, async (req, res) => {
 
     res.json(result.rows);
   } catch (err) {
+    logger.error('Failed to fetch collaborators', { error: err.message, id: req.params.id });
     res.status(500).json({ error: 'Failed to fetch collaborators' });
   }
 });
@@ -372,6 +364,7 @@ router.delete('/:id/collaborators/:targetUserId', clerkAuth, async (req, res) =>
 
     res.json({ success: true });
   } catch (err) {
+    logger.error('Failed to remove collaborator', { error: err.message, id: req.params.id });
     res.status(500).json({ error: 'Failed to remove collaborator' });
   }
 });

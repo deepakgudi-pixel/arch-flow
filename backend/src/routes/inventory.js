@@ -4,6 +4,7 @@ import { clerkAuth, optionalAuth } from '../middleware/clerkAuth.js';
 import { ensureUserExists } from '../services/userSync.js';
 import { validate } from '../middleware/validate.js';
 import { builtInTech } from '../lib/tech.js';
+import { logger } from '../lib/logger.js';
 
 const router = express.Router();
 
@@ -36,7 +37,7 @@ router.get('/', optionalAuth, async (req, res) => {
 
     res.json(result);
   } catch (err) {
-    console.error('Error fetching inventory:', err);
+    logger.error('Error fetching inventory', { error: err.message });
     res.status(500).json({ error: 'Failed to fetch inventory' });
   }
 });
@@ -63,7 +64,7 @@ router.post('/', clerkAuth, validate({
 
     res.json({ id, name, category, description, products, icon });
   } catch (err) {
-    console.error('Error adding to inventory:', err);
+    logger.error('Error adding to inventory', { error: err.message });
     res.status(500).json({ error: 'Failed to add to inventory' });
   }
 });
@@ -86,7 +87,7 @@ router.delete('/:id', clerkAuth, async (req, res) => {
 
     res.json({ success: true });
   } catch (err) {
-    console.error('Error deleting from inventory:', err);
+    logger.error('Error deleting from inventory', { error: err.message, id: req.params.id });
     res.status(500).json({ error: 'Failed to delete from inventory' });
   }
 });
