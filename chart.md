@@ -47,11 +47,11 @@ graph TD
 | Area | Status | What Is Covered | Why It Counts As Covered | What Is Still Missing |
 |---|---|---|---|---|
 | Product Vision | Strong | Clear user problem, learning-first direction, trust-first product principles, no public score pressure | The app has a real point of view and the product decisions are consistent with it | More live user interviews and paid usage data would strengthen it further |
-| AI Reliability | Strong | Structured generation flow, hardened JSON parsing, retry logic for smaller calls, normalization, protocol repair, failure capture | The app is not blindly trusting raw model output anymore; it has containment and recovery layers | Model behavior can still drift over time because AI providers change |
+| AI Reliability | Strong | Structured generation flow, hardened JSON parsing, wrapped/truncated JSON recovery, retry logic, normalization, protocol repair, domain blueprint tuning, failure capture | The app is not blindly trusting raw model output anymore; it has containment, recovery, and deterministic domain-specific correction layers | Model behavior can still drift over time because AI providers change |
 | Technical Architecture | Strong | Next.js frontend, Express backend, PostgreSQL, Redis, Clerk, OpenRouter, diagram persistence, version history, autosave logic, transactional save/delete handlers | The system has clear separation of concerns, transaction-safe persistence paths, and real implementation depth across frontend and backend | Very large-scale concurrency and cost behavior are still not deeply proven |
-| UX and Diagram Clarity | Strong | Smarter auto-arrange, focused flow inspection, sidebars, connection details, readable tech labels, cleaner controls | The product is intentionally designed to reduce confusion rather than just expose more knobs | Extremely dense graphs can still reveal edge-case readability problems |
+| UX and Diagram Clarity | Strong | Smarter auto-arrange, focused flow inspection, sidebars, connection details, readable tech labels, cleaner controls, demo accordion, scrollable review panel | The product is intentionally designed to reduce confusion rather than just expose more knobs | Extremely dense graphs can still reveal edge-case readability problems |
 | Auth and Access Control | Strong | Clerk middleware, protected routes, frontend env guards, local auth smoke verification, protected probe route, access-control tests for diagram update/delete/version flows | Auth is no longer "assumed working"; it has repeatable local verification, route protection, and backend tests around important ownership boundaries | Still dependent on third-party Clerk behavior and future version changes |
-| Internal QA, CI, and Evaluation | Strong | Eval harness, prompt matrix, history prompt mining, AI failure logging, Markdown scoreboard, 30 backend tests, frontend lint/typecheck/build, Playwright smoke, GitHub Actions on Ubuntu and macOS | Quality is now measurable internally and automatically checked in CI instead of being judged only by feel | The evaluator will get stronger as more real prompts and failure cases accumulate |
+| Internal QA, CI, and Evaluation | Strong | Eval harness, prompt matrix, history prompt mining, AI failure logging, Markdown scoreboard, 43 backend tests, frontend lint/typecheck/build, Playwright smoke, GitHub Actions on Ubuntu and macOS | Quality is now measurable internally and automatically checked in CI instead of being judged only by feel | The evaluator will get stronger as more real prompts and failure cases accumulate |
 | Production Monitoring | Partial | Build verification, auth smoke checks, migration checks, internal evals | There is a decent pre-ship quality loop already | Full observability like Sentry, alerting, dashboards, and tracing is not yet a mature part of the stack |
 | Scale and Performance Proof | Partial | Debounced autosave, queued saves, focused rendering behavior, layout improvements for dense graphs | The app has some performance-aware design choices already | No serious load testing, real traffic proof, or long-session stress proof has been demonstrated yet |
 | Security, Privacy, Compliance | Partial | Protected routes, env-based secrets, narrow local-only smoke bypass, structured auth model, high-severity dependency audit gates, upgraded Clerk/Express packages | Basic product security thinking is present, high/critical dependency issues are guarded in CI, and the local bypass was carefully scoped | Formal privacy policy depth, retention controls, compliance posture, enterprise security guarantees, and legal docs are still not deeply built out |
@@ -72,7 +72,7 @@ graph TD
 ### 2. AI Reliability
 **Covered:** Yes, strongly.
 
-**Why:** The app does not just send prompts and hope for good output. It has structured parsing, retries, normalization, and internal evaluation. That is what makes the AI side feel productized.
+**Why:** The app does not just send prompts and hope for good output. It has structured parsing, retries, normalization, domain blueprint tuning, and internal evaluation. That is what makes the AI side feel productized.
 
 **What is still missing:** AI systems always have long-tail weirdness. The system is resilient, but it is not immune to model drift forever.
 
@@ -86,7 +86,7 @@ graph TD
 ### 4. UX and Diagram Clarity
 **Covered:** Yes, strongly.
 
-**Why:** This is one of Archflow’s strongest areas. The product got much better when the interaction model moved from clutter and hovering toward focused inspection, sidebars, and calmer defaults.
+**Why:** This is one of Archflow’s strongest areas. The product got much better when the interaction model moved from clutter and hovering toward focused inspection, sidebars, a calmer demo accordion, scrollable review surfaces, and cleaner defaults.
 
 **What is still missing:** Very dense enterprise-scale diagrams may still need future refinement.
 
@@ -100,7 +100,7 @@ graph TD
 ### 6. Internal QA, CI, and Evaluation
 **Covered:** Yes, strongly.
 
-**Why:** This is one of the most important strategic strengths. The internal evaluator gives the product a way to improve quality systematically instead of only through intuition, while CI verifies backend tests, frontend lint/typecheck/build, audits, and Playwright smoke coverage on Ubuntu and macOS.
+**Why:** This is one of the most important strategic strengths. The internal evaluator gives the product a way to improve quality systematically instead of only through intuition, while CI verifies backend tests, frontend lint/typecheck/build, audits, and Playwright smoke coverage on Ubuntu and macOS. The current backend suite has 43 passing tests.
 
 **What is still missing:** More historical data and more real prompt coverage will make the evaluator stronger over time.
 

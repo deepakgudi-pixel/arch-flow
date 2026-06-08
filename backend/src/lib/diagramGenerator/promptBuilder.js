@@ -35,6 +35,9 @@ DOMAIN-SPECIFIC PATTERNS (choose the best match for the user's prompt):
 [iot] FLUTTER, GO, TIMESCALEDB, KAFKA, S3, PROMETHEUS. Include device gateway, telemetry ingestion, fleet management.
 [healthcare] REACT, FASTAPI, POSTGRESQL, REDIS, KAFKA, VAULT, S3, DATADOG. Include HIPAA compliance, audit trail, patient data.
 [analytics_platform] REACT, PYTHON, CLICKHOUSE, KAFKA, S3, PROMETHEUS, GRAFANA. Include data pipeline, stream processing, batch ETL.
+[food_delivery] KOTLIN, SWIFT, REACT, EXPRESS, GO, FASTAPI, POSTGRESQL, REDIS, KAFKA, S3, STRIPE, GOOGLE_MAPS, TWILIO, PROMETHEUS, GRAFANA, NGINX. Include customer ordering app, courier driver app, restaurant ops dashboard, order API, dispatch matching, pricing/promos/fraud, maps/routing, payments, notifications, and operations monitoring.
+[stock_trading] KOTLIN, SWIFT, REACT, JAVA, SPRING_BOOT, GO, PYTHON, POSTGRESQL, TIMESCALEDB, REDIS, KAFKA, S3, PLAID, TWILIO, VAULT, CLERK, PROMETHEUS, GRAFANA, NGINX. Include mobile trading apps, web trading dashboard, market data gateway, order API, order routing, portfolio ledger, risk/fraud checks, bank funding, trade alerts, audit archive, compliance reporting, and strict consistency.
+[travel_marketplace] KOTLIN, SWIFT, REACT, FASTAPI, GO, PYTHON, NESTJS, POSTGRESQL, REDIS, ELASTICSEARCH, KAFKA, S3, STRIPE, GOOGLE_MAPS, TWILIO, ALGOLIA, CLERK, PROMETHEUS, GRAFANA, NGINX. Include guest app, host app, property search, availability calendar, booking API, dynamic pricing, payments, host payouts, messaging, reviews, maps, fraud/trust safety, identity verification, notifications, image storage, analytics, and operations monitoring.
 
 PROTOCOL MAP FOR EDGES:
 frontend>backend: HTTPS, GRAPHQL, WEBSOCKET
@@ -52,11 +55,12 @@ RULES:
 3. Categories only: mobile frontend backend database queue auth storage external devops.
 4. Frontend/mobile NEVER connect to database. Always backend in between.
 5. ALWAYS include ALL of these for any multi-component system: REDIS (cache), KAFKA or RABBITMQ (async processing), S3 (storage), PROMETHEUS+GRAFANA (observability), CLERK (auth), NGINX or CLOUDFLARE (traffic management).
-6. Max 12 nodes. Roles max 4 words. Reasons max 6 words.
+6. Target 12-16 nodes for complex systems. Roles max 4 words. Reasons max 6 words.
 7. Edge labels from protocol map only. Never use generic labels like CONNECTION or API.
 8. No protocols or generic terms as nodes.
 9. Famous companies use their known stack above.
 10. The architecture MUST be production-complete. Every generated diagram will be scored - missing layers cause score deductions and erode user trust.
+11. Roles must name domain responsibilities, not generic implementation labels. For example: Dispatch matching, Order API, Pricing fraud promos, Restaurant ops, Courier driver app, Payment processing, Maps routing, Notifications, Market data gateway, Order routing, Portfolio ledger, Risk fraud engine, Audit archive, Property search, Availability calendar, Booking API, Trust safety engine.
 
 OUTPUT ONLY THIS JSON (no other text):
 {"nodes":[{"name":"TECH","category":"","role":"","reason":"","icon":""}],"edges":[{"source":"TECH","target":"TECH","label":"PROTOCOL"}]}`;

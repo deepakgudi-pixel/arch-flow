@@ -43,6 +43,53 @@ function normalizeTechName(name) {
     .toUpperCase();
 }
 
+function truncateReviewContextText(value, maxLength) {
+  const normalized = normalizeReviewText(value);
+
+  if (normalized.length <= maxLength) {
+    return normalized;
+  }
+
+  return `${normalized.slice(0, maxLength - 3).trim()}...`;
+}
+
+function compactDiagramReviewContext(context) {
+  const compactNodes = (context.nodes || []).slice(0, 45).map(node => ({
+    id: node.id,
+    name: truncateReviewContextText(node.name, 80),
+    category: node.category,
+    role: truncateReviewContextText(node.role, 90)
+  }));
+  const compactEdges = (context.edges || []).slice(0, 65).map(edge => ({
+    source: edge.source,
+    target: edge.target,
+    label: edge.label
+  }));
+  const compactReviewFindings = (context.reviewFindings || []).slice(0, 12).map(finding => ({
+    severity: truncateReviewContextText(finding.severity, 24),
+    title: truncateReviewContextText(finding.title, 100),
+    detail: truncateReviewContextText(finding.detail, 220)
+  }));
+
+  return {
+    diagramName: truncateReviewContextText(context.diagramName, 120),
+    nodes: compactNodes,
+    edges: compactEdges,
+    reviewFindings: compactReviewFindings,
+    summary: {
+      ...context.summary,
+      criticalSignals: (context.summary?.criticalSignals || []).slice(0, 4)
+    },
+    builtInCatalog: Object.fromEntries(
+      Object.entries(context.builtInCatalog || {}).map(([category, items]) => [
+        category,
+        (items || []).slice(0, 5)
+      ])
+    ),
+    connectionToken: context.connectionToken
+  };
+}
+
 // Rate limiting for AI endpoints
 const aiLimiter = rateLimit({
   windowMs: 60 * 1000,
@@ -376,7 +423,7 @@ router.post('/review-diagram', aiLimiter, clerkAuth, validate({
       messages = []
     } = req.body;
 
-    const diagramContext = buildDiagramReviewContext({
+    let diagramContext = buildDiagramReviewContext({
       diagramName,
       nodes,
       edges,
@@ -387,12 +434,22 @@ router.post('/review-diagram', aiLimiter, clerkAuth, validate({
     // The context prompt already caps nodes (60) and edges (80), but
     // with a large built-in catalog and long labels this can still grow.
     // 28 000 chars leaves headroom for the system prompt + conversation history.
-    const diagramContextJson = JSON.stringify(diagramContext, null, 2);
+    let diagramContextJson = JSON.stringify(diagramContext, null, 2);
+
     if (diagramContextJson.length > 28_000) {
-      return res.status(400).json({
-        error: 'Diagram context is too large to review in a single pass. Simplify the diagram or reduce the number of nodes and connections, then try again.',
-        contextCharacters: diagramContextJson.length
-      });
+      const compactContext = compactDiagramReviewContext(diagramContext);
+      const compactContextJson = JSON.stringify(compactContext, null, 2);
+
+      if (compactContextJson.length <= 28_000) {
+        diagramContext = compactContext;
+        diagramContextJson = compactContextJson;
+      } else {
+        return res.status(400).json({
+          error: 'Diagram context is too large to review in a single pass. Simplify the diagram or reduce the number of nodes and connections, then try again.',
+          contextCharacters: diagramContextJson.length,
+          compactedContextCharacters: compactContextJson.length
+        });
+      }
     }
 
     const validNodeIds = new Set(diagramContext.nodes.map(node => node.id).filter(Boolean));
@@ -481,7 +538,7 @@ RULES:
         { role: 'system', content: systemPrompt },
         {
           role: 'user',
-          content: `Current diagram context:\n${JSON.stringify(diagramContext, null, 2)}\n\nUse only the listed node ids for any connection that references an existing node.`
+          content: `Current diagram context:\n${diagramContextJson}\n\nUse only the listed node ids for any connection that references an existing node.`
         },
         ...conversationMessages
       ],

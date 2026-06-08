@@ -84,7 +84,287 @@ test('generateDiagramFromPrompt retries with repair instructions when mocked AI 
   }
 });
 
-test('buildDiagramUserMessage expands recruiter-ready architecture examples', () => {
+test('generateDiagramFromPrompt accepts diagram JSON wrapped in an array', async () => {
+  const wrappedResponse = [
+    {
+      nodes: [
+        { name: 'React', category: 'frontend', role: 'UI', reason: 'Dashboards', icon: 'react' },
+        { name: 'Java', category: 'backend', role: 'API', reason: 'Core services', icon: 'server' },
+        { name: 'PostgreSQL', category: 'database', role: 'Data', reason: 'Metadata store', icon: 'database' },
+        { name: 'Kafka', category: 'queue', role: 'Events', reason: 'Async delivery', icon: 'message-square' }
+      ],
+      edges: [
+        { source: 'React', target: 'Java', label: 'HTTPS' },
+        { source: 'Java', target: 'PostgreSQL', label: 'SQL' },
+        { source: 'Java', target: 'Kafka', label: 'KAFKA' }
+      ]
+    }
+  ];
+
+  const result = await generateDiagramFromPrompt({
+    description: 'mock collaboration app',
+    callModel: async () => ({
+      content: JSON.stringify(wrappedResponse),
+      model: 'mock-model'
+    })
+  });
+
+  assert.equal(result.quality.score.score, 100);
+  assert.deepEqual(activeFindings(result.quality), []);
+  assert.ok(result.nodes.some(node => node.name === 'REACT'));
+});
+
+test('generateDiagramFromPrompt recovers a complete diagram object from a truncated wrapper', async () => {
+  const truncatedWrapper = `[
+    {
+      "nodes": [
+        { "name": "React", "category": "frontend", "role": "UI", "reason": "Dashboards", "icon": "react" },
+        { "name": "Java", "category": "backend", "role": "API", "reason": "Core services", "icon": "server" },
+        { "name": "PostgreSQL", "category": "database", "role": "Data", "reason": "Metadata store", "icon": "database" },
+        { "name": "Kafka", "category": "queue", "role": "Events", "reason": "Async delivery", "icon": "message-square" }
+      ],
+      "edges": [
+        { "source": "React", "target": "Java", "label": "HTTPS" },
+        { "source": "Java", "target": "PostgreSQL", "label": "SQL" },
+        { "source": "Java", "target": "Kafka", "label": "KAFKA" }
+      ]
+    }`;
+
+  const result = await generateDiagramFromPrompt({
+    description: 'mock realtime dashboard',
+    callModel: async () => ({
+      content: truncatedWrapper,
+      model: 'mock-model'
+    })
+  });
+
+  assert.equal(result.quality.score.score, 100);
+  assert.deepEqual(activeFindings(result.quality), []);
+  assert.ok(result.nodes.some(node => node.name === 'JAVA'));
+});
+
+test('generateDiagramFromPrompt keeps using AI repair attempts until a valid diagram is returned', async () => {
+  let calls = 0;
+  const originalConsoleError = console.error;
+
+  console.error = () => {};
+
+  try {
+    const result = await generateDiagramFromPrompt({
+      description: 'mock streaming platform',
+      callModel: async () => {
+        calls += 1;
+
+        if (calls < 4) {
+          return {
+            content: calls === 1 ? 'not json' : '{"nodes": []',
+            model: 'mock-model'
+          };
+        }
+
+        return {
+          content: JSON.stringify({
+            nodes: [
+              { name: 'React', category: 'frontend', role: 'UI', reason: 'Playback UI', icon: 'react' },
+              { name: 'Go', category: 'backend', role: 'API', reason: 'Video APIs', icon: 'server' },
+              { name: 'PostgreSQL', category: 'database', role: 'Metadata', reason: 'Catalog data', icon: 'database' },
+              { name: 'Kafka', category: 'queue', role: 'Events', reason: 'Async processing', icon: 'message-square' }
+            ],
+            edges: [
+              { source: 'React', target: 'Go', label: 'HTTPS' },
+              { source: 'Go', target: 'PostgreSQL', label: 'SQL' },
+              { source: 'Go', target: 'Kafka', label: 'KAFKA' }
+            ]
+          }),
+          model: 'mock-model'
+        };
+      }
+    });
+
+    assert.equal(calls, 4);
+    assert.equal(result.quality.score.score, 100);
+    assert.deepEqual(activeFindings(result.quality), []);
+  } finally {
+    console.error = originalConsoleError;
+  }
+});
+
+test('generateDiagramFromPrompt domain-tunes food delivery diagrams beyond a generic tech stack', async () => {
+  const genericFoodDeliveryResponse = {
+    nodes: [
+      { name: 'Kotlin', category: 'mobile', role: 'Android Client', reason: 'Native mobile app', icon: 'smartphone' },
+      { name: 'Swift', category: 'mobile', role: 'iOS Client', reason: 'Native mobile app', icon: 'smartphone' },
+      { name: 'React', category: 'frontend', role: 'Web Client', reason: 'Admin UI', icon: 'react' },
+      { name: 'Express', category: 'backend', role: 'Core Service', reason: 'Business logic', icon: 'server' },
+      { name: 'Go', category: 'backend', role: 'Realtime Service', reason: 'Low latency', icon: 'server' },
+      { name: 'FastAPI', category: 'backend', role: 'ML Service', reason: 'Risk checks', icon: 'server' },
+      { name: 'PostgreSQL', category: 'database', role: 'Relational Store', reason: 'Order data', icon: 'database' },
+      { name: 'Redis', category: 'database', role: 'Cache', reason: 'Fast state', icon: 'database' },
+      { name: 'Kafka', category: 'queue', role: 'Event Bus', reason: 'Async work', icon: 'message-square' },
+      { name: 'Clerk', category: 'auth', role: 'Auth', reason: 'Users', icon: 'shield' },
+      { name: 'S3', category: 'storage', role: 'Storage', reason: 'Assets', icon: 'hard-drive' },
+      { name: 'Stripe', category: 'external', role: 'Payments', reason: 'Cards', icon: 'credit-card' },
+      { name: 'Google Maps', category: 'external', role: 'Maps', reason: 'Routing', icon: 'map' }
+    ],
+    edges: [
+      { source: 'Kotlin', target: 'Express', label: 'HTTPS' },
+      { source: 'Swift', target: 'Go', label: 'WEBSOCKET' },
+      { source: 'React', target: 'Express', label: 'HTTPS' },
+      { source: 'Express', target: 'PostgreSQL', label: 'SQL' },
+      { source: 'Express', target: 'Redis', label: 'TCP' },
+      { source: 'Express', target: 'Kafka', label: 'KAFKA' },
+      { source: 'Kafka', target: 'FastAPI', label: 'KAFKA' },
+      { source: 'Express', target: 'Stripe', label: 'HTTPS' },
+      { source: 'Go', target: 'Google Maps', label: 'HTTPS' }
+    ]
+  };
+
+  const result = await generateDiagramFromPrompt({
+    description: 'Design a food delivery platform combining DoorDash and Uber Eats with restaurants, couriers, customers, dispatch, maps, payments, promos, fraud, notifications, and operations monitoring.',
+    callModel: async () => ({
+      content: JSON.stringify(genericFoodDeliveryResponse),
+      model: 'mock-model'
+    })
+  });
+
+  const roles = result.nodes.map(node => node.role).join(' | ');
+  const names = new Set(result.nodes.map(node => node.name));
+
+  assert.equal(result.quality.score.score, 100);
+  assert.deepEqual(activeFindings(result.quality), []);
+  assert.match(roles, /Customer ordering app/);
+  assert.match(roles, /Courier driver app/);
+  assert.match(roles, /Restaurant ops dashboard/);
+  assert.match(roles, /Dispatch matching/);
+  assert.match(roles, /Pricing fraud promos/);
+  assert.match(roles, /Notifications/);
+  assert.ok(names.has('TWILIO'));
+});
+
+test('generateDiagramFromPrompt domain-tunes stock trading diagrams beyond a generic tech stack', async () => {
+  const genericTradingResponse = {
+    nodes: [
+      { name: 'Kotlin', category: 'mobile', role: 'Android Client', reason: 'Native mobile app', icon: 'smartphone' },
+      { name: 'Swift', category: 'mobile', role: 'iOS Client', reason: 'Native mobile app', icon: 'smartphone' },
+      { name: 'React', category: 'frontend', role: 'Web Client', reason: 'Dashboard UI', icon: 'react' },
+      { name: 'Java', category: 'backend', role: 'Core Service', reason: 'Business logic', icon: 'server' },
+      { name: 'Python', category: 'backend', role: 'Worker Service', reason: 'Risk logic', icon: 'server' },
+      { name: 'Spring Boot', category: 'backend', role: 'API Service', reason: 'Request routing', icon: 'server' },
+      { name: 'Go', category: 'backend', role: 'Realtime Service', reason: 'Low latency', icon: 'server' },
+      { name: 'PostgreSQL', category: 'database', role: 'Relational Store', reason: 'Account data', icon: 'database' },
+      { name: 'Redis', category: 'database', role: 'Cache', reason: 'Fast state', icon: 'database' },
+      { name: 'TimescaleDB', category: 'database', role: 'Time Series', reason: 'Market history', icon: 'database' },
+      { name: 'Kafka', category: 'queue', role: 'Event Bus', reason: 'Async work', icon: 'message-square' },
+      { name: 'Clerk', category: 'auth', role: 'Auth', reason: 'Users', icon: 'shield' },
+      { name: 'S3', category: 'storage', role: 'Storage', reason: 'Reports', icon: 'hard-drive' },
+      { name: 'Prometheus', category: 'devops', role: 'Metrics', reason: 'Monitoring', icon: 'activity' }
+    ],
+    edges: [
+      { source: 'Kotlin', target: 'Java', label: 'HTTPS' },
+      { source: 'Swift', target: 'Java', label: 'HTTPS' },
+      { source: 'React', target: 'Java', label: 'HTTPS' },
+      { source: 'Java', target: 'Python', label: 'gRPC' },
+      { source: 'Java', target: 'Spring Boot', label: 'gRPC' },
+      { source: 'React', target: 'Go', label: 'WEBSOCKET' },
+      { source: 'Java', target: 'PostgreSQL', label: 'SQL' },
+      { source: 'Go', target: 'TimescaleDB', label: 'SQL' },
+      { source: 'Go', target: 'Redis', label: 'TCP' },
+      { source: 'Java', target: 'Kafka', label: 'KAFKA' },
+      { source: 'Java', target: 'S3', label: 'S3' }
+    ]
+  };
+
+  const result = await generateDiagramFromPrompt({
+    description: 'Design a global stock trading platform like Robinhood: mobile trading apps, web dashboard, market data ingestion, order placement, order routing, portfolio balances, risk checks, fraud detection, notifications, audit logs, reconciliation, compliance reporting, observability, and strict consistency during high-volume market open.',
+    callModel: async () => ({
+      content: JSON.stringify(genericTradingResponse),
+      model: 'mock-model'
+    })
+  });
+
+  const roles = result.nodes.map(node => node.role).join(' | ');
+  const names = new Set(result.nodes.map(node => node.name));
+
+  assert.equal(result.quality.score.score, 100);
+  assert.deepEqual(activeFindings(result.quality), []);
+  assert.match(roles, /Android trading app/);
+  assert.match(roles, /iOS trading app/);
+  assert.match(roles, /Web trading dashboard/);
+  assert.match(roles, /Market data gateway/);
+  assert.match(roles, /Order routing/);
+  assert.match(roles, /Portfolio ledger/);
+  assert.match(roles, /Risk fraud engine/);
+  assert.match(roles, /Audit report archive/);
+  assert.ok(names.has('PLAID'));
+  assert.ok(names.has('TWILIO'));
+  assert.ok(names.has('VAULT'));
+});
+
+test('generateDiagramFromPrompt domain-tunes travel marketplace diagrams beyond a generic tech stack', async () => {
+  const genericTravelResponse = {
+    nodes: [
+      { name: 'Kotlin', category: 'mobile', role: 'Android Client', reason: 'Native mobile app', icon: 'smartphone' },
+      { name: 'Swift', category: 'mobile', role: 'iOS Client', reason: 'Native mobile app', icon: 'smartphone' },
+      { name: 'React', category: 'frontend', role: 'Web Client', reason: 'Marketplace UI', icon: 'react' },
+      { name: 'Python', category: 'backend', role: 'Worker Service', reason: 'Risk logic', icon: 'server' },
+      { name: 'FastAPI', category: 'backend', role: 'API Service', reason: 'Business logic', icon: 'server' },
+      { name: 'Go', category: 'backend', role: 'Realtime Service', reason: 'Low latency', icon: 'server' },
+      { name: 'PostgreSQL', category: 'database', role: 'Relational Store', reason: 'Booking data', icon: 'database' },
+      { name: 'Redis', category: 'database', role: 'Cache', reason: 'Fast state', icon: 'database' },
+      { name: 'Kafka', category: 'queue', role: 'Event Bus', reason: 'Async work', icon: 'message-square' },
+      { name: 'Clerk', category: 'auth', role: 'Auth', reason: 'Users', icon: 'shield' },
+      { name: 'S3', category: 'storage', role: 'Storage', reason: 'Images', icon: 'hard-drive' },
+      { name: 'Stripe', category: 'external', role: 'Payments', reason: 'Cards payouts', icon: 'credit-card' },
+      { name: 'Google Maps', category: 'external', role: 'Maps', reason: 'Geo data', icon: 'map' },
+      { name: 'Twilio', category: 'external', role: 'Notifications', reason: 'SMS updates', icon: 'phone' },
+      { name: 'Prometheus', category: 'devops', role: 'Metrics', reason: 'Monitoring', icon: 'activity' }
+    ],
+    edges: [
+      { source: 'Kotlin', target: 'FastAPI', label: 'HTTPS' },
+      { source: 'Swift', target: 'FastAPI', label: 'HTTPS' },
+      { source: 'React', target: 'FastAPI', label: 'HTTPS' },
+      { source: 'FastAPI', target: 'Clerk', label: 'OIDC' },
+      { source: 'FastAPI', target: 'PostgreSQL', label: 'SQL' },
+      { source: 'FastAPI', target: 'Redis', label: 'TCP' },
+      { source: 'FastAPI', target: 'Kafka', label: 'KAFKA' },
+      { source: 'FastAPI', target: 'S3', label: 'S3' },
+      { source: 'FastAPI', target: 'Stripe', label: 'HTTPS' },
+      { source: 'FastAPI', target: 'Google Maps', label: 'HTTPS' },
+      { source: 'FastAPI', target: 'Twilio', label: 'HTTPS' },
+      { source: 'Go', target: 'Redis', label: 'TCP' },
+      { source: 'Kafka', target: 'Python', label: 'KAFKA' }
+    ]
+  };
+
+  const result = await generateDiagramFromPrompt({
+    description: 'Design an Airbnb-scale travel marketplace with guest and host apps, property search, availability calendars, booking checkout, dynamic pricing, payments, host payouts, in-app messaging, reviews, maps, fraud detection, identity verification, notifications, image storage, analytics, trust and safety workflows, and operations monitoring.',
+    callModel: async () => ({
+      content: JSON.stringify(genericTravelResponse),
+      model: 'mock-model'
+    })
+  });
+
+  const roles = result.nodes.map(node => node.role).join(' | ');
+  const names = new Set(result.nodes.map(node => node.name));
+
+  assert.equal(result.quality.score.score, 100);
+  assert.deepEqual(activeFindings(result.quality), []);
+  assert.match(roles, /Guest mobile app/);
+  assert.match(roles, /Host mobile app/);
+  assert.match(roles, /Marketplace web app/);
+  assert.match(roles, /Booking API/);
+  assert.match(roles, /Availability calendar/);
+  assert.match(roles, /Trust safety engine/);
+  assert.match(roles, /Guest messaging/);
+  assert.match(roles, /Booking ledger/);
+  assert.match(roles, /Listing image storage/);
+  assert.match(roles, /Payments payouts/);
+  assert.match(roles, /Property search/);
+  assert.ok(names.has('ELASTICSEARCH'));
+  assert.ok(names.has('ALGOLIA'));
+});
+
+test('buildDiagramUserMessage expands showcase architecture examples', () => {
   const netflixPrompt = buildDiagramUserMessage('make it resilient', 'example:netflix');
   const stripePrompt = buildDiagramUserMessage('include compliance', 'example:stripe');
 

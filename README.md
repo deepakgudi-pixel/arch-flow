@@ -13,7 +13,7 @@
   <img src="https://img.shields.io/badge/PostgreSQL-Neon-4169E1?style=flat-square&logo=postgresql" alt="PostgreSQL">
   <img src="https://img.shields.io/badge/Redis-Upstash-FF4438?style=flat-square&logo=redis" alt="Redis">
   <img src="https://img.shields.io/badge/Electron-Mac-47848F?style=flat-square&logo=electron" alt="Electron">
-  <img src="https://img.shields.io/badge/version-1.6-00ff9d?style=flat-square" alt="Version 1.6">
+  <img src="https://img.shields.io/badge/version-1.7-00ff9d?style=flat-square" alt="Version 1.7">
   <img src="https://img.shields.io/badge/status-active-00ff9d?style=flat-square" alt="Status: Active">
 </p>
 
@@ -126,7 +126,7 @@ flowchart TB
 - **Surgical iteration over full regeneration** — changing one part of the system should not blow away the rest
 - **Architecture score as a signal, not a grade** — the score helps gauge completeness, it's not a gamified ranking
 - **Teaching beats magic** — the product should explain the architecture, not only generate it
-- **Recruiter/demo clarity matters** — recognizable showcase examples make the product value obvious quickly
+- **Showcase clarity matters** — recognizable examples make the product value obvious quickly
 - **Flow clarity over label overload** — connections should be understandable without turning the canvas into a wall of overlapping text
 
 ---
@@ -171,7 +171,7 @@ flowchart TB
 - **Zero generic edge labels** — labels like `API`, `CONNECTION`, and `INFERRING...` are normalized to specific protocols (`HTTPS`, `SQL`, `KAFKA`, etc.)
 - **Single-datastore pressure auto-fix** — read replica added when 1 database with high complexity
 - **Known architecture database** — 14+ famous company stacks with real technology names, not generic placeholders
-- **Domain-specific patterns** — e-commerce, social media, video streaming, fintech, SaaS multi-tenant, realtime collaboration, IoT, healthcare, and analytics platforms each get appropriate tech choices
+- **Domain-specific blueprint tuning** — e-commerce, social media, video streaming, fintech, SaaS multi-tenant, realtime collaboration, IoT, healthcare, analytics, food delivery, stock trading, and travel marketplaces each get appropriate tech choices and domain-specific roles
 - **Zero isolated node guarantee** — auto-fix layer ensures every generated node is connected with proper protocol labels
 - **Smart auto-wiring** — missing auth layer, observability stack, queue consumers, cache, storage, and traffic management are detected and connected automatically
 - **Deterministic generation engine** — temperature 0.2 with `response_format: json_object` ensures consistent, reproducible outputs instead of random tech selections
@@ -182,9 +182,9 @@ flowchart TB
 
 ### Guided Learning & Showcase Examples
 - **Beginner-friendly Guided Mode** — explains the core workflow: start from a system, inspect the diagram, review weak spots, and improve safely
-- **Dashboard showcase examples** — one-click demo launchers for Netflix, Uber, WhatsApp, Stripe, YouTube, and Slack
+- **Dashboard showcase examples** — an accordion launcher for Netflix, Uber, WhatsApp, Stripe, YouTube, and Slack keeps demos available without crowding the dashboard
 - **Prompt handoff into the editor** — showcase demos create a workspace and pre-fill the right architecture prompt so the user can synthesize immediately
-- **Recruiter-ready demo path** — examples make Archflow understandable without requiring someone to invent a prompt first
+- **Showcase-ready demo path** — examples make Archflow understandable without requiring someone to invent a prompt first
 - **Architecture narrative summaries** — Review Panel explains why the architecture works, what reliability layers are present, and how the current internal quality gate reads
 
 ### AI Architecture Assistant (Copilot)
@@ -202,6 +202,7 @@ flowchart TB
 
 ### Architectural Review System
 - Dedicated review drawer with **animated** architecture score (0–100 with letter grade A–F), finding counts, and adaptive layer coverage stats
+- Review drawer content is scrollable so long narratives, walkthroughs, findings, and auto-fix lists remain usable in dense diagrams
 - **Transparent score breakdown** — click "Show score breakdown" to see the exact math: `100 - critical(-15) - warning(-8) + auth(+2) + cache(+3) = 93`
 - **Finding-level coaching** — every finding includes "Why this matters" and "How to fix" guidance so review doubles as a learning experience
 - **Clickable findings** — each review finding can focus the affected node or edge on the canvas, with stronger visual highlighting for selected/review-focused components
@@ -298,15 +299,15 @@ This keeps the product collaborative: the assistant can move fast, but the user 
 
 ## Showcase Demo Path
 
-Archflow now has a short recruiter-friendly path:
+Archflow now has a short showcase-friendly path:
 
 1. Open the dashboard.
-2. Choose a recognizable showcase example such as **Stripe**, **Uber**, **Netflix**, **YouTube**, **WhatsApp**, or **Slack**.
+2. Open the demo accordion and choose a recognizable showcase example such as **Stripe**, **Uber**, **Netflix**, **YouTube**, **WhatsApp**, or **Slack**.
 3. Archflow creates a demo workspace and preloads the architecture prompt.
 4. Generate the diagram.
 5. Open Architecture Review to see the score, findings, "why this architecture works" narrative, and clickable inspection flow.
 
-This path is intentionally optimized for portfolio reviews and interviews: the reviewer can understand the product value before reading the code.
+This path is intentionally optimized for fast product understanding: someone can see the value before reading the code or inventing a prompt.
 
 ---
 
@@ -449,7 +450,7 @@ On every push to `master` and every pull request, CI runs on **Ubuntu** and **ma
 - editor smoke test
 - Playwright artifact upload on failure for easier debugging
 
-Current backend suite: **30 passing tests** covering generation reliability, review normalization, eval harness behavior, auth guards, persistence, access control, and transactional rollback paths.
+Current backend suite: **43 passing tests** covering generation reliability, domain blueprint tuning, review normalization, eval harness behavior, auth guards, persistence, access control, and transactional rollback paths.
 
 Security note: frontend high/critical production dependency findings are gated in CI. The remaining known frontend audit output is a moderate Next/PostCSS advisory that npm currently reports with no direct fix.
 

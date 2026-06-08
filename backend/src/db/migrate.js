@@ -23,19 +23,25 @@ export async function runMigrations(pool) {
   await ensureMigrationTable(pool);
 
   const migrationFiles = await listMigrationFiles();
-  const appliedResult = await pool.query('SELECT id FROM schema_migrations');
-  const applied = new Set(appliedResult.rows.map(row => row.id));
 
   for (const fileName of migrationFiles) {
-    if (applied.has(fileName)) {
-      continue;
-    }
-
-    const sql = await readFile(new URL(fileName, migrationsDir), 'utf8');
-
     await pool.query('BEGIN');
 
     try {
+      await pool.query('LOCK TABLE schema_migrations IN ACCESS EXCLUSIVE MODE');
+
+      const appliedResult = await pool.query(
+        'SELECT id FROM schema_migrations WHERE id = $1',
+        [fileName]
+      );
+
+      if (appliedResult.rows.length > 0) {
+        await pool.query('COMMIT');
+        continue;
+      }
+
+      const sql = await readFile(new URL(fileName, migrationsDir), 'utf8');
+
       await pool.query(sql);
       await pool.query(
         'INSERT INTO schema_migrations (id) VALUES ($1)',

@@ -3,10 +3,7 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Sparkles, 
-  Command, 
   ArrowRight, 
-  Layout, 
-  Plus,
   Loader2,
   Cpu
 } from 'lucide-react';
@@ -23,6 +20,13 @@ export default function PromptBar({
   loading, onGenerate,
   activeExample = null
 }) {
+  const selectedExampleId = template.startsWith('example:') ? template.replace('example:', '') : null;
+  const isLaunchingAnotherDemo = Boolean(
+    activeExample &&
+    selectedExampleId &&
+    selectedExampleId !== activeExample.id
+  );
+
   const handleTemplateChange = (event) => {
     const nextTemplate = event.target.value;
     onTemplateChange(nextTemplate);
@@ -64,22 +68,34 @@ export default function PromptBar({
                   </option>
                 </optgroup>
               )}
-              <optgroup label="Starter systems">
-                <option value="blank">Blank Canvas</option>
-                <option value="saas">SaaS Platform</option>
-                <option value="ecommerce">E-Commerce</option>
-                <option value="mobile">Mobile Backend</option>
-                <option value="realtime">Realtime System</option>
-                <option value="microservices">Microservices</option>
-              </optgroup>
-              {!activeExample && (
-                <optgroup label="Recruiter-ready examples">
-                  {architectureExamples.map(example => (
-                    <option key={example.id} value={`example:${example.id}`}>
-                      {example.name} · {example.audience}
-                    </option>
-                  ))}
+              {activeExample ? (
+                <optgroup label="Open another demo">
+                  {architectureExamples
+                    .filter(example => example.id !== activeExample.id)
+                    .map(example => (
+                      <option key={example.id} value={`example:${example.id}`}>
+                        {example.name} system design
+                      </option>
+                    ))}
                 </optgroup>
+              ) : (
+                <>
+                  <optgroup label="Starter systems">
+                    <option value="blank">Blank Canvas</option>
+                    <option value="saas">SaaS Platform</option>
+                    <option value="ecommerce">E-Commerce</option>
+                    <option value="mobile">Mobile Backend</option>
+                    <option value="realtime">Realtime System</option>
+                    <option value="microservices">Microservices</option>
+                  </optgroup>
+                  <optgroup label="Showcase examples">
+                    {architectureExamples.map(example => (
+                      <option key={example.id} value={`example:${example.id}`}>
+                        {example.name} · {example.audience}
+                      </option>
+                    ))}
+                  </optgroup>
+                </>
               )}
             </TemplateSelect>
           </TemplateSelectWrap>
@@ -108,8 +124,8 @@ export default function PromptBar({
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.8 }}
                 >
-                  <Sparkles size={16} />
-                  <span>Synthesize</span>
+                  {isLaunchingAnotherDemo ? <ArrowRight size={16} /> : <Sparkles size={16} />}
+                  <span>{isLaunchingAnotherDemo ? 'Open Demo' : 'Synthesize'}</span>
                 </ButtonContent>
               )}
             </AnimatePresence>

@@ -6,6 +6,9 @@ export const Panel = styled.div`
   display: flex;
   flex-direction: column;
   height: 100%;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
   border-left: 1px solid rgba(0, 0, 0, 0.04);
   padding: 0 24px;
 `;

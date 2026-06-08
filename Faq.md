@@ -42,13 +42,13 @@ The score is not the product. It is a summary of deterministic review signals. T
 ## AI and Reliability Questions
 
 ### 9. How does the AI generation flow work?
-The user gives a product prompt, the backend sends a structured request to the model, the response is normalized into nodes and edges, and then the frontend renders it as a diagram. After generation, the system can auto-arrange the graph, infer or repair connection labels, and surface review notes in the sidebars and review drawer.
+The user gives a product prompt, the backend sends a structured request to the model, the response is normalized into nodes and edges, and then deterministic hardening runs before the diagram reaches the canvas. Domain blueprints can tune generic outputs into more specific systems, such as food delivery, stock trading, and travel marketplaces. After generation, the system can auto-arrange the graph, repair connection labels, and surface review notes in the sidebars and review drawer.
 
 ### 10. How do you make the output feel trustworthy?
-I do it in layers. First, the output is structured into explicit units and flows rather than dumped as raw text. Second, the generation pipeline normalizes and hardens the diagram before users see it. Third, the backend review gate only accepts generated diagrams that pass the deterministic quality target. Fourth, the UI explains why a unit was chosen and what assumptions or risks are attached to it. Fifth, users can click review findings to focus the exact node or edge involved instead of hunting through the canvas.
+I do it in layers. First, the output is structured into explicit units and flows rather than dumped as raw text. Second, the generation pipeline normalizes, domain-tunes, and hardens the diagram before users see it. Third, the backend review gate only accepts generated diagrams that pass the deterministic quality target. Fourth, the UI explains why a unit was chosen and what assumptions or risks are attached to it. Fifth, users can click review findings to focus the exact node or edge involved instead of hunting through the canvas.
 
 ### 11. What do you do when the model returns bad or malformed output?
-I hardened the pipeline so the app is not dependent on perfect model behavior. The parser can recover JSON from noisy outputs, smaller AI calls retry when they return invalid JSON, the diagram generator normalizes and validates nodes and edges, and failures are logged so they can feed back into the internal evaluator instead of just silently breaking the experience.
+I hardened the pipeline so the app is not dependent on perfect model behavior. The parser can recover JSON from noisy outputs, wrapped arrays, and recoverable truncated wrappers; AI calls retry with repair instructions when they return invalid JSON; the diagram generator normalizes and validates nodes and edges; and failures are logged so they can feed back into the internal evaluator instead of just silently breaking the experience.
 
 ### 12. How do you evaluate whether the AI is getting better or worse?
 I built an internal evaluation harness. It generates prompt sets from a small matrix, can mine real prompts from history, runs prompts repeatedly, scores results with deterministic checks, and writes JSON plus Markdown reports. That gives me a repeatable way to compare quality and stability over time.
@@ -60,10 +60,10 @@ Because improving AI by vibes is not sustainable. Once a product depends on gene
 They solve different problems. Internal evaluation is for me to measure consistency, regressions, and output quality. A user-facing score would try to reduce a complex architecture into one number, which is usually misleading. For this product, internal evaluation improves the engine, while user-facing review improves understanding.
 
 ### 15. How do you handle inconsistent generations across runs?
-I try to contain inconsistency rather than pretend it does not exist. The app normalizes results into a stable shape, uses deterministic post-checks, lets users refine specific parts instead of regenerating the whole thing, and uses the eval harness to measure repeatability across multiple runs.
+I try to contain inconsistency rather than pretend it does not exist. The app normalizes results into a stable shape, uses deterministic post-checks, applies domain blueprints when the prompt clearly matches a known product category, lets users refine specific parts instead of regenerating the whole thing, and uses the eval harness to measure repeatability across multiple runs.
 
 ### 16. What parts are deterministic vs AI-driven?
-AI-driven parts include initial architecture generation, technology suggestions, and protocol/flow inference. Deterministic parts include parsing, schema validation, graph normalization, migrations, review checks, autosave/versioning behavior, layout logic, and the internal evaluation scoring rules.
+AI-driven parts include initial architecture generation, technology suggestions, and protocol/flow inference. Deterministic parts include parsing, schema validation, graph normalization, domain blueprint tuning, migrations, review checks, autosave/versioning behavior, layout logic, and the internal evaluation scoring rules.
 
 ---
 
@@ -93,8 +93,8 @@ Connections are stored as explicit edges, and protocol or flow labels can be inf
 ### 24. How do you make surgical edits without regenerating the full graph?
 Users can replace a selected node with same-category alternatives. That swap updates the chosen tech immediately and only recalculates nearby connection wording rather than regenerating the entire architecture. It keeps the rest of the diagram stable and makes refinement feel controlled.
 
-### 24a. How do you test persistence and version history?
-I extracted the core route behaviors into testable handlers and added integration-style tests around diagram update, manual version creation, AI generation persistence, non-owner permission denial, version listing, transactional deletes, and rollback behavior. These tests mock the database boundary but verify the SQL intent and payloads that matter for product behavior.
+### 24a. How do you test persistence, generation reliability, and version history?
+I extracted the core route behaviors into testable handlers and added integration-style tests around diagram update, manual version creation, AI generation persistence, non-owner permission denial, version listing, transactional deletes, rollback behavior, JSON repair, provider error handling, and domain blueprint tuning. These tests mock the database boundary where appropriate but verify the SQL intent and payloads that matter for product behavior. The current backend suite has 43 passing tests.
 
 ### 24b. What makes the backend feel production-minded?
 The backend now has transaction-safe diagram update/delete handlers, structured logging through a shared logger, environment validation, migration checks, rate limiting on AI endpoints, and CI audit gates for high-severity production dependency issues. It is not enterprise-complete, but it is much more than a demo API.
@@ -116,7 +116,7 @@ The canvas provides focused context, but the deeper reading happens in the conne
 Because the canvas should stay readable. Reasons, assumptions, risks, and connection details are important, but putting all of that directly on the diagram would destroy clarity. The sidebar keeps inspection rich without turning the diagram into a wall of labels.
 
 ### 29. What UX choices had the biggest impact on clarity?
-The biggest ones were smarter auto-arrange, replacing ambiguous hover behavior with focused selection, simplifying visible tech names, making connection direction explicit, removing unnecessary buttons, and shifting detailed explanation out of the canvas and into structured side panels.
+The biggest ones were smarter auto-arrange, replacing ambiguous hover behavior with focused selection, simplifying visible tech names, making connection direction explicit, removing unnecessary buttons, keeping demos inside a calm accordion instead of an always-open list, making long review panels scroll, and shifting detailed explanation out of the canvas and into structured side panels.
 
 ### 30. What was a feature you removed because it hurt UX?
 I removed manual protocol repair as a visible action and made it automatic. I also stepped back from putting too much emphasis on visibility toggles and score-like language. In general, I tried to remove controls that made users manage the product instead of letting the product help them.

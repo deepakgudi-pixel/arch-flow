@@ -8,34 +8,36 @@ import {
 
 const STEPS = [
   {
-    title: 'Start from a real system',
-    text: 'Use the example picker or describe any product. Archflow builds the first architecture draft.'
+    title: 'Generate a real system',
+    text: 'Start from a familiar demo or describe any product. Archflow builds the first architecture draft.'
   },
   {
-    title: 'Read the diagram',
-    text: 'Click components and flows to learn what each layer does and why the protocol matters.'
+    title: 'Watch the quality gate',
+    text: 'Generation checks rules, fills reliability layers, and hardens the diagram before you review it.'
   },
   {
-    title: 'Review the weak spots',
+    title: 'Learn through review',
     text: 'Open Architecture Review, click a finding, and Archflow highlights the exact node or path.'
   },
   {
-    title: 'Improve safely',
-    text: 'Use staged assistant suggestions or Optimize to 100 to fix gaps without losing control.'
+    title: 'Present the story',
+    text: 'Use Present to explain why the architecture works, what layers exist, and what tradeoffs remain.'
   }
 ];
 
 export default function GuidedModePanel({
   onClose,
+  onGenerate,
   onOpenAssistant,
-  onOpenReview
+  onOpenReview,
+  activeExample
 }) {
   return (
     <Overlay aria-label="Guided system design tutorial">
       <Header>
         <TitleStack>
           <Eyebrow><BookOpen size={11} /> Guided Mode</Eyebrow>
-          <Title>Learn system design through the diagram</Title>
+          <Title>{activeExample ? `${activeExample.name} system design path` : 'Learn system design through the diagram'}</Title>
         </TitleStack>
         <CloseButton type="button" onClick={onClose} aria-label="Close guided mode">×</CloseButton>
       </Header>
@@ -53,6 +55,7 @@ export default function GuidedModePanel({
       </StepList>
 
       <ActionRow>
+        <ActionButton type="button" onClick={onGenerate}>Generate</ActionButton>
         <ActionButton type="button" onClick={onOpenReview}>Open Review</ActionButton>
         <ActionButton type="button" $primary onClick={onOpenAssistant}>
           <Sparkles size={12} />

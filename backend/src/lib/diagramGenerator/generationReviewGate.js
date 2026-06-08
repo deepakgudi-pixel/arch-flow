@@ -1,5 +1,82 @@
 export const JSON_SCHEMA_HINT = `{"nodes":[{"name":"TECH_NAME","category":"mobile|frontend|backend|database|queue|auth|storage|external|devops","role":"function","reason":"justification","icon":"icon-name"}],"edges":[{"source":"TECH_NAME","target":"TECH_NAME","label":"PROTOCOL"}]}`;
 
+export const DIAGRAM_RESPONSE_SCHEMA = {
+  name: 'archflow_diagram',
+  strict: true,
+  schema: {
+    type: 'object',
+    additionalProperties: false,
+    required: ['nodes', 'edges'],
+    properties: {
+      nodes: {
+        type: 'array',
+        minItems: 1,
+        maxItems: 14,
+        items: {
+          type: 'object',
+          additionalProperties: false,
+          required: ['name', 'category', 'role', 'reason', 'icon'],
+          properties: {
+            name: {
+              type: 'string',
+              minLength: 1,
+              maxLength: 48,
+              description: 'Exact technology name in uppercase, for example REACT, JAVA, POSTGRESQL, KAFKA.'
+            },
+            category: {
+              type: 'string',
+              enum: ['mobile', 'frontend', 'backend', 'database', 'queue', 'auth', 'storage', 'external', 'devops']
+            },
+            role: {
+              type: 'string',
+              minLength: 1,
+              maxLength: 80
+            },
+            reason: {
+              type: 'string',
+              minLength: 1,
+              maxLength: 120
+            },
+            icon: {
+              type: 'string',
+              minLength: 1,
+              maxLength: 40
+            }
+          }
+        }
+      },
+      edges: {
+        type: 'array',
+        minItems: 1,
+        maxItems: 24,
+        items: {
+          type: 'object',
+          additionalProperties: false,
+          required: ['source', 'target', 'label'],
+          properties: {
+            source: {
+              type: 'string',
+              minLength: 1,
+              maxLength: 48
+            },
+            target: {
+              type: 'string',
+              minLength: 1,
+              maxLength: 48
+            },
+            label: {
+              type: 'string',
+              minLength: 1,
+              maxLength: 24,
+              description: 'Protocol label such as HTTPS, WEBSOCKET, SQL, TCP, KAFKA, S3, OIDC, HTTP, gRPC.'
+            }
+          }
+        }
+      }
+    }
+  }
+};
+
 export function validateNormalizedDiagram(diagram) {
   if (!Array.isArray(diagram.nodes) || diagram.nodes.length === 0) {
     throw new Error('Generated architecture did not contain any valid nodes.');

@@ -3,10 +3,9 @@
 import { useUser, useAuth } from '@clerk/nextjs';
 import { motion, AnimatePresence } from 'framer-motion';
 import { LayoutGrid, Maximize2, Minus, Plus } from 'lucide-react';
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import ReactFlow, {
-  addEdge,
   applyNodeChanges,
   applyEdgeChanges,
   Background,
@@ -18,8 +17,8 @@ import ReactFlow, {
   useEdgesState
 } from 'reactflow';
 import 'reactflow/dist/style.css';
-import api from '@/lib/api';
 import { architectureExamples } from '@/lib/architectureExamples';
+import api from '@/lib/api';
 import { formatTechDisplayLabel } from '@/lib/displayNames';
 import {
   estimateEdgeLabelDimensions,
@@ -30,9 +29,10 @@ import {
   buildArchitectureReview, buildArchitectureScore,
   buildConnectionTrustProfile,
   buildNodeTrustProfile,
-  getReplacementCandidates,
-  normalizeTechLabel
+  getReplacementCandidates
 } from '@/lib/diagramIntelligence';
+import { buildOptimizeTo100Result } from '@/lib/diagramOptimizer';
+import { buildDiagramViewProjection } from '@/lib/diagramViewModes';
 import { categoryColors } from '@/lib/theme';
 import EditorHeader from '@/components/diagram/EditorHeader';
 import NodeDetailsSidebar from '@/components/diagram/NodeDetailsSidebar';
@@ -45,6 +45,10 @@ import PromptBar from '@/components/diagram/PromptBar';
 import InviteModal from '@/components/diagram/InviteModal';
 import SynthesisTerminal from '@/components/diagram/SynthesisTerminal';
 import GuidedModePanel from '@/components/diagram/GuidedModePanel';
+import DiagramViewControls from '@/components/diagram/DiagramViewControls';
+import ArchitectureTrustBar from '@/components/diagram/ArchitectureTrustBar';
+import ArchitecturePresentation from '@/components/diagram/ArchitecturePresentation';
+import EmptyCanvasState from '@/components/diagram/EmptyCanvasState';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import Toast from '@/components/ui/Toast';
 import {
@@ -58,7 +62,6 @@ import {
 } from './editorPageConfig';
 import {
   AUTO_LAYOUT,
-  GENERIC_PROTOCOL_LABELS,
   buildAutoLayoutResult
 } from './editorPageUtils';
 import { useDiagramExport } from './hooks/useDiagramExport';
@@ -67,6 +70,9 @@ import { useDiagramPersistence } from './hooks/useDiagramPersistence';
 import { useReviewAssistant } from './hooks/useReviewAssistant';
 import { useDiagramSelection } from './hooks/useDiagramSelection';
 import { useUndoRedo } from './hooks/useUndoRedo';
+import { useProtocolSynthesis } from './hooks/useProtocolSynthesis';
+import { useDiagramCollaboration } from './hooks/useDiagramCollaboration';
+import { useTechInventoryActions } from './hooks/useTechInventoryActions';
 
 export default function DiagramPage() {
   const params = useParams();
@@ -78,7 +84,7 @@ export default function DiagramPage() {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [leftSidebarOpen, setLeftSidebarOpen] = useState(false);
-  const [rightPanelOpen, setRightPanelOpen] = useState(true);
+  const [rightPanelOpen, setRightPanelOpen] = useState(false);
   const [isDesktop, setIsDesktop] = useState(false);
   const [guidedModeOpen, setGuidedModeOpen] = useState(false);
   const [activeExample, setActiveExample] = useState(null);
@@ -100,20 +106,15 @@ export default function DiagramPage() {
   }, []);
   const [searchTerm, setSearchTerm] = useState('');
   const [toast, setToast] = useState(null);
-  const [showInviteModal, setShowInviteModal] = useState(false);
-  const [inviteCode, setInviteCode] = useState('');
-  const [isCopying, setIsCopying] = useState(false);
-  const [collaborators, setCollaborators] = useState([]);
   const [rfInstance, setRfInstance] = useState(null);
   const [showExportMenu, setShowExportMenu] = useState(false);
-  const [customTechPrompt, setCustomTechPrompt] = useState('');
-  const [generatingTech, setGeneratingTech] = useState(false);
   const [simulateFlow, setSimulateFlow] = useState(false);
+  const [diagramViewMode, setDiagramViewMode] = useState('full');
+  const [presentationOpen, setPresentationOpen] = useState(false);
   const [assistantPanelOpen, setAssistantPanelOpen] = useState(false);
   const [reviewPanelOpen, setReviewPanelOpen] = useState(false);
   const [historyPanelOpen, setHistoryPanelOpen] = useState(false);
-  const autoSynthEdgeIdsRef = useRef(new Set());
-  const protocolRepairTimeoutRef = useRef(null);
+  const [pendingAutoSynthesis, setPendingAutoSynthesis] = useState(null);
   const {
     selectedNode,
     setSelectedNode,
@@ -173,6 +174,8 @@ export default function DiagramPage() {
     canRedo,
     handleUndo,
     handleRedo,
+    handleNodeDragStart,
+    handleNodeDragStop,
     skipHistoryRef
   } = useUndoRedo({ nodes, edges, setNodes, setEdges });
   const { exportJSON, exportPNG } = useDiagramExport({
@@ -194,6 +197,7 @@ export default function DiagramPage() {
     isStreaming,
     setIsStreaming,
     streamError,
+    generationProgress,
     generationAutoFixes,
     handleGenerate
   } = useDiagramGeneration({
@@ -221,6 +225,9 @@ export default function DiagramPage() {
     if (examplePrompt) {
       setPrompt(examplePrompt);
       window.localStorage.removeItem(promptKey);
+      const autoSynthesizeKey = `archflow-example-autosynthesize:${diagramId}`;
+      const shouldAutoSynthesize = window.localStorage.getItem(autoSynthesizeKey) === 'true';
+      window.localStorage.removeItem(autoSynthesizeKey);
       let parsedMeta = null;
       try {
         parsedMeta = exampleMeta ? JSON.parse(exampleMeta) : null;
@@ -231,14 +238,44 @@ export default function DiagramPage() {
       const nextExample = parsedMeta || inferredExample;
 
       if (nextExample?.id) {
+        const nextTemplate = `example:${nextExample.id}`;
         setActiveExample(nextExample);
-        setTemplate(`example:${nextExample.id}`);
+        setTemplate(nextTemplate);
+        if (shouldAutoSynthesize) {
+          setPendingAutoSynthesis({
+            prompt: examplePrompt,
+            template: nextTemplate
+          });
+        }
       }
 
-      setToast({ message: 'SHOWCASE_PROMPT_READY: Review then synthesize', error: false });
+      setToast({
+        message: shouldAutoSynthesize ? 'SHOWCASE_SYNTHESIS_STARTING' : 'SHOWCASE_PROMPT_READY: Review then synthesize',
+        error: false
+      });
       setTimeout(() => setToast(null), 3200);
     }
   }, [diagramId, setPrompt, setTemplate, setToast]);
+
+  useEffect(() => {
+    if (!pendingAutoSynthesis || loading || isStreaming) {
+      return undefined;
+    }
+
+    if (
+      prompt !== pendingAutoSynthesis.prompt ||
+      template !== pendingAutoSynthesis.template
+    ) {
+      return undefined;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setPendingAutoSynthesis(null);
+      handleGenerate();
+    }, 250);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [handleGenerate, isStreaming, loading, pendingAutoSynthesis, prompt, template]);
   const {
     assistantPrompt,
     setAssistantPrompt,
@@ -270,233 +307,43 @@ export default function DiagramPage() {
     setHistoryPanelOpen,
     setToast
   });
+  const {
+    showInviteModal,
+    setShowInviteModal,
+    inviteCode,
+    isCopying,
+    copyInvite,
+    collaborators,
+    handleRemoveCollaborator
+  } = useDiagramCollaboration({
+    diagramId,
+    setToast
+  });
+  const {
+    customTechPrompt,
+    setCustomTechPrompt,
+    generatingTech,
+    handleGenerateTech,
+    deleteFromInventory,
+    handleDragStart,
+    handleDrop,
+    handleDragOver
+  } = useTechInventoryActions({
+    loadInventory,
+    setNodes,
+    setToast
+  });
 
-  const handleGenerateTech = async () => {
-    if (!customTechPrompt.trim()) return;
-
-    setGeneratingTech(true);
-    try {
-      const tech = await api.generateTech({ description: customTechPrompt });
-      await api.addToInventory(tech);
-      await loadInventory();
-      setCustomTechPrompt('');
-      setToast({ message: 'TECH_SYNTHESIS: SUCCESS', error: false });
-      setTimeout(() => setToast(null), 2000);
-    } catch (err) {
-      console.error('Tech generation failed:', err);
-      setToast({ message: 'TECH_SYNTHESIS: FAILED', error: true });
-      setTimeout(() => setToast(null), 3000);
-    } finally {
-      setGeneratingTech(false);
-    }
-  };
-
-  const deleteFromInventory = async (techId) => {
-    try {
-      await api.deleteFromInventory(techId);
-      await loadInventory();
-      setToast({ message: 'TECH_REMOVED', error: false });
-      setTimeout(() => setToast(null), 2000);
-    } catch (err) {
-      console.error('Failed to delete tech:', err);
-      setToast({ message: 'TECH_REMOVAL_FAILED', error: true });
-      setTimeout(() => setToast(null), 3000);
-    }
-  };
-
-  const onConnect = useCallback(async (params) => {
-    const edgeId = `e_${Date.now()}`;
-    const sourceNode = nodes.find(n => n.id === params.source);
-    const targetNode = nodes.find(n => n.id === params.target);
-
-    setEdges(ed => addEdge({
-      ...params,
-      id: edgeId,
-      label: 'INFERRING...',
-      animated: simulateFlow
-    }, ed));
-
-    try {
-      const result = await api.inferConnection({
-        source: { name: sourceNode.data.label, category: sourceNode.data.category },
-        target: { name: targetNode.data.label, category: targetNode.data.category }
-      });
-
-      setEdges(eds => eds.map(e => e.id === edgeId ? { ...e, label: result.label } : e));
-    } catch (err) {
-      console.error('Failed to infer connection:', err);
-      setEdges(eds => eds.map(e => e.id === edgeId ? { ...e, label: 'REST' } : e));
-    }
-  }, [setEdges, nodes, simulateFlow]);
-
-  const synthesizeProtocols = useCallback(async ({ showToast = true } = {}) => {
-    const edgesToFix = edges.filter(edge => {
-      const normalizedLabel = (edge.label || '').trim().toUpperCase();
-
-      if (!GENERIC_PROTOCOL_LABELS.has(normalizedLabel)) {
-        return false;
-      }
-
-      if (normalizedLabel === 'INFERRING...') {
-        return false;
-      }
-
-      return !autoSynthEdgeIdsRef.current.has(edge.id);
-    }).slice(0, 6);
-
-    if (edgesToFix.length === 0) {
-      if (showToast) {
-        setToast({ message: 'PROTOCOLS_VALIDATED: 100%', error: false });
-        setTimeout(() => setToast(null), 2000);
-      }
-      return;
-    }
-
-    edgesToFix.forEach(edge => {
-      autoSynthEdgeIdsRef.current.add(edge.id);
-    });
-
-    if (showToast) {
-      setToast({ message: `SYNTHESIZING_${edgesToFix.length}_PROTOCOLS...`, warning: true });
-    }
-
-    for (const edge of edgesToFix) {
-      const sourceNode = nodes.find(n => n.id === edge.source);
-      const targetNode = nodes.find(n => n.id === edge.target);
-
-      if (sourceNode && targetNode) {
-        try {
-          const result = await api.inferConnection({
-            source: { name: sourceNode.data.label, category: sourceNode.data.category },
-            target: { name: targetNode.data.label, category: targetNode.data.category }
-          });
-
-          setEdges(current => current.map(e => e.id === edge.id ? { ...e, label: result.label } : e));
-        } catch (err) {
-          console.error('Failed to synthesize protocol for edge:', edge.id, err);
-          setEdges(current => current.map(e => e.id === edge.id ? { ...e, label: 'REST' } : e));
-        } finally {
-          autoSynthEdgeIdsRef.current.delete(edge.id);
-        }
-      } else {
-        autoSynthEdgeIdsRef.current.delete(edge.id);
-      }
-    }
-    if (showToast) {
-      setToast({ message: 'PROTOCOL_SYNTHESIS: COMPLETE', error: false });
-      setTimeout(() => setToast(null), 2000);
-    }
-  }, [setEdges, nodes]);
-
-  useEffect(() => {
-    const hasRepairableEdge = edges.some(edge => {
-      const normalizedLabel = (edge.label || '').trim().toUpperCase();
-      return (normalizedLabel === 'CONNECTION' || normalizedLabel === '') &&
-        !autoSynthEdgeIdsRef.current.has(edge.id);
-    });
-
-    if (!hasRepairableEdge) {
-      return;
-    }
-
-    if (protocolRepairTimeoutRef.current) {
-      clearTimeout(protocolRepairTimeoutRef.current);
-    }
-
-    protocolRepairTimeoutRef.current = setTimeout(() => {
-      synthesizeProtocols({ showToast: false });
-    }, nodes.length >= 24 ? 1400 : 700);
-
-    return () => {
-      if (protocolRepairTimeoutRef.current) {
-        clearTimeout(protocolRepairTimeoutRef.current);
-      }
-    };
-  }, [edges, nodes.length, synthesizeProtocols]);
-
-  const fetchInviteCode = async () => {
-    try {
-      const data = await api.getInviteCode(params.id);
-      setInviteCode(data.inviteCode);
-
-      const colabs = await api.getCollaborators(params.id);
-      setCollaborators(colabs);
-    } catch (err) {
-      console.error('Failed to load collaboration data:', err);
-    }
-  };
-
-  const handleRemoveCollaborator = async (userId) => {
-    try {
-      await api.removeCollaborator(params.id, userId);
-      setCollaborators(prev => prev.filter(c => c.id !== userId));
-      setToast({ message: 'COLLABORATOR_REMOVED', error: false });
-    } catch (err) {
-      setToast({ message: 'REMOVE_FAILED', error: true });
-    }
-  };
-
-  useEffect(() => {
-    if (showInviteModal && !inviteCode) {
-      fetchInviteCode();
-    }
-  }, [showInviteModal]);
-
-  const copyInvite = () => {
-    try {
-      navigator.clipboard.writeText(inviteCode);
-      setIsCopying(true);
-      setTimeout(() => setIsCopying(false), 2000);
-    } catch {
-      setToast({ message: 'Failed to copy — browser denied clipboard access', error: true });
-      setTimeout(() => setToast(null), 3000);
-    }
-  };
-
-  const handleDragStart = (e, tech) => {
-    e.dataTransfer.setData('tech', JSON.stringify(tech));
-    e.dataTransfer.effectAllowed = 'move';
-  };
-
-  const handleDrop = (e) => {
-    e.preventDefault();
-    const techData = e.dataTransfer.getData('tech');
-    if (!techData) return;
-
-    let tech;
-    try {
-      tech = JSON.parse(techData);
-    } catch {
-      setToast({ message: 'Invalid tech data', error: true });
-      setTimeout(() => setToast(null), 3000);
-      return;
-    }
-    const reactFlowBounds = e.target.getBoundingClientRect();
-    const position = {
-      x: e.clientX - reactFlowBounds.left - 70,
-      y: e.clientY - reactFlowBounds.top - 30
-    };
-
-    const newNode = {
-      id: `node_${Date.now()}`,
-      type: 'customNode',
-      position,
-      data: {
-        label: tech.name,
-        role: tech.description || tech.role || tech.name,
-        category: tech.category,
-        icon: tech.icon,
-        products: tech.products || []
-      }
-    };
-
-    setNodes(nds => [...nds, newNode]);
-  };
-
-  const handleDragOver = (e) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-  };
+  const {
+    onConnect,
+    synthesizeProtocols
+  } = useProtocolSynthesis({
+    nodes,
+    edges,
+    setEdges,
+    simulateFlow,
+    setToast
+  });
 
   const layoutNodes = useCallback(() => {
     const layoutResult = buildAutoLayoutResult(nodes, edges);
@@ -527,63 +374,79 @@ export default function DiagramPage() {
   }, [simulateFlow, setEdges]);
 
   const handleOptimizeTo100 = useCallback(() => {
-    const findings = buildArchitectureReview({ nodes, edges, connectionRules, connectionMode });
-    const techNodes = nodes.filter(n => n.type === 'customNode');
-    const nodeById = new Map(techNodes.map(n => [n.id, n]));
-    const existingLabels = new Set(techNodes.map(n => normalizeTechLabel(n.data.label)));
-    const existingCategories = new Set(techNodes.map(n => n.data.category));
-    const hasBackend = existingCategories.has('backend');
-    const primaryBackend = techNodes.find(n => n.data?.category === 'backend');
-    const additions = [];
-
-    const optiMap = [
-      { title: 'NO_AUTH_LAYER', label: 'CLERK', category: 'auth', icon: 'shield', role: 'Authentication and user management', check: () => !existingCategories.has('auth') && hasBackend },
-      { title: 'NO_OBSERVABILITY_LAYER', label: 'GRAFANA', category: 'devops', icon: 'bar-chart', role: 'Monitoring and observability', check: () => !existingCategories.has('devops') && techNodes.length >= 5 && hasBackend },
-      { title: 'MISSING_CACHE_LAYER', label: 'REDIS', category: 'database', icon: 'database', role: 'Caching and session store', check: () => !existingLabels.has('REDIS') && (nodes.filter(n => n.data?.category === 'database').length >= 2) && hasBackend },
-      { title: 'MISSING_ASYNC_PROCESSING', label: 'KAFKA', category: 'queue', icon: 'message-square', role: 'Async message broker and event stream', check: () => !existingCategories.has('queue') && (nodes.filter(n => n.data?.category === 'backend').length >= 2) && hasBackend },
-      { title: 'NO_STORAGE_LAYER', label: 'S3', category: 'storage', icon: 'hard-drive', role: 'Object storage for assets', check: () => !existingCategories.has('storage') && techNodes.length >= 4 && hasBackend },
-      { title: 'MISSING_TRAFFIC_MANAGEMENT', label: 'NGINX', category: 'devops', icon: 'server', role: 'Reverse proxy and load balancer', check: () => !existingLabels.has('NGINX') && techNodes.length >= 6 && hasBackend },
-      { title: 'SINGLE_DATASTORE_PRESSURE', label: `${primaryBackend?.name || 'DB'}_REPLICA`, category: 'database', icon: 'database', role: 'Read replica for scaling', check: () => hasBackend && existingCategories.has('database') && nodes.filter(n => n.data?.category === 'database').length === 1 },
-    ];
-
-    findings.forEach(finding => {
-      const match = optiMap.find(o => o.title === finding.title && o.check());
-      if (!match) return;
-      if (additions.some(a => a.label === match.label)) return;
-      const id = `node_opt_${Date.now()}_${additions.length}`;
-      const rightmostX = Math.max(...techNodes.map(n => n.position?.x || 0), 120);
-      const anchorY = Math.round((techNodes.reduce((s, n) => s + (n.position?.y || 0), 0) / Math.max(techNodes.length, 1)));
-      additions.push({ id, match, x: rightmostX + 220 + additions.length * 60, y: anchorY + additions.length * 80 });
+    const optimized = buildOptimizeTo100Result({
+      nodes,
+      edges,
+      connectionRules,
+      connectionMode,
+      simulateFlow,
+      idPrefix: 'node_opt',
+      reasonPrefix: 'Auto-added'
     });
 
-    if (additions.length === 0) {
+    if (optimized.additions.length === 0) {
       setToast({ message: 'ARCHITECTURE_ALREADY_OPTIMAL: All scores 100/100', error: false });
       setTimeout(() => setToast(null), 2500);
       return;
     }
 
-    const newNodes = [...nodes];
-    const newEdges = [...edges];
-
-    additions.forEach(({ id, match, x, y }) => {
-      newNodes.push({
-        id, type: 'customNode',
-        position: { x, y },
-        data: { label: match.label, category: match.category, role: match.role, reason: `Auto-added: missing ${match.category} layer`, icon: match.icon, products: [] }
-      });
-      if (primaryBackend) {
-        const label = match.category === 'auth' ? 'OIDC' : match.category === 'queue' ? 'KAFKA' : match.category === 'storage' ? 'S3' : 'HTTPS';
-        newEdges.push({ id: `e_opt_${id}`, source: primaryBackend.id, target: id, label, animated: simulateFlow });
-      }
-    });
-
     skipHistoryRef.current = true;
-    setNodes(newNodes);
-    setEdges(newEdges);
+    setNodes(optimized.nodes);
+    setEdges(optimized.edges);
 
-    setToast({ message: `OPTIMIZED: Added ${additions.length} missing layer${additions.length > 1 ? 's' : ''} (${additions.map(a => a.match.label).join(', ')})`, error: false });
+    setToast({ message: `OPTIMIZED: Added ${optimized.additions.length} missing layer${optimized.additions.length > 1 ? 's' : ''} (${optimized.additions.map(addition => addition.label).join(', ')})`, error: false });
     setTimeout(() => setToast(null), 3500);
   }, [nodes, edges, connectionRules, connectionMode, simulateFlow]);
+
+  const launchDemoInNewProject = useCallback(async (example) => {
+    if (!example) {
+      return;
+    }
+
+    setToast({ message: `OPENING_${example.name.toUpperCase()}_DEMO_PROJECT`, error: false });
+
+    try {
+      const diagram = await api.createDiagram({
+        name: `${example.name} Architecture Demo`,
+        template: 'blank'
+      });
+
+      window.localStorage.setItem(
+        `archflow-example-prompt:${diagram.id}`,
+        example.prompt
+      );
+      window.localStorage.setItem(
+        `archflow-example-meta:${diagram.id}`,
+        JSON.stringify({
+          id: example.id,
+          name: example.name,
+          audience: example.audience
+        })
+      );
+      window.localStorage.setItem(`archflow-example-autosynthesize:${diagram.id}`, 'true');
+      router.push(`/diagram/${diagram.id}`);
+    } catch (error) {
+      console.error('Failed to launch demo project:', error);
+      setToast({ message: 'DEMO_PROJECT_LAUNCH_FAILED', error: true });
+      setTimeout(() => setToast(null), 3200);
+    }
+  }, [router, setToast]);
+
+  const handlePromptBarGenerate = useCallback(() => {
+    const selectedExampleId = template.startsWith('example:')
+      ? template.replace('example:', '')
+      : null;
+    const selectedExample = selectedExampleId
+      ? architectureExamples.find(example => example.id === selectedExampleId)
+      : null;
+
+    if (activeExample && selectedExample && selectedExample.id !== activeExample.id) {
+      launchDemoInNewProject(selectedExample);
+      return;
+    }
+
+    handleGenerate();
+  }, [activeExample, handleGenerate, launchDemoInNewProject, template]);
 
   if (!isLoaded || !isSignedIn) {
     return null;
@@ -596,6 +459,7 @@ export default function DiagramPage() {
     connectionRules,
     connectionMode
   });
+  const architectureScore = buildArchitectureScore(reviewFindings, nodes, edges);
   const selectedNodeTrustProfile = buildNodeTrustProfile(selectedNode, reviewFindings);
   const selectedConnectionProfile = buildConnectionTrustProfile(selectedEdge, nodes, reviewFindings);
   const replacementCandidates = getReplacementCandidates(
@@ -604,6 +468,12 @@ export default function DiagramPage() {
     selectedNode?.data.label
   );
   const nodeById = new Map(nodes.filter(node => node.type === 'customNode').map(node => [node.id, node]));
+  const techNodes = nodes.filter(node => node.type === 'customNode');
+  const viewProjection = buildDiagramViewProjection({
+    nodes,
+    edges,
+    mode: diagramViewMode
+  });
   const focusedNodeIds = new Set();
 
   if (selectedEdge) {
@@ -629,12 +499,17 @@ export default function DiagramPage() {
     }
 
     const highlighted = focusedNodeIds.has(node.id);
+    const viewHighlighted = viewProjection.highlightedNodeIds.has(node.id);
+    const viewDimmed = viewProjection.dimmedNodeIds.has(node.id);
+    const hasFocusedSelection = focusedNodeIds.size > 0;
+
     return {
       ...node,
+      hidden: viewProjection.hiddenNodeIds.has(node.id),
       data: {
         ...node.data,
-        highlighted,
-        dimmed: focusedNodeIds.size > 0 && !highlighted
+        highlighted: hasFocusedSelection ? highlighted : viewHighlighted,
+        dimmed: (hasFocusedSelection && !highlighted) || viewDimmed
       }
     };
   });
@@ -684,13 +559,13 @@ export default function DiagramPage() {
             nodes={nodes.filter(node => node.type === 'customNode')}
             edges={edges}
             connectionMode={connectionMode}
-            nodeCount={nodes.filter(node => node.type === 'customNode').length}
+            nodeCount={techNodes.length}
             edgeCount={edges.length}
             onFocusFinding={handleFocusFinding}
             onAcceptSuggestion={handleAcceptReviewSuggestion}
             onDeclineSuggestion={handleDeclineReviewSuggestion}
             onClose={() => setReviewPanelOpen(false)}
-            architectureScore={buildArchitectureScore(reviewFindings, nodes, edges)}
+            architectureScore={architectureScore}
             autoFixes={generationAutoFixes}
           />
         )
@@ -776,9 +651,12 @@ export default function DiagramPage() {
       seed.edge.source === selectedNode.id || seed.edge.target === selectedNode.id
     );
     const isContextUnrelated = protocolDisplayMode === 'context' && selectedNode && !isContextRelated;
+    const viewHighlighted = viewProjection.highlightedEdgeIds.has(seed.edge.id);
+    const viewDimmed = viewProjection.dimmedEdgeIds.has(seed.edge.id);
 
     return {
       ...seed.edge,
+      hidden: viewProjection.hiddenEdgeIds.has(seed.edge.id),
       type: 'protocolEdge',
       markerEnd: {
         type: MarkerType.ArrowClosed,
@@ -793,8 +671,8 @@ export default function DiagramPage() {
         routeText: seed.routeText,
         labelShiftX: labelLayout?.shiftX || 0,
         labelShiftY: labelLayout?.shiftY || 0,
-        highlighted: isContextRelated,
-        dimmed: isContextUnrelated
+        highlighted: isContextRelated || viewHighlighted,
+        dimmed: isContextUnrelated || viewDimmed
       }
     };
   });
@@ -882,6 +760,7 @@ export default function DiagramPage() {
           onRedo={handleRedo}
           onOptimize={handleOptimizeTo100}
           onOpenGuidedMode={() => setGuidedModeOpen(true)}
+          onPresent={() => setPresentationOpen(true)}
         />
 
         <MainArea>
@@ -910,12 +789,30 @@ export default function DiagramPage() {
           />
 
           <CanvasWrapper onDrop={handleDrop} onDragOver={handleDragOver}>
+            <ArchitectureTrustBar
+              score={architectureScore}
+              findings={reviewFindings}
+              nodes={techNodes}
+              edges={edges}
+              activeExample={activeExample}
+              autoFixes={generationAutoFixes}
+              onOpenReview={() => {
+                setReviewPanelOpen(true);
+                setAssistantPanelOpen(false);
+                setRightPanelOpen(false);
+                setHistoryPanelOpen(false);
+              }}
+              onPresent={() => setPresentationOpen(true)}
+            />
+            <DiagramViewControls value={diagramViewMode} onChange={setDiagramViewMode} />
             <ReactFlow
               nodes={displayNodes}
               edges={displayEdges}
               onNodesChange={onNodesChange}
               onEdgesChange={onEdgesChange}
               onConnect={onConnect}
+              onNodeDragStart={handleNodeDragStart}
+              onNodeDragStop={handleNodeDragStop}
               onNodeClick={handleNodeClick}
               onEdgeClick={handleEdgeClick}
               onPaneClick={handlePaneClick}
@@ -971,21 +868,32 @@ export default function DiagramPage() {
               />
             </ReactFlow>
 
+            {techNodes.length === 0 && !loading && (
+              <EmptyCanvasState
+                activeExample={activeExample}
+              />
+            )}
+
             <PromptBar
               prompt={prompt}
               onPromptChange={setPrompt}
               template={template}
               onTemplateChange={setTemplate}
               loading={loading}
-              onGenerate={handleGenerate}
+              onGenerate={handlePromptBarGenerate}
               activeExample={activeExample}
             />
 
             {guidedModeOpen && (
               <GuidedModePanel
+                activeExample={activeExample}
                 onClose={() => {
                   setGuidedModeOpen(false);
                   window.localStorage.setItem('archflow-guided-mode-dismissed', 'true');
+                }}
+                onGenerate={() => {
+                  setGuidedModeOpen(false);
+                  handlePromptBarGenerate();
                 }}
                 onOpenAssistant={() => {
                   setGuidedModeOpen(false);
@@ -1067,10 +975,22 @@ export default function DiagramPage() {
         <SynthesisTerminal 
           content={streamingContent} 
           error={streamError}
+          progress={generationProgress}
           onRetry={handleGenerate}
           onClose={() => setIsStreaming(false)}
         />
       )}
+
+      <ArchitecturePresentation
+        open={presentationOpen}
+        onClose={() => setPresentationOpen(false)}
+        diagramName={diagramName}
+        nodes={techNodes}
+        edges={edges}
+        findings={reviewFindings}
+        score={architectureScore}
+        activeExample={activeExample}
+      />
 
       <ConfirmModal
         open={showConfirmHistory}

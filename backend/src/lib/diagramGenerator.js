@@ -5,11 +5,13 @@ import {
 } from './diagramGenerator/promptBuilder.js';
 import { normalizeDiagramStructure } from './diagramGenerator/diagramNormalizer.js';
 import { hardenNormalizedDiagramForReview } from './diagramGenerator/diagramHardener.js';
+import { applyDomainBlueprint } from './diagramGenerator/domainBlueprints.js';
 import {
   generateEdgesFromDiagram,
   generateNodesFromDiagram
 } from './diagramGenerator/diagramLayout.js';
 import {
+  DIAGRAM_RESPONSE_SCHEMA,
   JSON_SCHEMA_HINT,
   assertReviewSafeGeneration,
   buildJsonRepairMessages,
@@ -23,6 +25,11 @@ export {
   generateNodesFromDiagram,
   hardenNormalizedDiagramForReview
 };
+
+function parseAttemptCount(value, fallback) {
+  const parsed = Number.parseInt(value, 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
 
 export async function generateDiagramFromPrompt({
   description,
@@ -42,15 +49,18 @@ export async function generateDiagramFromPrompt({
   let resolvedModel = model;
   let rawResponse = '';
   let currentMessages = messages;
-  const maxAttempts = 2;
+  const maxAttempts = parseAttemptCount(process.env.OPENROUTER_DIAGRAM_MAX_ATTEMPTS, 4);
 
   for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
     const response = await callModel(
       currentMessages,
       attempt === 1 ? model : DIAGRAM_MODEL,
-      attempt === 1 ? onChunk : undefined,
+      onChunk,
       signal,
-      true
+      true,
+      {
+        responseSchema: DIAGRAM_RESPONSE_SCHEMA
+      }
     );
     rawResponse = response.content;
     resolvedModel = response.model || model;
@@ -58,7 +68,8 @@ export async function generateDiagramFromPrompt({
     try {
       const parsed = robustParseJSON(rawResponse);
       const normalizedDiagram = normalizeDiagramStructure(parsed);
-      const hardened = hardenNormalizedDiagramForReview(normalizedDiagram);
+      const domainTuned = applyDomainBlueprint(normalizedDiagram, { description, template });
+      const hardened = hardenNormalizedDiagramForReview(domainTuned.diagram);
 
       assertReviewSafeGeneration(hardened);
       validateNormalizedDiagram(hardened.diagram);
@@ -73,7 +84,9 @@ export async function generateDiagramFromPrompt({
         nodes,
         edges,
         quality: hardened.quality,
-        autoFixes: hardened.changes.length > 0 ? hardened.changes : undefined
+        autoFixes: [...domainTuned.changes, ...hardened.changes].length > 0
+          ? [...domainTuned.changes, ...hardened.changes]
+          : undefined
       };
     } catch (error) {
       lastError = error;

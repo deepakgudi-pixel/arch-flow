@@ -76,6 +76,59 @@ export const TerminalBody = styled.div`
   }
 `;
 
+export const ProgressRail = styled.div`
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+  padding: 14px 20px;
+  border-bottom: 1px solid #222222;
+  background: #050505;
+
+  @media (max-width: 720px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+export const ProgressStatus = styled.div`
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 4px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 800;
+  color: #9ca3af;
+  text-transform: uppercase;
+
+  @media (max-width: 720px) {
+    flex-direction: column;
+    gap: 4px;
+  }
+`;
+
+export const ProgressStep = styled.div`
+  min-width: 0;
+  display: grid;
+  gap: 5px;
+`;
+
+export const ProgressLine = styled.div`
+  height: 4px;
+  background: ${props => props.$complete ? '#4ADE80' : props.$active ? '#ffffff' : '#333333'};
+`;
+
+export const ProgressLabel = styled.div`
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 900;
+  color: ${props => props.$complete || props.$active ? '#ffffff' : '#666666'};
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+`;
+
 export const SystemLines = styled.div`
   margin-bottom: 16px;
   color: #888;

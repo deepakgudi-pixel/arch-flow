@@ -4,6 +4,7 @@ import { clerkAuth, optionalAuth } from '../middleware/clerkAuth.js';
 import { ensureUserExists } from '../services/userSync.js';
 import { validate } from '../middleware/validate.js';
 import { logger } from '../lib/logger.js';
+import { getStarterTemplate } from '../lib/starterTemplates.js';
 import {
   buildInviteCode,
   deleteDiagramHandler,
@@ -71,97 +72,7 @@ router.post('/', clerkAuth, validate({
 
     await ensureUserExists(req.user);
 
-    let nodes = [];
-    let edges = [];
-
-    const templates = {
-      'saas': {
-        nodes: [
-          { id: 'n1', name: 'Next.js', category: 'frontend', role: 'Web frontend', icon: 'react' },
-          { id: 'n2', name: 'Clerk', category: 'auth', role: 'Authentication', icon: 'shield' },
-          { id: 'n3', name: 'Express', category: 'backend', role: 'API server', icon: 'server' },
-          { id: 'n4', name: 'PostgreSQL', category: 'database', role: 'Primary database', icon: 'database' },
-          { id: 'n5', name: 'Redis', category: 'database', role: 'Cache layer', icon: 'database' },
-          { id: 'n6', name: 'S3', category: 'storage', role: 'File storage', icon: 'storage' }
-        ],
-        edges: [
-          { id: 'e1', source: 'n1', target: 'n3', label: 'REST' },
-          { id: 'e2', source: 'n3', target: 'n4', label: 'SQL' },
-          { id: 'e3', source: 'n3', target: 'n5', label: 'Redis' },
-          { id: 'e4', source: 'n3', target: 'n6', label: 'API' }
-        ]
-      },
-      'ecommerce': {
-        nodes: [
-          { id: 'n1', name: 'Next.js', category: 'frontend', role: 'Web frontend', icon: 'react' },
-          { id: 'n2', name: 'Express', category: 'backend', role: 'API server', icon: 'server' },
-          { id: 'n3', name: 'PostgreSQL', category: 'database', role: 'Primary database', icon: 'database' },
-          { id: 'n4', name: 'Redis', category: 'database', role: 'Cache layer', icon: 'database' },
-          { id: 'n5', name: 'Stripe', category: 'external', role: 'Payments', icon: 'credit-card' },
-          { id: 'n6', name: 'S3', category: 'storage', role: 'Product images', icon: 'storage' }
-        ],
-        edges: [
-          { id: 'e1', source: 'n1', target: 'n2', label: 'REST' },
-          { id: 'e2', source: 'n2', target: 'n3', label: 'SQL' },
-          { id: 'e3', source: 'n2', target: 'n5', label: 'API' },
-          { id: 'e4', source: 'n2', target: 'n6', label: 'API' }
-        ]
-      },
-      'mobile': {
-        nodes: [
-          { id: 'n1', name: 'FastAPI', category: 'backend', role: 'API server', icon: 'server' },
-          { id: 'n2', name: 'PostgreSQL', category: 'database', role: 'Primary database', icon: 'database' },
-          { id: 'n3', name: 'Redis', category: 'database', role: 'Cache layer', icon: 'database' },
-          { id: 'n4', name: 'S3', category: 'storage', role: 'Media storage', icon: 'storage' },
-          { id: 'n5', name: 'Firebase Auth', category: 'auth', role: 'Authentication', icon: 'shield' }
-        ],
-        edges: [
-          { id: 'e1', source: 'n1', target: 'n2', label: 'SQL' },
-          { id: 'e2', source: 'n1', target: 'n3', label: 'Redis' },
-          { id: 'e3', source: 'n1', target: 'n4', label: 'API' }
-        ]
-      },
-      'realtime': {
-        nodes: [
-          { id: 'n1', name: 'Next.js', category: 'frontend', role: 'Web frontend', icon: 'react' },
-          { id: 'n2', name: 'Express', category: 'backend', role: 'API server', icon: 'server' },
-          { id: 'n3', name: 'PostgreSQL', category: 'database', role: 'Primary database', icon: 'database' },
-          { id: 'n4', name: 'Redis', category: 'database', role: 'Real-time pub/sub', icon: 'database' },
-          { id: 'n5', name: 'Socket.io', category: 'backend', role: 'WebSocket server', icon: 'server' }
-        ],
-        edges: [
-          { id: 'e1', source: 'n1', target: 'n2', label: 'REST' },
-          { id: 'e2', source: 'n1', target: 'n5', label: 'WebSocket' },
-          { id: 'e3', source: 'n2', target: 'n3', label: 'SQL' },
-          { id: 'e4', source: 'n5', target: 'n4', label: 'Pub/Sub' }
-        ]
-      },
-      'microservices': {
-        nodes: [
-          { id: 'n1', name: 'Next.js', category: 'frontend', role: 'Web frontend', icon: 'react' },
-          { id: 'n2', name: 'API Gateway', category: 'backend', role: 'Gateway', icon: 'server' },
-          { id: 'n3', name: 'Service A', category: 'backend', role: 'User service', icon: 'server' },
-          { id: 'n4', name: 'Service B', category: 'backend', role: 'Order service', icon: 'server' },
-          { id: 'n5', name: 'Service C', category: 'backend', role: 'Payment service', icon: 'server' },
-          { id: 'n6', name: 'PostgreSQL', category: 'database', role: 'Primary database', icon: 'database' },
-          { id: 'n7', name: 'Kafka', category: 'queue', role: 'Message queue', icon: 'message' }
-        ],
-        edges: [
-          { id: 'e1', source: 'n1', target: 'n2', label: 'REST' },
-          { id: 'e2', source: 'n2', target: 'n3', label: 'gRPC' },
-          { id: 'e3', source: 'n2', target: 'n4', label: 'gRPC' },
-          { id: 'e4', source: 'n2', target: 'n5', label: 'gRPC' },
-          { id: 'e5', source: 'n3', target: 'n6', label: 'SQL' },
-          { id: 'e6', source: 'n4', target: 'n7', label: 'Kafka' },
-          { id: 'e7', source: 'n5', target: 'n7', label: 'Kafka' }
-        ]
-      }
-    };
-
-    if (template && templates[template]) {
-      nodes = templates[template].nodes;
-      edges = templates[template].edges;
-    }
+    const { nodes, edges } = getStarterTemplate(template);
 
     await pool.query(
       'INSERT INTO diagrams (id, user_id, name, nodes, edges) VALUES ($1, $2, $3, $4, $5)',

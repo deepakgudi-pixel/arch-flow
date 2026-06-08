@@ -1,5 +1,86 @@
 # Archflow Optimization Log
 
+**log:** 2026-06-08 00:00:00 IST (+0530)
+
+## Overview
+Domain Blueprint + Dashboard UX Polish Pass. Focus areas: making generated diagrams more domain-specific, reducing dashboard clutter, improving review-panel usability, and keeping the documentation aligned with the current codebase maturity.
+
+---
+
+## 1. Domain-Specific Generation Blueprints
+**Why:** Some AI outputs were structurally valid but still too generic. A reliability tool should not only pass rules; it should feel like it understands the product domain.
+
+**What changed:**
+- added deterministic blueprint tuning for food delivery, stock trading, and travel marketplace prompts
+- food delivery outputs now bias toward customer ordering, courier driver, restaurant ops, dispatch matching, pricing/fraud/promos, maps, payments, notifications, and operations monitoring
+- stock trading outputs now bias toward trading apps, market data gateway, order API, order routing, portfolio ledger, risk/fraud engine, audit archive, bank funding, trade alerts, and secrets controls
+- travel marketplace outputs now bias toward guest/host apps, property search, availability calendar, booking API, trust/safety, guest messaging, listing image storage, maps, payments/payouts, and search indexing
+- prompt guidance now explicitly asks for domain responsibilities instead of generic roles like "Core Service" or "Web Client"
+
+**How this helps Archflow:**
+- makes diagrams feel product-aware, not just rule-safe
+- improves the first impression for complex prompts
+- keeps the AI flexible while giving the backend deterministic guardrails when model output is too generic
+
+---
+
+## 2. Review-Safe AI Resilience
+**Why:** AI responses can arrive malformed, wrapped, truncated, or too generic. The user should not have to understand provider failure modes.
+
+**What changed:**
+- parser recovery handles diagram JSON wrapped in arrays and recoverable truncated wrappers
+- generation repair attempts continue until a valid review-safe diagram is returned or the retry budget is exhausted
+- OpenRouter request shaping supports structured diagram responses and safer token fallback behavior
+- backend regression tests cover malformed JSON, wrapped JSON, repair attempts, OpenRouter credit/token behavior, and domain blueprint tuning
+
+**How this helps Archflow:**
+- reduces visible synthesis failures
+- keeps AI generation closer to "always works" behavior
+- makes the reliability story testable rather than aspirational
+
+---
+
+## 3. Dashboard Demo Accordion
+**Why:** Showcase examples are valuable, but showing every demo row all the time made the dashboard feel crowded.
+
+**What changed:**
+- replaced the always-open demo list with a closed-by-default accordion
+- added a smooth open/close transition using grid-row animation, fade, and slight slide
+- kept all demo launch behavior intact
+- changed product copy from job-specific wording to neutral showcase language
+
+**How this helps Archflow:**
+- keeps the dashboard calmer by default
+- still gives users fast access to recognizable examples
+- makes the demo path feel intentional instead of noisy
+
+---
+
+## 4. Editor UI Cleanup
+**Why:** The editor had a few duplicated controls and panel overflow issues that made the interface feel busier than necessary.
+
+**What changed:**
+- removed duplicate empty-canvas buttons for Generate, Guided Mode, and Review Panel
+- kept generation in the synthesis bar and kept Guided/Review accessible through their normal flows
+- made the Review Panel shell vertically scrollable and horizontally clipped
+- kept the demo library closed by default and aligned trust/view controls visually
+
+**How this helps Archflow:**
+- reduces visual clutter
+- keeps long review narratives and auto-fix lists usable
+- makes the editor feel more controlled and less crowded
+
+---
+
+## 5. Current Verification
+Passed locally:
+
+- `npm --prefix backend test` — 43 passing backend tests
+- `npm --prefix frontend run lint`
+- `npm --prefix frontend run typecheck`
+
+---
+
 **log:** 2026-05-23 13:35:00 IST (+0530)
 
 ## Overview
@@ -77,7 +158,7 @@ Codebase Maturity Hardening Pass. Focus areas: making the project stronger as an
 - added tests proving collaborators/non-owners cannot delete owner-only diagrams
 - added rollback tests for failed related deletes
 - expanded update/version tests around transaction boundaries and collaborator-aware access SQL
-- backend test suite now covers **30 passing tests**
+- backend test suite now covers **43 passing tests** in the current codebase
 
 **How this helps Archflow:**
 - gives stronger proof that protected diagram behavior is intentional
@@ -88,7 +169,7 @@ Codebase Maturity Hardening Pass. Focus areas: making the project stronger as an
 ## 6. Current Verification
 Passed locally:
 
-- `npm --prefix backend test` — 30 passing backend tests
+- `npm --prefix backend test` — 43 passing backend tests in the current codebase
 - `npm --prefix frontend run lint`
 - `npm --prefix frontend run typecheck`
 - `npm --prefix frontend run build`
@@ -101,7 +182,7 @@ Passed locally:
 **log:** 2026-05-23 01:10:00 IST (+0530)
 
 ## Overview
-Showcase-Ready Productization Pass. Focus areas: making the product easier to understand for recruiters, adding beginner guidance, improving review-to-canvas inspection, and strengthening CI/testing around persistence and route behavior.
+Showcase-Ready Productization Pass. Focus areas: making the product easier to understand for reviewers, adding beginner guidance, improving review-to-canvas inspection, and strengthening CI/testing around persistence and route behavior.
 
 ---
 
@@ -123,7 +204,7 @@ Showcase-Ready Productization Pass. Focus areas: making the product easier to un
 
 ---
 
-## 2. Recruiter-Ready Showcase Examples
+## 2. Showcase-Ready Examples
 **Why:** A reviewer should understand Archflow in seconds without inventing a prompt.
 
 **What changed:**
@@ -133,7 +214,7 @@ Showcase-Ready Productization Pass. Focus areas: making the product easier to un
 - added the same examples to the prompt bar template selector
 
 **How this helps Archflow:**
-- creates a fast demo path for interviews and portfolio reviews
+- creates a fast demo path for interviews, portfolio reviews, and product walkthroughs
 - makes the product value concrete through recognizable systems
 
 ---
@@ -224,7 +305,7 @@ Showcase-Ready Productization Pass. Focus areas: making the product easier to un
 ## 8. Current Verification
 Passed locally:
 
-- `npm --prefix backend test` — 30 passing backend tests after the maturity hardening pass
+- `npm --prefix backend test` — 43 passing backend tests in the current codebase
 - `npm --prefix frontend run lint`
 - `npm --prefix frontend run typecheck`
 - `npm --prefix frontend run build`

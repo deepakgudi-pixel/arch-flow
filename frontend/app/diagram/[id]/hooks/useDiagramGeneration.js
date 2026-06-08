@@ -1,10 +1,33 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import api from '@/lib/api';
-import {
-  buildArchitectureReview,
-  buildArchitectureScore,
-  normalizeTechLabel
-} from '@/lib/diagramIntelligence';
+import { buildOptimizeTo100Result } from '@/lib/diagramOptimizer';
+
+const GENERATION_STAGES = [
+  { id: 'understand', label: 'Understand' },
+  { id: 'components', label: 'Components' },
+  { id: 'rules', label: 'Rule Check' },
+  { id: 'harden', label: 'Harden' },
+  { id: 'final', label: 'Final Review' }
+];
+
+const GENERATION_STAGE_DETAILS = [
+  'Reading the prompt and selected demo context.',
+  'Receiving the AI draft and mapping components.',
+  'Checking connection rules while the draft streams in.',
+  'Preparing the review-safe hardening gate.',
+  'Finalizing, saving, and opening the reviewed diagram.'
+];
+
+function normalizeGenerationError(error) {
+  const message = String(error || 'Generation failed');
+  const isCreditError = /AI_CREDITS_LOW|more credits|fewer max_tokens|"code":402/i.test(message);
+
+  if (isCreditError) {
+    return 'AI_CREDITS_LOW: OpenRouter credits are too low for this generation. Add credits or retry with a shorter prompt.';
+  }
+
+  return message.length > 260 ? message.slice(0, 257) + '...' : message;
+}
 
 export function useDiagramGeneration({
   diagramId,
@@ -23,7 +46,33 @@ export function useDiagramGeneration({
   const [streamingContent, setStreamingContent] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
   const [streamError, setStreamError] = useState(null);
+  const [generationStepIndex, setGenerationStepIndex] = useState(0);
+  const [generationElapsedSeconds, setGenerationElapsedSeconds] = useState(0);
   const [generationAutoFixes, setGenerationAutoFixes] = useState([]);
+  const generationStartedAtRef = useRef(null);
+
+  useEffect(() => {
+    if (!isStreaming || streamError) {
+      return undefined;
+    }
+
+    const tick = () => {
+      const startedAt = generationStartedAtRef.current || Date.now();
+      const elapsedSeconds = Math.floor((Date.now() - startedAt) / 1000);
+
+      setGenerationElapsedSeconds(elapsedSeconds);
+      setGenerationStepIndex(current => {
+        if (elapsedSeconds >= 12) return Math.max(current, 3);
+        if (elapsedSeconds >= 6) return Math.max(current, 2);
+        if (elapsedSeconds >= 2) return Math.max(current, 1);
+        return current;
+      });
+    };
+
+    tick();
+    const interval = window.setInterval(tick, 1000);
+    return () => window.clearInterval(interval);
+  }, [isStreaming, streamError]);
 
   const handleGenerate = useCallback(async () => {
     if (!prompt.trim()) {
@@ -36,8 +85,12 @@ export function useDiagramGeneration({
     setIsStreaming(true);
     setStreamingContent('');
     setStreamError(null);
+    setGenerationStepIndex(0);
+    setGenerationElapsedSeconds(0);
+    generationStartedAtRef.current = Date.now();
 
     try {
+      let streamedLength = 0;
       await api.streamDiagram(
         {
           description: prompt,
@@ -45,10 +98,15 @@ export function useDiagramGeneration({
           diagramId
         },
         (chunk) => {
+          streamedLength += chunk.length;
+          if (streamedLength > 120) setGenerationStepIndex(current => Math.max(current, 1));
+          if (streamedLength > 900) setGenerationStepIndex(current => Math.max(current, 2));
+          if (streamedLength > 2600) setGenerationStepIndex(current => Math.max(current, 3));
           setStreamingContent(prev => prev + chunk);
         },
         (result) => {
-          let newNodes = result.nodes.map(node => ({
+          setGenerationStepIndex(3);
+          const newNodes = result.nodes.map(node => ({
             id: node.id,
             type: 'customNode',
             position: node.position,
@@ -62,7 +120,7 @@ export function useDiagramGeneration({
             }
           }));
 
-          let newEdges = result.edges.map(edge => ({
+          const newEdges = result.edges.map(edge => ({
             id: edge.id,
             source: edge.source,
             target: edge.target,
@@ -70,71 +128,26 @@ export function useDiagramGeneration({
             animated: simulateFlow
           }));
 
-          const techNodes = newNodes.filter(n => n.type === 'customNode');
-          const existingLabels = new Set(techNodes.map(n => normalizeTechLabel(n.data.label)));
-          const existingCategories = new Set(techNodes.map(n => n.data.category));
-          const hasBackend = existingCategories.has('backend');
-          const primaryBackend = techNodes.find(n => n.data?.category === 'backend');
-          const additions = [];
+          const optimized = buildOptimizeTo100Result({
+            nodes: newNodes,
+            edges: newEdges,
+            connectionRules,
+            connectionMode,
+            simulateFlow,
+            idPrefix: 'node_genfix',
+            reasonPrefix: 'Auto-optimized'
+          });
 
-          const optiMap = [
-            { title: 'NO_AUTH_LAYER', label: 'CLERK', category: 'auth', icon: 'shield', role: 'Authentication and user management', check: () => !existingCategories.has('auth') && hasBackend },
-            { title: 'NO_OBSERVABILITY_LAYER', label: 'GRAFANA', category: 'devops', icon: 'bar-chart', role: 'Monitoring and observability', check: () => !existingCategories.has('devops') && techNodes.length >= 5 && hasBackend },
-            { title: 'MISSING_CACHE_LAYER', label: 'REDIS', category: 'database', icon: 'database', role: 'Caching and session store', check: () => !existingLabels.has('REDIS') && newNodes.filter(n => n.data?.category === 'database').length >= 2 && hasBackend },
-            { title: 'MISSING_ASYNC_PROCESSING', label: 'KAFKA', category: 'queue', icon: 'message-square', role: 'Async message broker', check: () => !existingCategories.has('queue') && newNodes.filter(n => n.data?.category === 'backend').length >= 2 && hasBackend },
-            { title: 'NO_STORAGE_LAYER', label: 'S3', category: 'storage', icon: 'hard-drive', role: 'Object storage for assets', check: () => !existingCategories.has('storage') && techNodes.length >= 4 && hasBackend },
-            { title: 'MISSING_TRAFFIC_MANAGEMENT', label: 'NGINX', category: 'devops', icon: 'server', role: 'Reverse proxy and load balancer', check: () => !existingLabels.has('NGINX') && techNodes.length >= 6 && hasBackend },
-            { title: 'SINGLE_DATASTORE_PRESSURE', label: `${primaryBackend?.name || 'DB'}_REPLICA`, category: 'database', icon: 'database', role: 'Read replica for scaling', check: () => hasBackend && existingCategories.has('database') && newNodes.filter(n => n.data?.category === 'database').length === 1 },
-          ];
-
-          const findings = buildArchitectureReview({ nodes: newNodes, edges: newEdges, connectionRules, connectionMode });
-          const score = buildArchitectureScore(findings, newNodes, newEdges);
-          let extraFixes = 0;
-
-          if (score.score < 100) {
-            findings.forEach(finding => {
-              const match = optiMap.find(o => o.title === finding.title && o.check());
-              if (!match) return;
-              if (additions.some(a => a.label === match.label)) return;
-              const id = `node_genfix_${Date.now()}_${additions.length}`;
-              const rightmostX = Math.max(...techNodes.map(n => n.position?.x || 0), 120);
-              const anchorY = Math.round((techNodes.reduce((sum, n) => sum + (n.position?.y || 0), 0) / Math.max(techNodes.length, 1)));
-              additions.push({ id, match, x: rightmostX + 220 + additions.length * 60, y: anchorY + additions.length * 80 });
-            });
-
-            additions.forEach(({ id, match, x, y }) => {
-              existingLabels.add(match.label);
-              existingCategories.add(match.category);
-              newNodes.push({
-                id,
-                type: 'customNode',
-                position: { x, y },
-                data: {
-                  label: match.label,
-                  category: match.category,
-                  role: match.role,
-                  reason: `Auto-optimized: missing ${match.category} layer`,
-                  icon: match.icon,
-                  products: []
-                }
-              });
-              if (primaryBackend) {
-                const label = match.category === 'auth' ? 'OIDC' : match.category === 'queue' ? 'KAFKA' : match.category === 'storage' ? 'S3' : 'HTTPS';
-                newEdges.push({ id: `e_genfix_${id}`, source: primaryBackend.id, target: id, label, animated: simulateFlow });
-              }
-              extraFixes++;
-            });
-          }
-
-          setNodes(newNodes);
-          setEdges(newEdges);
+          setNodes(optimized.nodes);
+          setEdges(optimized.edges);
           setPrompt('');
+          setGenerationStepIndex(4);
           setIsStreaming(false);
           loadVersions();
-          saveDiagram({ showToast: false, recordVersion: false, overrides: { nodes: newNodes, edges: newEdges } });
+          saveDiagram({ showToast: false, recordVersion: false, overrides: { nodes: optimized.nodes, edges: optimized.edges } });
           const autoFixesList = [...(result.autoFixes || [])];
-          if (extraFixes > 0) {
-            autoFixesList.push(...additions.map(a => `Auto-optimized: Added ${a.match.label} (${a.match.category}) for 100/100`));
+          if (optimized.additions.length > 0) {
+            autoFixesList.push(...optimized.additions.map(addition => `Auto-optimized: Added ${addition.label} (${addition.category}) for 100/100`));
           }
           setGenerationAutoFixes(autoFixesList);
           const fixCount = autoFixesList.length;
@@ -145,15 +158,21 @@ export function useDiagramGeneration({
           setTimeout(() => setToast(null), 3000);
         },
         (error) => {
-          setStreamError(error);
-          setToast({ message: 'Generation failed - ' + error, error: true });
+          const safeError = normalizeGenerationError(error);
+          setGenerationStepIndex(0);
+          setStreamError(safeError);
+          setLoading(false);
+          setToast({ message: 'Generation failed - ' + safeError, error: true });
           setTimeout(() => setToast(null), 3000);
         }
       );
     } catch (err) {
+      const safeError = normalizeGenerationError(err.message);
       console.error('Generation failed:', err);
-      setToast({ message: 'Generation failed - ' + err.message, error: true });
+      setStreamError(safeError);
+      setToast({ message: 'Generation failed - ' + safeError, error: true });
       setIsStreaming(false);
+      setGenerationStepIndex(0);
       setTimeout(() => setToast(null), 3000);
     } finally {
       setLoading(false);
@@ -182,6 +201,12 @@ export function useDiagramGeneration({
     isStreaming,
     setIsStreaming,
     streamError,
+    generationProgress: {
+      stages: GENERATION_STAGES,
+      activeIndex: generationStepIndex,
+      detail: GENERATION_STAGE_DETAILS[generationStepIndex],
+      elapsedSeconds: generationElapsedSeconds
+    },
     generationAutoFixes,
     handleGenerate
   };

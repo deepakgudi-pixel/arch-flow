@@ -52,6 +52,7 @@ test('runMigrations applies pending SQL files transactionally', async () => {
   assert.ok(statements.some(statement => statement.startsWith('CREATE TABLE IF NOT EXISTS schema_migrations')));
   assert.equal(statements.filter(statement => statement === 'BEGIN').length, 3);
   assert.equal(statements.filter(statement => statement === 'COMMIT').length, 3);
+  assert.equal(statements.filter(statement => statement === 'LOCK TABLE schema_migrations IN ACCESS EXCLUSIVE MODE').length, 3);
   assert.equal(statements.filter(statement => statement.startsWith('INSERT INTO schema_migrations')).length, 3);
 });
 

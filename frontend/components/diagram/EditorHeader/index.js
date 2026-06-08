@@ -47,7 +47,7 @@ export default function EditorHeader({
   simulateFlow, onToggleSimulateFlow,
   onOpenInvite,
   saveStatus = 'saved',
-  canUndo, canRedo, onUndo, onRedo, onOptimize, onOpenGuidedMode,
+  canUndo, canRedo, onUndo, onRedo, onOptimize, onOpenGuidedMode, onPresent,
 }) {
   const utilityItems = [
     {
@@ -60,6 +60,11 @@ export default function EditorHeader({
       label: 'Optimize to 100',
       icon: <Sparkles />,
       onClick: onOptimize
+    },
+    {
+      label: 'Present architecture',
+      icon: <CheckCircle2 />,
+      onClick: onPresent
     },
     { divider: true },
     {

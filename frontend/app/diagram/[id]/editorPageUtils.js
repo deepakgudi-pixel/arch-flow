@@ -1,3 +1,5 @@
+import { canonicalConnectionRuleObjects } from '../../../../shared/connectionRules.js';
+
 export const DEFAULT_CATEGORY_ORDER = ['mobile', 'frontend', 'auth', 'backend', 'database', 'queue', 'storage', 'external', 'devops'];
 
 export const AUTO_LAYOUT = {
@@ -15,30 +17,6 @@ export const AUTO_LAYOUT = {
 
 export const GENERIC_PROTOCOL_LABELS = new Set(['CONNECTION', 'INFERRING...', '']);
 export const REVIEW_NEW_NODE_TOKEN = '__NEW__';
-
-const FALLBACK_SUGGESTION_CONNECTION_RULES = [
-  { source_category: 'frontend', target_category: 'backend', is_valid: true },
-  { source_category: 'frontend', target_category: 'database', is_valid: false },
-  { source_category: 'frontend', target_category: 'queue', is_valid: false },
-  { source_category: 'frontend', target_category: 'auth', is_valid: true },
-  { source_category: 'frontend', target_category: 'storage', is_valid: false },
-  { source_category: 'frontend', target_category: 'external', is_valid: true },
-  { source_category: 'mobile', target_category: 'backend', is_valid: true },
-  { source_category: 'mobile', target_category: 'database', is_valid: false },
-  { source_category: 'mobile', target_category: 'queue', is_valid: false },
-  { source_category: 'mobile', target_category: 'auth', is_valid: true },
-  { source_category: 'mobile', target_category: 'storage', is_valid: false },
-  { source_category: 'backend', target_category: 'database', is_valid: true },
-  { source_category: 'backend', target_category: 'queue', is_valid: true },
-  { source_category: 'backend', target_category: 'auth', is_valid: true },
-  { source_category: 'backend', target_category: 'storage', is_valid: true },
-  { source_category: 'backend', target_category: 'external', is_valid: true },
-  { source_category: 'backend', target_category: 'backend', is_valid: true },
-  { source_category: 'database', target_category: 'backend', is_valid: false },
-  { source_category: 'queue', target_category: 'backend', is_valid: false },
-  { source_category: 'auth', target_category: 'frontend', is_valid: false },
-  { source_category: 'storage', target_category: 'frontend', is_valid: false }
-];
 
 export function getBalancedColumnCount(nodeCount) {
   if (nodeCount >= 24) return 5;
@@ -83,7 +61,7 @@ function buildConnectionSignature(connection) {
 function buildSuggestionRuleMap(connectionRules) {
   const effectiveRules = connectionRules && connectionRules.length > 0
     ? connectionRules
-    : FALLBACK_SUGGESTION_CONNECTION_RULES;
+    : canonicalConnectionRuleObjects;
 
   return new Map(
     effectiveRules.map(rule => [
