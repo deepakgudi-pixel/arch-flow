@@ -5,6 +5,7 @@ import { useUser, SignOutButton } from '@clerk/nextjs';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { CheckCircle2, Circle } from 'lucide-react';
 import api from '@/lib/api';
 import AppShell from '@/components/layout/AppShell';
 import PageHeader from '@/components/layout/PageHeader';
@@ -85,30 +86,68 @@ const OptionCard = styled.button`
   width: 100%;
   text-align: left;
   border-radius: var(--radius-md);
-  border: 1px solid ${props => props.$active ? 'rgba(37, 99, 235, 0.28)' : 'var(--color-line)'};
-  background: ${props => props.$active ? 'rgba(219, 234, 254, 0.42)' : 'rgba(246, 249, 252, 0.94)'};
-  padding: 18px;
+  border: ${props => props.$active ? '2px solid #000000' : '1px solid rgba(0, 0, 0, 0.12)'};
+  background: ${props => props.$active ? '#ffffff' : 'rgba(246, 249, 252, 0.94)'};
+  padding: ${props => props.$active ? '17px' : '18px'};
   display: grid;
-  gap: 8px;
+  grid-template-columns: 28px minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: start;
   cursor: pointer;
-  transition: border-color 160ms ease, background 160ms ease, transform 160ms ease;
+  transition: border-color 160ms ease, background 160ms ease;
 
   &:hover {
-    border-color: rgba(37, 99, 235, 0.22);
-    transform: translateY(-1px);
+    border-color: #000000;
+    background: ${props => props.$active ? '#ffffff' : '#f7f7f7'};
   }
+
+  &:focus-visible {
+    outline: 3px solid rgba(0, 0, 0, 0.18);
+    outline-offset: 3px;
+  }
+`;
+
+const OptionIndicator = styled.span`
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: ${props => props.$active ? '#000000' : '#9ca3af'};
+`;
+
+const OptionBody = styled.span`
+  display: grid;
+  gap: 8px;
 `;
 
 const OptionTitle = styled.div`
   font-weight: 800;
   color: var(--color-ink);
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
 `;
 
 const OptionText = styled.p`
   color: var(--color-ink-muted);
   line-height: 1.6;
   font-size: 0.92rem;
+`;
+
+const OptionStatus = styled.span`
+  align-self: start;
+  border: 1px solid ${props => props.$active ? '#000000' : 'rgba(0, 0, 0, 0.12)'};
+  border-radius: 999px;
+  padding: 5px 9px;
+  color: ${props => props.$active ? '#ffffff' : '#666666'};
+  background: ${props => props.$active ? '#000000' : '#ffffff'};
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 800;
+
+  @media (max-width: 640px) {
+    grid-column: 2 / -1;
+    justify-self: start;
+  }
 `;
 
 const InfoStack = styled.div`
@@ -126,7 +165,7 @@ const InfoRow = styled.div`
 const InfoLabel = styled.span`
   font-size: 0.76rem;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0;
   font-weight: 800;
   color: var(--color-ink-soft);
 `;
@@ -135,6 +174,24 @@ const InfoValue = styled.span`
   color: var(--color-ink);
   font-weight: 700;
 `;
+
+const CONNECTION_MODE_OPTIONS = [
+  {
+    value: 'strict',
+    title: 'Strict',
+    description: 'Only allow connections that follow the intended architectural rules.'
+  },
+  {
+    value: 'guided',
+    title: 'Guided',
+    description: 'Flag unusual patterns but keep the workspace flexible enough for iteration.'
+  },
+  {
+    value: 'sandbox',
+    title: 'Sandbox',
+    description: 'Remove warnings entirely when you want total freedom to sketch without constraints.'
+  }
+];
 
 export default function SettingsPage() {
   const { isSignedIn, user, isLoaded } = useUser();
@@ -241,30 +298,29 @@ export default function SettingsPage() {
                 Use strict rules when you want strong boundaries, or relax the system when you are exploring an idea.
               </CardText>
               <OptionGrid>
-                <OptionCard
-                  type="button"
-                  $active={settings.connection_mode === 'strict'}
-                  onClick={() => updateSetting('connection_mode', 'strict')}
-                >
-                  <OptionTitle>Strict</OptionTitle>
-                  <OptionText>Only allow connections that follow the intended architectural rules.</OptionText>
-                </OptionCard>
-                <OptionCard
-                  type="button"
-                  $active={settings.connection_mode === 'guided'}
-                  onClick={() => updateSetting('connection_mode', 'guided')}
-                >
-                  <OptionTitle>Guided</OptionTitle>
-                  <OptionText>Flag unusual patterns but keep the workspace flexible enough for iteration.</OptionText>
-                </OptionCard>
-                <OptionCard
-                  type="button"
-                  $active={settings.connection_mode === 'sandbox'}
-                  onClick={() => updateSetting('connection_mode', 'sandbox')}
-                >
-                  <OptionTitle>Sandbox</OptionTitle>
-                  <OptionText>Remove warnings entirely when you want total freedom to sketch without constraints.</OptionText>
-                </OptionCard>
+                {CONNECTION_MODE_OPTIONS.map(option => {
+                  const active = settings.connection_mode === option.value;
+                  const IndicatorIcon = active ? CheckCircle2 : Circle;
+
+                  return (
+                    <OptionCard
+                      key={option.value}
+                      type="button"
+                      $active={active}
+                      aria-pressed={active}
+                      onClick={() => updateSetting('connection_mode', option.value)}
+                    >
+                      <OptionIndicator $active={active}>
+                        <IndicatorIcon size={18} strokeWidth={active ? 2.8 : 2.2} />
+                      </OptionIndicator>
+                      <OptionBody>
+                        <OptionTitle>{option.title}</OptionTitle>
+                        <OptionText>{option.description}</OptionText>
+                      </OptionBody>
+                      <OptionStatus $active={active}>{active ? 'Selected' : 'Choose'}</OptionStatus>
+                    </OptionCard>
+                  );
+                })}
               </OptionGrid>
             </Card>
 
