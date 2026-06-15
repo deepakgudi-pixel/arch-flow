@@ -380,6 +380,11 @@ export const BottomBar = styled.div`
   border: 1px solid rgba(0, 0, 0, 0.08);
   border-radius: 20px;
   box-shadow: none;
+
+  @media (max-width: 760px) {
+    flex-wrap: wrap;
+    border-radius: 16px;
+  }
 `;
 
 export const PromptInput = styled.input`
@@ -398,11 +403,12 @@ export const PromptInput = styled.input`
 
   &::placeholder {
     color: #999;
-    letter-spacing: 0.01em;
+    letter-spacing: 0;
   }
 `;
 
 export const TemplateSelect = styled.select`
+  max-width: 220px;
   padding: 10px 32px 10px 14px;
   border: 1px solid rgba(0, 0, 0, 0.05);
   border-radius: 12px;
@@ -426,6 +432,11 @@ export const TemplateSelect = styled.select`
   &:hover {
     background-color: rgba(0, 0, 0, 0.06);
     color: #000;
+  }
+
+  @media (max-width: 760px) {
+    max-width: none;
+    width: 100%;
   }
 `;
 

@@ -13,11 +13,12 @@ test('editor smoke probe supports critical panel flows', async ({ page }) => {
 
   await page.getByRole('button', { name: /Review/ }).click();
   await expect(page.getByRole('heading', { name: 'Architecture Review' })).toBeVisible();
-  await expect(page.getByText('System Walkthrough')).toBeVisible();
-  await expect(page.getByText('Architecture Readout')).toBeVisible();
   await expect(page.getByText(/Click to highlight/i)).toBeVisible();
   await expect(page.getByText('Why It Matters')).toBeVisible();
   await expect(page.getByText('How To Fix')).toBeVisible();
+  await page.getByRole('button', { name: /Why this architecture works/i }).click();
+  await expect(page.getByText('System Walkthrough')).toBeVisible();
+  await expect(page.getByText('Architecture Readout')).toBeVisible();
   await page.getByRole('button', { name: /Show score breakdown/i }).click();
   await expect(page.getByText('Final Score')).toBeVisible();
   await page.getByRole('button', { name: 'Accept and connect' }).first().click();

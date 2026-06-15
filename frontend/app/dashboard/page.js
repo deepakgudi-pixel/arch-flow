@@ -259,38 +259,38 @@ function DashboardContent() {
       <Stack>
         <Overview $elevated>
           <OverviewCopy>
-            <Badge $tone="brand">STATUS: ACTIVE_WORKSPACE</Badge>
-            <OverviewTitle>The Blueprint For Your Next Build.</OverviewTitle>
+            <Badge $tone="brand">Active workspace</Badge>
+            <OverviewTitle>Design systems without the noise.</OverviewTitle>
             <OverviewText>
-              Move from vague ideas to production-ready architecture decisions in a high-fidelity workspace designed for system thinking. Start from a blank canvas or pick a template to begin.
+              Turn an idea into a reliable architecture diagram, then review the system layer by layer when you need the deeper reasoning.
             </OverviewText>
             <ActionRow>
-              <Button $variant="primary" onClick={() => openCreateModal('blank')}>Create Scratch</Button>
-              <Button $variant="secondary" onClick={() => openCreateModal('saas')}>Browse Templates</Button>
+              <Button $variant="primary" onClick={() => openCreateModal('blank')}>Blank diagram</Button>
+              <Button $variant="secondary" onClick={() => openCreateModal('saas')}>Templates</Button>
             </ActionRow>
           </OverviewCopy>
           <StatsGrid>
             <StatCard>
-              <CardEyebrow>ACTIVE_UNITS</CardEyebrow>
+              <CardEyebrow>Diagrams</CardEyebrow>
               <StatValue>{diagrams.length}</StatValue>
             </StatCard>
             <StatCard>
-              <CardEyebrow>TOTAL_NODES</CardEyebrow>
+              <CardEyebrow>Components</CardEyebrow>
               <StatValue>{stats.totalNodes}</StatValue>
             </StatCard>
             <StatCard>
-              <CardEyebrow>CONNECTIONS</CardEyebrow>
+              <CardEyebrow>Connections</CardEyebrow>
               <StatValue>{stats.totalEdges}</StatValue>
             </StatCard>
             <StatCard style={{ background: '#000', color: '#fff' }}>
-              <CardEyebrow style={{ color: '#999' }}>TOP_TECH_STACK</CardEyebrow>
+              <CardEyebrow style={{ color: '#999' }}>Top tech</CardEyebrow>
               <div style={{ marginTop: '12px' }}>
                 {stats.topTech.length > 0 ? stats.topTech.map(([name, count]) => (
                   <div key={name} style={{ fontSize: '10px', fontFamily: 'var(--font-mono)', marginBottom: '4px', display: 'flex', justifyContent: 'space-between' }}>
                     <span>{name.toUpperCase()}</span>
                     <span style={{ color: '#00ff00' }}>x{count}</span>
                   </div>
-                )) : <div style={{ fontSize: '10px', color: '#666' }}>NO_DATA_SYNCED</div>}
+                )) : <div style={{ fontSize: '10px', color: '#666' }}>No data yet</div>}
               </div>
             </StatCard>
           </StatsGrid>
@@ -298,9 +298,9 @@ function DashboardContent() {
 
         <JoinTerminal $elevated>
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flex: 1 }}>
-            <TerminalPrompt>CONNECT_TO_WORKFLOW</TerminalPrompt>
+            <TerminalPrompt>Join collaboration</TerminalPrompt>
             <TerminalInput 
-              placeholder="ENTER_COLLABORATION_CODE"
+              placeholder="Invite code"
               value={joinCode}
               onChange={e => setJoinCode(e.target.value.toUpperCase())}
               onKeyDown={e => e.key === 'Enter' && submitJoin()}
@@ -313,7 +313,7 @@ function DashboardContent() {
             $size="sm"
             style={{ height: '40px', padding: '0 24px' }}
           >
-            {joining ? 'SYNCING...' : 'ESTABLISH_CONNECTION'}
+            {joining ? 'Joining...' : 'Join'}
           </Button>
         </JoinTerminal>
 
@@ -321,15 +321,15 @@ function DashboardContent() {
           <ShowcaseLauncher>
             <ShowcaseHeader>
               <div>
-                <ShowcaseKicker>AI_READY_DEMOS</ShowcaseKicker>
-                <ShowcaseHeading>Launch a system people already understand.</ShowcaseHeading>
+                <ShowcaseKicker>Examples</ShowcaseKicker>
+                <ShowcaseHeading>Start with a familiar product.</ShowcaseHeading>
                 <ShowcaseIntro>
-                  Start from a recognizable architecture, synthesize the diagram, then open Review to see the reliability layers and teaching narrative.
+                  Open Netflix, Uber, WhatsApp, Stripe, YouTube, or Slack as a ready-to-synthesize system design.
                 </ShowcaseIntro>
               </div>
               <ShowcaseCount>
                 <strong>{architectureExamples.length}</strong>
-                <span>demo systems</span>
+                <span>examples</span>
               </ShowcaseCount>
             </ShowcaseHeader>
 
@@ -339,7 +339,7 @@ function DashboardContent() {
               aria-expanded={showcaseOpen}
               aria-controls="showcase-demo-list"
             >
-              <span>{showcaseOpen ? 'HIDE_DEMO_SYSTEMS' : 'SHOW_DEMO_SYSTEMS'}</span>
+              <span>{showcaseOpen ? 'Hide examples' : 'Show examples'}</span>
               <strong>{showcaseOpen ? 'Collapse' : `${architectureExamples.length} ready`}</strong>
             </ShowcaseAccordionToggle>
 
@@ -360,7 +360,7 @@ function DashboardContent() {
                     </div>
                     <ShowcaseText>{example.prompt}</ShowcaseText>
                     <ShowcaseAction>
-                      {launchingExampleId === example.id ? 'LAUNCHING...' : 'OPEN_DEMO_PROMPT'}
+                      {launchingExampleId === example.id ? 'Launching...' : 'Open'}
                     </ShowcaseAction>
                   </ShowcaseRow>
                 ))}
@@ -372,30 +372,30 @@ function DashboardContent() {
         <section>
           <Toolbar>
             <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
-              <h2 style={{ fontSize: '1.8rem', fontWeight: 900, textTransform: 'uppercase' }}>Recent Work</h2>
-              <Badge $tone="neutral">{visibleDiagrams.length} UNITS</Badge>
+              <h2 style={{ fontSize: '1.8rem', fontWeight: 900, textTransform: 'uppercase' }}>Recent diagrams</h2>
+              <Badge $tone="neutral">{visibleDiagrams.length} diagrams</Badge>
             </div>
             <div style={{ display: 'flex', gap: '16px' }}>
               <Input
-                placeholder="SEARCH_SYSTEM_ID"
+                placeholder="Search diagrams"
                 value={searchQuery}
                 onChange={event => setSearchQuery(event.target.value)}
                 style={{ width: '300px' }}
               />
-              <Button $variant="primary" onClick={() => openCreateModal('blank')}>New System</Button>
+              <Button $variant="primary" onClick={() => openCreateModal('blank')}>New diagram</Button>
             </div>
           </Toolbar>
 
           {loading ? (
              <Card style={{ textAlign: 'center', padding: '64px' }}>
-                <CardTitle>SYNCHRONIZING...</CardTitle>
+                <CardTitle>Loading diagrams...</CardTitle>
              </Card>
           ) : visibleDiagrams.length === 0 ? (
             <Card style={{ textAlign: 'center', padding: '64px' }}>
-              <CardTitle>NO SYSTEMS DETECTED</CardTitle>
-              <CardText>Start a new architectural draft to populate the grid.</CardText>
+              <CardTitle>No diagrams yet</CardTitle>
+              <CardText>Create your first system diagram to populate the workspace.</CardText>
               <div style={{ marginTop: '32px' }}>
-                <Button $variant="primary" onClick={() => openCreateModal('blank')}>Initiate First Build</Button>
+                <Button $variant="primary" onClick={() => openCreateModal('blank')}>Create first diagram</Button>
               </div>
             </Card>
           ) : (
@@ -416,7 +416,7 @@ function DashboardContent() {
                     <CardEyebrow>
                       LAST_MOD: {formatDate(diagram.updatedAt)} 
                       <span style={{ marginLeft: '8px', color: diagram.isOwner ? '#00c853' : '#2979ff' }}>
-                        {diagram.isOwner ? '[OWNER]' : '[COLLABORATOR]'}
+                        {diagram.isOwner ? 'Owner' : 'Collaborator'}
                       </span>
                     </CardEyebrow>
                     <CardTitle $size="1.4rem">{diagram.name}</CardTitle>
@@ -426,8 +426,8 @@ function DashboardContent() {
                     <span>{diagram.edgeCount || 0} EDGES</span>
                   </CardMeta>
                   <div style={{ marginTop: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', position: 'relative', zIndex: 1 }}>
-                    <Button $variant="accent" $size="sm">OPEN_WORKSPACE</Button>
-                    <Button $variant="ghost" $size="sm" onClick={event => deleteDiagram(diagram.id, event)}>DELETE</Button>
+                    <Button $variant="accent" $size="sm">Open</Button>
+                    <Button $variant="ghost" $size="sm" onClick={event => deleteDiagram(diagram.id, event)}>Delete</Button>
                   </div>
                 </Card>
               ))}
@@ -438,8 +438,8 @@ function DashboardContent() {
 
       <Modal open={showDeleteModal} onClose={() => { setShowDeleteModal(false); setDiagramToDelete(null); }}>
         <ModalHeader>
-          <ModalTitle style={{ color: '#ff4444' }}>[WARNING] DESTRUCTIVE_ACTION</ModalTitle>
-          <ModalText>You are about to permanently purge this system architecture from the mainframe.</ModalText>
+          <ModalTitle style={{ color: '#ff4444' }}>Delete diagram?</ModalTitle>
+          <ModalText>This permanently removes the diagram and its saved architecture state.</ModalText>
         </ModalHeader>
 
         <div style={{ 
@@ -458,14 +458,14 @@ function DashboardContent() {
             wordBreak: 'break-word',
             lineHeight: '1.4'
           }}>
-            THIS_ACTION_CANNOT_BE_REVERSED.
+            This action cannot be reversed.
             <br />
-            ALL_NODES_AND_PROTOCOLS_WILL_BE_LOST.
+            Components, connections, and saved history will be removed.
           </div>
         </div>
 
         <ModalFooter style={{ justifyContent: 'stretch' }}>
-          <Button $variant="secondary" onClick={() => setShowDeleteModal(false)} style={{ flex: 1 }}>CANCEL</Button>
+          <Button $variant="secondary" onClick={() => setShowDeleteModal(false)} style={{ flex: 1 }}>Cancel</Button>
           <Button 
             onClick={confirmDelete}
             style={{ 
@@ -474,22 +474,22 @@ function DashboardContent() {
               color: '#fff'
             }}
           >
-            CONFIRM_PURGE
+            Delete diagram
           </Button>
         </ModalFooter>
       </Modal>
 
       <Modal open={showModal} onClose={() => { setShowModal(false); resetCreateState(); }}>
         <ModalHeader>
-          <ModalTitle>INITIATE_NEW_WORKSPACE</ModalTitle>
-          <ModalText>Configure the system parameters below to begin architectural synthesis.</ModalText>
+          <ModalTitle>Create diagram</ModalTitle>
+          <ModalText>Name the workspace and choose a starter template if you want one.</ModalText>
         </ModalHeader>
 
         <Field>
-          <Label htmlFor="diagram-name">SYSTEM_NAME</Label>
+          <Label htmlFor="diagram-name">Diagram name</Label>
           <Input
             id="diagram-name"
-            placeholder="Ex: GLOBAL_PAYMENTS_V1"
+            placeholder="Ex: Global payments"
             value={newName}
             onChange={event => setNewName(event.target.value)}
           />
@@ -499,7 +499,7 @@ function DashboardContent() {
           <>
             <div style={{ height: '32px' }} />
             <Field>
-              <Label>TEMPLATE_SELECT</Label>
+              <Label>Template</Label>
               <TemplateGrid>
                 {templateOptions.map(template => (
                   <TemplateCard
@@ -518,9 +518,9 @@ function DashboardContent() {
         )}
 
         <ModalFooter>
-          <Button $variant="ghost" onClick={() => { setShowModal(false); resetCreateState(); }}>ABORT</Button>
+          <Button $variant="ghost" onClick={() => { setShowModal(false); resetCreateState(); }}>Cancel</Button>
           <Button $variant="primary" onClick={createDiagram} disabled={creating}>
-            {creating ? 'PROCESSING...' : 'INITIALIZE'}
+            {creating ? 'Creating...' : 'Create'}
           </Button>
         </ModalFooter>
       </Modal>

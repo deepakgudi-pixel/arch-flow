@@ -21,7 +21,8 @@ import {
   BreakdownPanel, BreakdownRow, BreakdownLabel, BreakdownValue, ScoreDivider, AutoFixesList,
   AutoFixItem, BadgeRow, SuggestionMetaStack, LearningSummary, LearningTitle, LearningText,
   FindingLesson, LessonLabel, LessonText, StudyGuideList, StudyCard, StudyTitle, StudyText,
-  StudyInspect, NarrativeCard, NarrativeList, NarrativeItem, FindingInspectHint
+  StudyInspect, NarrativeCard, NarrativeList, NarrativeItem, FindingInspectHint,
+  LearningToggle, LearningDetailsStack
 } from './ReviewPanel.styles';
 
 function severityIcon(severity) {
@@ -83,6 +84,7 @@ export default function ReviewPanel({
   });
   const [displayScore, setDisplayScore] = useState(0);
   const [showBreakdown, setShowBreakdown] = useState(false);
+  const [showLearningDetails, setShowLearningDetails] = useState(false);
   const prevScore = useRef(0);
 
   useEffect(() => {
@@ -117,6 +119,38 @@ export default function ReviewPanel({
         </StudyGuideList>
       </ReviewSection>
     )
+  );
+
+  const renderLearningDetails = () => (
+    <ReviewSection>
+      <LearningToggle
+        type="button"
+        onClick={() => setShowLearningDetails(open => !open)}
+        aria-expanded={showLearningDetails}
+      >
+        <span>Why this architecture works</span>
+        {showLearningDetails ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+      </LearningToggle>
+      {showLearningDetails && (
+        <LearningDetailsStack>
+          <LearningSummary>
+            <LearningTitle>{learningSummary.title}</LearningTitle>
+            <LearningText>{learningSummary.detail}</LearningText>
+          </LearningSummary>
+          <NarrativeCard>
+            <LearningTitle>{narrative.title}</LearningTitle>
+            <LearningText>{narrative.summary}</LearningText>
+            <NarrativeList>
+              {narrative.strengths.map(strength => (
+                <NarrativeItem key={strength}>{strength}</NarrativeItem>
+              ))}
+            </NarrativeList>
+            <LessonText>{narrative.reviewNote}</LessonText>
+          </NarrativeCard>
+          {renderStudyGuide()}
+        </LearningDetailsStack>
+      )}
+    </ReviewSection>
   );
 
   if (nodeCount === 0) {
@@ -200,20 +234,6 @@ export default function ReviewPanel({
           {hasSuggestions && <Badge $tone="warning">AI: {suggestions.length} staged</Badge>}
           {!hasSuggestions && !hasActiveFindings && <Badge $tone="success"><CheckCircle2 size={12} /> All checks passed</Badge>}
         </BadgeRow>
-        <LearningSummary>
-          <LearningTitle>{learningSummary.title}</LearningTitle>
-          <LearningText>{learningSummary.detail}</LearningText>
-        </LearningSummary>
-        <NarrativeCard>
-          <LearningTitle>{narrative.title}</LearningTitle>
-          <LearningText>{narrative.summary}</LearningText>
-          <NarrativeList>
-            {narrative.strengths.map(strength => (
-              <NarrativeItem key={strength}>{strength}</NarrativeItem>
-            ))}
-          </NarrativeList>
-          <LessonText>{narrative.reviewNote}</LessonText>
-        </NarrativeCard>
         <SummaryGrid>
           <SummaryCard>
             <SummaryLabel>Critical</SummaryLabel>
@@ -268,7 +288,7 @@ export default function ReviewPanel({
             </CoverageCard>
           </CoverageGrid>
 
-          {renderStudyGuide()}
+          {renderLearningDetails()}
 
           <CheckList>
             <CheckItem>
@@ -287,8 +307,6 @@ export default function ReviewPanel({
         </EmptyState>
       ) : (
         <FindingsList>
-          {renderStudyGuide()}
-
           {hasSuggestions && (
             <ReviewSection>
               <SectionHeading>AI Staged Additions</SectionHeading>
@@ -372,6 +390,8 @@ export default function ReviewPanel({
               })}
             </ReviewSection>
           )}
+
+          {renderLearningDetails()}
         </FindingsList>
       )}
 

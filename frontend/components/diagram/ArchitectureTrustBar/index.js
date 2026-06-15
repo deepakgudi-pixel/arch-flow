@@ -1,6 +1,6 @@
 'use client';
 
-import { CheckCircle2, Layers3, Presentation, ShieldCheck, Workflow, Zap } from 'lucide-react';
+import { CheckCircle2, Layers3, Presentation, ShieldCheck, Zap } from 'lucide-react';
 import { TrustAction, TrustBarShell, TrustChip } from './ArchitectureTrustBar.styles';
 
 function hasQueueConsumer(nodes, edges) {
@@ -55,11 +55,7 @@ export default function ArchitectureTrustBar({
       </TrustChip>
       <TrustChip>
         <Layers3 size={13} />
-        {layerCount} layers
-      </TrustChip>
-      <TrustChip $tone={queueSafe ? 'success' : 'warning'}>
-        <Workflow size={13} />
-        {queueSafe ? 'Queues ok' : 'Queue gap'}
+        {layerCount} layer{layerCount === 1 ? '' : 's'} · {queueSafe ? 'queues ok' : 'queue gap'}
       </TrustChip>
       {autoFixes.length > 0 && (
         <TrustChip $tone="success">

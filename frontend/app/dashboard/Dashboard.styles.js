@@ -56,12 +56,17 @@ export const UserMeta = styled.span`
 export const Overview = styled(Card)`
   display: grid;
   grid-template-columns: 1.4fr 0.6fr;
-  gap: 48px;
-  padding: 48px;
+  gap: 40px;
+  padding: 40px;
 
   @media (max-width: 1024px) {
     grid-template-columns: 1fr;
-    gap: 32px;
+    gap: 28px;
+    padding: 32px;
+  }
+
+  @media (max-width: 640px) {
+    padding: 24px;
   }
 `;
 
@@ -71,44 +76,52 @@ export const OverviewCopy = styled.div`
 `;
 
 export const OverviewTitle = styled.h2`
-  font-size: clamp(2.5rem, 5vw, 4rem);
-  line-height: 0.9;
+  font-size: 3.2rem;
+  line-height: 0.96;
   font-weight: 900;
   color: var(--color-ink);
   text-transform: uppercase;
+
+  @media (max-width: 900px) {
+    font-size: 2.5rem;
+  }
+
+  @media (max-width: 560px) {
+    font-size: 2.05rem;
+  }
 `;
 
 export const OverviewText = styled.p`
-  font-size: 1.15rem;
+  font-size: 1.05rem;
   color: var(--color-ink-muted);
   line-height: 1.5;
-  max-width: 720px;
+  max-width: 640px;
 `;
 
 export const ActionRow = styled.div`
   display: flex;
   flex-wrap: wrap;
-  gap: 20px;
+  gap: 12px;
 `;
 
 export const StatsGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 24px;
+  gap: 14px;
 `;
 
 export const StatCard = styled(Card)`
-  padding: 24px;
+  padding: 20px;
   background: var(--color-canvas-alt);
 `;
 
 export const StatValue = styled.div`
   font-family: var(--font-mono);
-  font-size: 3rem;
+  font-size: 2.4rem;
   line-height: 1;
   font-weight: 900;
   color: var(--color-ink);
-  letter-spacing: -0.06em;
+  letter-spacing: 0;
   margin: 12px 0;
 `;
 
@@ -165,12 +178,20 @@ export const ShowcaseKicker = styled.div`
 export const ShowcaseHeading = styled.h2`
   margin: 8px 0 10px;
   font-family: var(--font-sans);
-  font-size: clamp(1.8rem, 4vw, 3.35rem);
-  line-height: 0.95;
+  font-size: 2.45rem;
+  line-height: 1;
   font-weight: 900;
   color: #000000;
   text-transform: uppercase;
   max-width: 760px;
+
+  @media (max-width: 900px) {
+    font-size: 2rem;
+  }
+
+  @media (max-width: 560px) {
+    font-size: 1.6rem;
+  }
 `;
 
 export const ShowcaseIntro = styled.p`
@@ -379,11 +400,12 @@ export const JoinTerminal = styled(Card)`
 export const TerminalPrompt = styled.div`
   font-family: var(--font-mono);
   font-weight: 900;
-  font-size: 1.2rem;
+  font-size: 0.86rem;
   color: #000;
   display: flex;
   align-items: center;
   gap: 8px;
+  text-transform: uppercase;
 
   &::after {
     content: '_';
@@ -401,9 +423,9 @@ export const TerminalInput = styled.input`
   border-bottom: 2px solid #eee;
   color: #000;
   font-family: var(--font-mono);
-  font-size: 1.1rem;
+  font-size: 0.95rem;
   font-weight: 900;
-  letter-spacing: 0.3em;
+  letter-spacing: 0;
   text-transform: uppercase;
   padding: 4px 0;
   flex: 1;
@@ -412,13 +434,12 @@ export const TerminalInput = styled.input`
 
   &:focus {
     border-bottom-color: #000;
-    letter-spacing: 0.4em;
   }
 
   &::placeholder {
     color: #ccc;
     letter-spacing: normal;
-    font-size: 0.9rem;
+    font-size: 0.86rem;
     font-weight: 500;
   }
 `;

@@ -42,6 +42,11 @@ export const GenerateButton = styled(motion.button)`
     cursor: not-allowed;
     background: #444;
   }
+
+  @media (max-width: 760px) {
+    flex: 1;
+    justify-content: center;
+  }
 `;
 
 export const IconWrapper = styled.div`
@@ -61,10 +66,19 @@ export const PromptActions = styled.div`
   display: flex;
   align-items: center;
   gap: 8px;
+
+  @media (max-width: 760px) {
+    width: 100%;
+  }
 `;
 
 export const TemplateSelectWrap = styled.div`
   position: relative;
+
+  @media (max-width: 760px) {
+    flex: 1.2;
+    min-width: 0;
+  }
 `;
 
 export const ButtonContent = styled(motion.div)`

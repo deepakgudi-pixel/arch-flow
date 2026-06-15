@@ -401,6 +401,35 @@ export const BreakdownPanel = styled.div`
   line-height: 1.6;
 `;
 
+export const LearningToggle = styled.button`
+  width: 100%;
+  min-height: 42px;
+  padding: 0 12px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 10px;
+  background: #ffffff;
+  color: #000000;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  cursor: pointer;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 800;
+  transition: border-color 0.18s ease, background 0.18s ease;
+
+  &:hover {
+    border-color: rgba(0, 0, 0, 0.18);
+    background: #fafafa;
+  }
+`;
+
+export const LearningDetailsStack = styled.div`
+  display: grid;
+  gap: 10px;
+`;
+
 export const BreakdownRow = styled.div`
   display: flex;
   align-items: center;
