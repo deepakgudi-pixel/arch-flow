@@ -8,20 +8,16 @@ import {
 
 const STEPS = [
   {
-    title: 'Generate a real system',
-    text: 'Start from a familiar demo or describe any product. Archflow builds the first architecture draft.'
+    title: 'Describe the product',
+    text: 'Use a concrete prompt so Archflow can infer users, services, data stores, queues, and reliability layers.'
   },
   {
-    title: 'Watch the quality gate',
-    text: 'Generation checks rules, fills reliability layers, and hardens the diagram before you review it.'
+    title: 'Generate the diagram',
+    text: 'The draft is hardened before it opens, so the canvas starts from a review-safe architecture.'
   },
   {
-    title: 'Learn through review',
-    text: 'Open Architecture Review, click a finding, and Archflow highlights the exact node or path.'
-  },
-  {
-    title: 'Present the story',
-    text: 'Use Present to explain why the architecture works, what layers exist, and what tradeoffs remain.'
+    title: 'Review the reasoning',
+    text: 'Use Review to inspect score, flows, missing layers, and the narrative behind the design.'
   }
 ];
 
@@ -36,8 +32,8 @@ export default function GuidedModePanel({
     <Overlay aria-label="Guided system design tutorial">
       <Header>
         <TitleStack>
-          <Eyebrow><BookOpen size={11} /> Guided Mode</Eyebrow>
-          <Title>{activeExample ? `${activeExample.name} system design path` : 'Learn system design through the diagram'}</Title>
+          <Eyebrow><BookOpen size={11} /> Guided mode</Eyebrow>
+          <Title>{activeExample ? `${activeExample.name} design path` : 'Build your first architecture in three steps'}</Title>
         </TitleStack>
         <CloseButton type="button" onClick={onClose} aria-label="Close guided mode">×</CloseButton>
       </Header>
@@ -56,10 +52,10 @@ export default function GuidedModePanel({
 
       <ActionRow>
         <ActionButton type="button" onClick={onGenerate}>Generate</ActionButton>
-        <ActionButton type="button" onClick={onOpenReview}>Open Review</ActionButton>
+        <ActionButton type="button" onClick={onOpenReview}>Review</ActionButton>
         <ActionButton type="button" $primary onClick={onOpenAssistant}>
           <Sparkles size={12} />
-          Ask Assistant
+          Ask AI
         </ActionButton>
       </ActionRow>
     </Overlay>

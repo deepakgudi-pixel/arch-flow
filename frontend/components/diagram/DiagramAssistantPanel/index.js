@@ -52,16 +52,16 @@ export default function DiagramAssistantPanel({
         </TitleRow>
 
         <BadgeRow>
-          <Badge $tone="brand">Context Aware</Badge>
+          <Badge $tone="brand">Context aware</Badge>
           <Badge $tone={pendingSuggestionCount > 0 ? 'warning' : 'neutral'}>
-            Review Queue: {pendingSuggestionCount}
+            {pendingSuggestionCount} staged
           </Badge>
         </BadgeRow>
 
         <IntroCard>
           <IntroTitle>
             <Sparkles size={14} />
-            Ask For Walkthroughs, Tradeoffs, Or Missing Tech
+            Ask about flows, tradeoffs, or missing tech
           </IntroTitle>
           <PromptRow>
             {QUICK_PROMPTS.map(example => (

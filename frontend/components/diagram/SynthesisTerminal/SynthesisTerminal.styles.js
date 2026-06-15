@@ -41,7 +41,8 @@ export const TerminalTitle = styled.div`
   font-family: var(--font-mono);
   font-weight: 900;
   font-size: 12px;
-  letter-spacing: 0.1em;
+  letter-spacing: 0;
+  text-transform: uppercase;
 `;
 
 export const TerminalControls = styled.div`
@@ -139,6 +140,19 @@ export const ErrorBlock = styled.div`
   padding: 16px;
   border: 2px solid #ef4444;
   color: #ef4444;
+  display: grid;
+  gap: 10px;
+
+  strong {
+    color: #ffffff;
+    font-size: 13px;
+    text-transform: uppercase;
+  }
+
+  span {
+    color: #fecaca;
+    line-height: 1.55;
+  }
 `;
 
 export const RetryButton = styled.button`
@@ -149,6 +163,7 @@ export const RetryButton = styled.button`
   font-family: var(--font-mono);
   font-weight: 900;
   cursor: pointer;
+  justify-self: start;
 `;
 
 export const Cursor = styled.span`

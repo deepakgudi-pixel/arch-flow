@@ -12,7 +12,11 @@ export default function SynthesisTerminal({ content, error, progress, onRetry, o
   const stages = progress?.stages || [];
   const activeIndex = progress?.activeIndex || 0;
   const elapsedSeconds = progress?.elapsedSeconds || 0;
-  const errorLabel = /^AI_CREDITS_LOW/i.test(error || '') ? 'ACTION_REQUIRED' : 'CRITICAL_FAILURE';
+  const isCreditError = /^AI_CREDITS_LOW/i.test(error || '');
+  const errorTitle = isCreditError ? 'Credits are low' : 'Generation needs attention';
+  const errorMessage = isCreditError
+    ? 'The AI provider could not complete this request with the current credit balance. Try a shorter prompt or add OpenRouter credits.'
+    : String(error || 'The architecture draft could not be completed. Retry once, or simplify the prompt if this keeps happening.');
 
   useEffect(() => {
     if (bodyRef.current) {
@@ -24,7 +28,7 @@ export default function SynthesisTerminal({ content, error, progress, onRetry, o
     <Overlay>
       <TerminalContainer>
         <TerminalHeader>
-          <TerminalTitle>AI_SYNTHESIS_MAIN_PROCESS_V1.0</TerminalTitle>
+          <TerminalTitle>Synthesizing architecture</TerminalTitle>
           <TerminalControls>
             <CloseControl type="button" onClick={onClose} aria-label="Close synthesis terminal" />
           </TerminalControls>
@@ -47,9 +51,9 @@ export default function SynthesisTerminal({ content, error, progress, onRetry, o
         )}
         <TerminalBody ref={bodyRef}>
           <SystemLines>
-            [SYSTEM]: Initializing architectural synthesis...<br />
-            [SYSTEM]: Streaming architecture draft from the AI service...<br />
-            [SYSTEM]: Review-safe hardening runs automatically before the diagram opens...
+            Preparing the architecture draft...<br />
+            Streaming components and connections from the AI service...<br />
+            Hardening rules run before the diagram opens.
           </SystemLines>
           {content}
           
@@ -57,9 +61,10 @@ export default function SynthesisTerminal({ content, error, progress, onRetry, o
           
           {error && (
             <ErrorBlock>
-              [{errorLabel}]: {error}<br /><br />
+              <strong>{errorTitle}</strong>
+              <span>{errorMessage}</span>
               <RetryButton type="button" onClick={onRetry}>
-                RETRY_SYNTHESIS
+                Retry
               </RetryButton>
             </ErrorBlock>
           )}

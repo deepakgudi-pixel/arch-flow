@@ -95,15 +95,6 @@ export default function DiagramPage() {
     }
   }, []);
 
-  useEffect(() => {
-    if (typeof window === 'undefined') {
-      return;
-    }
-
-    if (!window.localStorage.getItem('archflow-guided-mode-dismissed')) {
-      setGuidedModeOpen(true);
-    }
-  }, []);
   const [searchTerm, setSearchTerm] = useState('');
   const [toast, setToast] = useState(null);
   const [rfInstance, setRfInstance] = useState(null);
@@ -871,6 +862,12 @@ export default function DiagramPage() {
             {techNodes.length === 0 && !loading && (
               <EmptyCanvasState
                 activeExample={activeExample}
+                onUsePrompt={(quickPrompt) => {
+                  setPrompt(quickPrompt);
+                  setToast({ message: 'Prompt ready. Press Synthesize to generate.', error: false });
+                  setTimeout(() => setToast(null), 2400);
+                }}
+                onOpenGuide={() => setGuidedModeOpen(true)}
               />
             )}
 
