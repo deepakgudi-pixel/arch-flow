@@ -13,7 +13,7 @@
   <img src="https://img.shields.io/badge/PostgreSQL-Neon-4169E1?style=flat-square&logo=postgresql" alt="PostgreSQL">
   <img src="https://img.shields.io/badge/Redis-Upstash-FF4438?style=flat-square&logo=redis" alt="Redis">
   <img src="https://img.shields.io/badge/Electron-Mac-47848F?style=flat-square&logo=electron" alt="Electron">
-  <img src="https://img.shields.io/badge/version-1.7-00ff9d?style=flat-square" alt="Version 1.7">
+  <img src="https://img.shields.io/badge/version-1.8-00ff9d?style=flat-square" alt="Version 1.8">
   <img src="https://img.shields.io/badge/status-active-00ff9d?style=flat-square" alt="Status: Active">
 </p>
 
@@ -97,6 +97,7 @@ flowchart TB
 - [Mac Desktop Application](#mac-desktop-application)
 - [Getting Started](#getting-started)
 - [Project Structure](#project-structure)
+- [Roadmap To Production-Perfect](#roadmap-to-production-perfect)
 - [Why This Direction Matters](#why-this-direction-matters)
 - [License](#license)
 
@@ -181,7 +182,8 @@ flowchart TB
 - Auto-layout spaces nodes into clean category lanes for readability
 
 ### Guided Learning & Showcase Examples
-- **Beginner-friendly Guided Mode** — explains the core workflow: start from a system, inspect the diagram, review weak spots, and improve safely
+- **Opt-in Guided Mode** — explains the core workflow only when the user asks for it, keeping the editor calm by default
+- **Quick-start empty canvas** — first-time users can seed the prompt bar with real system prompts for food delivery, trading, or travel marketplace architectures instead of staring at a blank canvas
 - **Dashboard showcase examples** — an accordion launcher for Netflix, Uber, WhatsApp, Stripe, YouTube, and Slack keeps demos available without crowding the dashboard
 - **Prompt handoff into the editor** — showcase demos create a workspace and pre-fill the right architecture prompt so the user can synthesize immediately
 - **Showcase-ready demo path** — examples make Archflow understandable without requiring someone to invent a prompt first
@@ -224,6 +226,7 @@ flowchart TB
 - **High-severity dependency audit gates** — CI blocks high/critical production dependency findings for both frontend and backend
 - **Cross-platform CI** — GitHub Actions verifies the project on both Ubuntu and macOS
 - **Playwright failure artifacts** — failed editor smoke runs upload traces/screenshots for faster debugging
+- **Calmer synthesis failure UX** — provider credit and generation errors are translated into action-oriented messages instead of exposing raw failure codes as the primary experience
 
 ### Interactive Diagram Canvas
 - Full React Flow-powered canvas with zoom, pan, snap-to-grid
@@ -361,6 +364,8 @@ Archflow avoids the following design patterns:
 
 - **Score-chasing behavior** — the architecture score (A–F) exists in the review panel as a quick health signal, not a gamified ranking. The focus stays on understanding the findings, not optimizing a number.
 - **Black-box AI mutations** — the AI never directly modifies your diagram. Everything it suggests goes through the Architectural Review panel for your approval.
+- **Forced onboarding** — Guided Mode is available from the canvas and Actions menu, but it no longer interrupts the editor by opening automatically.
+- **Raw provider drama** — AI/model failures are handled with clearer retry guidance instead of making users parse backend or provider internals.
 - **Generic placeholders** — the system uses real technology names (KAFKA, not GENERIC_QUEUE; POSTGRESQL, not USER_DATABASE).
 - **Protocols as nodes** — HTTP, HTTPS, gRPC, etc. are edge labels only, never generated as components.
 - **App-prefixed names** — REDIS, not INSTAGRAM_REDIS.
@@ -690,6 +695,24 @@ archflow/
 ├── desktop/                    # Electron Mac desktop shell
 └── README.md
 ```
+
+---
+
+## Roadmap To Production-Perfect
+
+Archflow is already strong as a portfolio and showcase product. The next work that would move it closer to production SaaS maturity is intentionally not "more features forever"; it is operational trust.
+
+| Area | Next Move | Why It Matters |
+|------|-----------|----------------|
+| Public story | Add a 60-second demo video and focused landing flow | Recruiters and users should understand the product before reading docs |
+| TypeScript depth | Convert core diagram/review/generation contracts to TypeScript | Reduces drift in the most important architecture logic |
+| Observability | Add Sentry/log drains, frontend error telemetry, and generation latency tracking | Makes production failures visible instead of anecdotal |
+| AI cost control | Add quotas, per-user generation limits, model/cost tracking, and clearer provider fallback reporting | Required before a public launch with real users |
+| Integration tests | Add real test DB flows for auth sync, diagram save/version history, review results, and collaborator behavior | Proves the trust-critical backend paths end to end |
+| Performance | Lazy-load heavy editor panels and presentation/review surfaces | Keeps the editor fast as the product grows |
+| Accessibility | Deep keyboard/focus/responsive QA across dashboard, editor panels, and modals | Makes the product more professional and usable |
+
+The hiring-facing version of "perfect" is a clear story, strong demo, clean architecture docs, and green CI. The SaaS-facing version of "perfect" adds observability, quotas, billing, retention controls, and real customer feedback loops.
 
 ---
 

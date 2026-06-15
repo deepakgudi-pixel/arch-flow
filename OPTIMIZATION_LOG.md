@@ -1,5 +1,88 @@
 # Archflow Optimization Log
 
+**log:** 2026-06-15 00:00:00 IST (+0530)
+
+## Overview
+Editor Onboarding + 10/10 UX Clarity Pass. Focus areas: reducing first-use overwhelm, making the empty canvas immediately useful, keeping Guided Mode opt-in, and translating AI synthesis failures into calmer product language.
+
+---
+
+## 1. Opt-In Guided Mode
+**Why:** Guided Mode is valuable, but auto-opening it on first editor load made the product feel like it was interrupting the user before they had context.
+
+**What changed:**
+- removed the first-run auto-open behavior from the diagram editor
+- kept Guided Mode available from the empty canvas and Actions menu
+- simplified Guided Mode into a three-step workflow:
+  - describe the product
+  - generate the diagram
+  - review the reasoning
+
+**How this helps Archflow:**
+- keeps the editor calm by default
+- makes help available without forcing a tutorial
+- improves the first impression for experienced users and recruiters
+
+---
+
+## 2. Quick-Start Empty Canvas
+**Why:** A blank canvas can create decision friction. The user should be able to start from a realistic system immediately without inventing a perfect prompt.
+
+**What changed:**
+- added quick-start prompt buttons for:
+  - food delivery platform
+  - trading app
+  - travel marketplace
+- clicking a quick prompt seeds the synthesis bar without generating automatically
+- kept the user in control of when synthesis starts
+
+**How this helps Archflow:**
+- reduces blank-state anxiety
+- gives new users high-quality starting points
+- demonstrates the product's domain coverage faster
+
+---
+
+## 3. Calmer Synthesis Experience
+**Why:** The synthesis modal previously felt like a raw system process. That looked technical, but provider failures could feel scarier than they needed to.
+
+**What changed:**
+- renamed the terminal header to "Synthesizing architecture"
+- rewrote system lines into plain process language
+- translated OpenRouter credit failures into clear user guidance
+- replaced raw retry labels with a simple "Retry" action
+
+**How this helps Archflow:**
+- makes AI generation feel controlled and professional
+- reduces confusion when provider credits or model output fail
+- preserves the reliability story without exposing unnecessary backend drama
+
+---
+
+## 4. Assistant Copy Polish
+**Why:** The assistant panel had useful controls, but some labels still felt too mechanical.
+
+**What changed:**
+- changed "Context Aware" to "Context aware"
+- changed "Review Queue" wording to a simpler staged-count label
+- softened the intro prompt from a command-like label into natural product language
+
+**How this helps Archflow:**
+- makes the assistant feel more like a product surface and less like a debug panel
+- lowers visual noise inside the editor
+
+---
+
+## 5. Current Verification
+Passed locally:
+
+- `npm --prefix frontend run lint`
+- `npm --prefix frontend run typecheck`
+- `npm --prefix frontend run smoke:editor`
+- local Playwright visual check of the editor smoke probe
+
+---
+
 **log:** 2026-06-08 00:00:00 IST (+0530)
 
 ## Overview

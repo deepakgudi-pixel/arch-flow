@@ -49,10 +49,10 @@ graph TD
 | Product Vision | Strong | Clear user problem, learning-first direction, trust-first product principles, no public score pressure | The app has a real point of view and the product decisions are consistent with it | More live user interviews and paid usage data would strengthen it further |
 | AI Reliability | Strong | Structured generation flow, hardened JSON parsing, wrapped/truncated JSON recovery, retry logic, normalization, protocol repair, domain blueprint tuning, failure capture | The app is not blindly trusting raw model output anymore; it has containment, recovery, and deterministic domain-specific correction layers | Model behavior can still drift over time because AI providers change |
 | Technical Architecture | Strong | Next.js frontend, Express backend, PostgreSQL, Redis, Clerk, OpenRouter, diagram persistence, version history, autosave logic, transactional save/delete handlers | The system has clear separation of concerns, transaction-safe persistence paths, and real implementation depth across frontend and backend | Very large-scale concurrency and cost behavior are still not deeply proven |
-| UX and Diagram Clarity | Strong | Smarter auto-arrange, focused flow inspection, sidebars, connection details, readable tech labels, cleaner controls, demo accordion, scrollable review panel | The product is intentionally designed to reduce confusion rather than just expose more knobs | Extremely dense graphs can still reveal edge-case readability problems |
+| UX and Diagram Clarity | Strong | Smarter auto-arrange, focused flow inspection, sidebars, connection details, readable tech labels, cleaner controls, demo accordion, opt-in Guided Mode, quick-start empty canvas prompts, scrollable review panel | The product is intentionally designed to reduce confusion rather than just expose more knobs | Extremely dense graphs can still reveal edge-case readability problems |
 | Auth and Access Control | Strong | Clerk middleware, protected routes, frontend env guards, local auth smoke verification, protected probe route, access-control tests for diagram update/delete/version flows | Auth is no longer "assumed working"; it has repeatable local verification, route protection, and backend tests around important ownership boundaries | Still dependent on third-party Clerk behavior and future version changes |
 | Internal QA, CI, and Evaluation | Strong | Eval harness, prompt matrix, history prompt mining, AI failure logging, Markdown scoreboard, 43 backend tests, frontend lint/typecheck/build, Playwright smoke, GitHub Actions on Ubuntu and macOS | Quality is now measurable internally and automatically checked in CI instead of being judged only by feel | The evaluator will get stronger as more real prompts and failure cases accumulate |
-| Production Monitoring | Partial | Build verification, auth smoke checks, migration checks, internal evals | There is a decent pre-ship quality loop already | Full observability like Sentry, alerting, dashboards, and tracing is not yet a mature part of the stack |
+| Production Monitoring | Partial | Build verification, auth smoke checks, migration checks, internal evals, structured backend logging, calmer synthesis failure states | There is a decent pre-ship quality loop already | Full observability like Sentry, alerting, dashboards, and tracing is not yet a mature part of the stack |
 | Scale and Performance Proof | Partial | Debounced autosave, queued saves, focused rendering behavior, layout improvements for dense graphs | The app has some performance-aware design choices already | No serious load testing, real traffic proof, or long-session stress proof has been demonstrated yet |
 | Security, Privacy, Compliance | Partial | Protected routes, env-based secrets, narrow local-only smoke bypass, structured auth model, high-severity dependency audit gates, upgraded Clerk/Express packages | Basic product security thinking is present, high/critical dependency issues are guarded in CI, and the local bypass was carefully scoped | Formal privacy policy depth, retention controls, compliance posture, enterprise security guarantees, and legal docs are still not deeply built out |
 | Billing and Monetization Ops | Not Yet Covered | The product can be sold conceptually and has a plausible pricing direction | The value proposition is strong enough for a paid v1 | Stripe, subscriptions, invoices, quotas, usage enforcement, and billing ops are not implemented yet |
@@ -86,7 +86,7 @@ graph TD
 ### 4. UX and Diagram Clarity
 **Covered:** Yes, strongly.
 
-**Why:** This is one of Archflow’s strongest areas. The product got much better when the interaction model moved from clutter and hovering toward focused inspection, sidebars, a calmer demo accordion, scrollable review surfaces, and cleaner defaults.
+**Why:** This is one of Archflow’s strongest areas. The product got much better when the interaction model moved from clutter and hovering toward focused inspection, sidebars, a calmer demo accordion, opt-in guidance, quick-start prompts, scrollable review surfaces, and cleaner defaults.
 
 **What is still missing:** Very dense enterprise-scale diagrams may still need future refinement.
 
@@ -161,3 +161,17 @@ If someone asks, "What is not fully covered yet?" the honest answer is:
 - real customer traction
 
 That is a strong place to be for a serious paid v1 product.
+
+---
+
+## 10/10 Maturity Path
+
+The codebase is professionally maintained for a showcase product. The remaining path to "perfect" depends on the goal:
+
+| Goal | Most Important Next Work |
+|---|---|
+| Global job showcase | 60-second demo video, crisp case study, architecture docs, green CI proof, and a clean public product story |
+| Production SaaS | Observability, quotas, cost tracking, billing, privacy/retention controls, real test DB integration coverage, and real customer validation |
+| Engineering polish | Stronger TypeScript adoption in core diagram/review/generation contracts, lazy-loaded editor panels, accessibility QA, and large-diagram performance testing |
+
+This keeps the project honest: Archflow is already strong enough to impress as a job-facing build, while the paid-product layer still needs the operational systems that real customers would depend on.

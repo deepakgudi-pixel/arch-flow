@@ -125,7 +125,10 @@ I removed manual protocol repair as a visible action and made it automatic. I al
 The pattern I use is: keep the default interaction simple, but let detail appear when the user focuses. A beginner should be able to generate, inspect, and edit without learning a control surface full of expert toggles. Power should emerge through selection, sidebars, history, review, and replace workflows.
 
 ### 31a. How do beginners learn the workflow?
-The editor includes Guided Mode, which explains the loop: start from a real system, inspect the diagram, review weak spots, and improve safely. The Review Panel also teaches through "Why this matters," "How to fix," a System Walkthrough, and a "Why this architecture works" narrative.
+The editor supports beginners without forcing a tutorial. The empty canvas offers realistic quick-start prompts for food delivery, trading, and travel marketplace systems, and Guided Mode is available when the user wants a three-step walkthrough. The Review Panel also teaches through "Why this matters," "How to fix," a System Walkthrough, and a "Why this architecture works" narrative.
+
+### 31b. What changed in the latest UX pass?
+The latest UX pass reduced first-use overwhelm. Guided Mode no longer opens automatically, the empty canvas now gives useful prompt starters, the synthesis modal uses calmer product language, and assistant labels are less mechanical. The goal is progressive disclosure: help is immediately available, but the editor stays quiet until the user asks for depth.
 
 ---
 
@@ -168,6 +171,9 @@ The wedge is education plus practical architecture planning. The product is stro
 ### 42. What would you build next?
 The next highest-value product work would be a public beta path, billing/usage limits, shareable public diagrams, richer example templates, production monitoring, deeper large-diagram stress handling, better cost controls, and more real-world validation around what kinds of architectures users come back to most often.
 
+### 42a. What would make the codebase feel perfect?
+For hiring, the final polish is a sharper public story: a short demo video, a clean case study, architecture docs, and consistently green CI. For a real SaaS, the missing perfection layer is production operations: observability, quotas, cost tracking, billing, privacy/retention controls, and more real integration tests against a real test database.
+
 ### 43. What would make users come back weekly?
 Users will come back if the artifact stays useful over time. That means version history, continuing from an existing system instead of starting from zero, reusable architecture templates, clearer review surfaces, team discussion value, and a feeling that the tool helps them think, not just generate once.
 
@@ -183,3 +189,6 @@ Real production usage will still teach things that local testing cannot. I would
 
 ### 46. Why do you think this project is a strong interview story?
 Because it shows product thinking, AI reliability thinking, frontend UX refinement, backend hardening, schema discipline, auth handling, TypeScript/lint/CI discipline, integration-style testing, and the ability to make tradeoffs instead of just stacking features. It is a good example of turning an interesting idea into a more defensible product.
+
+### 47. Is the codebase professionally maintained?
+Yes, for a showcase product. The codebase has focused commits, separated components/styles, extracted hooks, modular generation/review logic, shared rule knowledge, backend tests, frontend smoke coverage, lint/typecheck checks, CI guardrails, and documentation that tracks what changed. For a paid SaaS, the next maturity layer would be production observability, quotas, billing operations, security/privacy policy depth, and real customer feedback loops.
