@@ -6,6 +6,7 @@ import {
 import { normalizeDiagramStructure } from './diagramGenerator/diagramNormalizer.js';
 import { hardenNormalizedDiagramForReview } from './diagramGenerator/diagramHardener.js';
 import { applyDomainBlueprint } from './diagramGenerator/domainBlueprints.js';
+import { applyPromptCapabilityRequirements } from './diagramGenerator/capabilityCompletion.js';
 import {
   generateEdgesFromDiagram,
   generateNodesFromDiagram
@@ -69,7 +70,11 @@ export async function generateDiagramFromPrompt({
       const parsed = robustParseJSON(rawResponse);
       const normalizedDiagram = normalizeDiagramStructure(parsed);
       const domainTuned = applyDomainBlueprint(normalizedDiagram, { description, template });
-      const hardened = hardenNormalizedDiagramForReview(domainTuned.diagram, { description, template });
+      const capabilityTuned = applyPromptCapabilityRequirements(
+        domainTuned.diagram,
+        { description, template }
+      );
+      const hardened = hardenNormalizedDiagramForReview(capabilityTuned.diagram, { description, template });
 
       assertReviewSafeGeneration(hardened);
       validateNormalizedDiagram(hardened.diagram);
@@ -84,8 +89,8 @@ export async function generateDiagramFromPrompt({
         nodes,
         edges,
         quality: hardened.quality,
-        autoFixes: [...domainTuned.changes, ...hardened.changes].length > 0
-          ? [...domainTuned.changes, ...hardened.changes]
+        autoFixes: [...domainTuned.changes, ...capabilityTuned.changes, ...hardened.changes].length > 0
+          ? [...domainTuned.changes, ...capabilityTuned.changes, ...hardened.changes]
           : undefined
       };
     } catch (error) {

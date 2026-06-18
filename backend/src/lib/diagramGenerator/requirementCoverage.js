@@ -40,12 +40,6 @@ const DIGITAL_BANKING_REQUIREMENTS = [
   ['OBSERVABILITY', 'metrics, alerting, and dashboards', /\b(metrics and alerting|operations dashboards|observability)\b/i]
 ];
 
-function buildDiagramText(diagram) {
-  return (diagram.nodes || [])
-    .map(node => [node.name, node.role, node.reason].filter(Boolean).join(' '))
-    .join(' ');
-}
-
 export function detectRequirementProfile({ description, template } = {}) {
   const context = `${description || ''} ${template || ''}`;
   const bankingSignalCount = DIGITAL_BANKING_SIGNALS
@@ -58,17 +52,31 @@ export function detectRequirementProfile({ description, template } = {}) {
 }
 
 export function reviewRequirementCoverage(diagram, context = {}) {
-  if (detectRequirementProfile(context) !== 'digital_banking') {
-    return [];
-  }
-
-  const diagramText = buildDiagramText(diagram);
-
-  return DIGITAL_BANKING_REQUIREMENTS
-    .filter(([, , matcher]) => !matcher.test(diagramText))
-    .map(([id, label]) => ({
+  const diagramText = buildDiagramRequirementText(diagram);
+  const genericRequirements = extractPromptRequirements(context)
+    .filter(requirement => !isRequirementCovered(diagramText, requirement))
+    .map(requirement => ({
       severity: 'warning',
-      title: `MISSING_REQUIRED_${id}`,
-      detail: `The generated architecture does not explicitly model ${label} requested by the prompt.`
+      title: `MISSING_REQUIRED_${requirement.id}`,
+      detail: `The generated architecture does not explicitly model ${requirement.label} requested by the prompt.`
     }));
+  const bankingRequirements = detectRequirementProfile(context) === 'digital_banking'
+    ? DIGITAL_BANKING_REQUIREMENTS
+        .filter(([, , matcher]) => !matcher.test(diagramText))
+        .map(([id, label]) => ({
+          severity: 'warning',
+          title: `MISSING_REQUIRED_${id}`,
+          detail: `The generated architecture does not explicitly model ${label} requested by the prompt.`
+        }))
+    : [];
+
+  return [...genericRequirements, ...bankingRequirements]
+    .filter((finding, index, findings) => (
+      findings.findIndex(candidate => candidate.title === finding.title) === index
+    ));
 }
+import {
+  buildDiagramRequirementText,
+  extractPromptRequirements,
+  isRequirementCovered
+} from './capabilityRequirements.js';

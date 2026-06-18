@@ -6,6 +6,18 @@ function activeFindings(quality) {
   return quality.findings.filter(finding => ['critical', 'warning'].includes(finding.severity));
 }
 
+const compactComplexResponse = {
+  nodes: [
+    { name: 'React', category: 'frontend', role: 'Web UI', reason: 'User workflows', icon: 'react' },
+    { name: 'Go', category: 'backend', role: 'Core Service', reason: 'Business logic', icon: 'server' },
+    { name: 'PostgreSQL', category: 'database', role: 'Primary data', reason: 'System state', icon: 'database' }
+  ],
+  edges: [
+    { source: 'React', target: 'Go', label: 'HTTPS' },
+    { source: 'Go', target: 'PostgreSQL', label: 'SQL' }
+  ]
+};
+
 test('generateDiagramFromPrompt hardens mocked AI output before returning it', async () => {
   const unsafeResponse = {
     nodes: [
@@ -427,6 +439,92 @@ test('generateDiagramFromPrompt expands complex digital banking prompts into exp
   assert.ok(result.nodes.length >= 36);
   expectedComponents.forEach(name => assert.ok(names.has(name), `Expected ${name}`));
   assert.ok(result.autoFixes.some(change => /digital banking service boundaries/i.test(change)));
+});
+
+test('generateDiagramFromPrompt completes complex healthcare requirements without a dedicated blueprint', async () => {
+  const result = await generateDiagramFromPrompt({
+    description: 'Design a healthcare platform with patient portal, clinician workflows, appointments, electronic health records, e-prescriptions, lab results, telemedicine, consent management, audit trail, HIPAA compliance, notifications, encrypted document storage, analytics, regional data residency, and disaster recovery.',
+    callModel: async () => ({
+      content: JSON.stringify(compactComplexResponse),
+      model: 'mock-model'
+    })
+  });
+  const names = new Set(result.nodes.map(node => node.name));
+
+  assert.equal(result.quality.score.score, 100);
+  assert.deepEqual(activeFindings(result.quality), []);
+  [
+    'CLINICIAN_WORKFLOWS_SERVICE',
+    'APPOINTMENTS_SERVICE',
+    'ELECTRONIC_HEALTH_RECORDS_SERVICE',
+    'E_PRESCRIPTIONS_SERVICE',
+    'LAB_RESULTS_SERVICE',
+    'TELEMEDICINE_SERVICE',
+    'CONSENT_MANAGEMENT_SERVICE',
+    'AUDIT_LOG_SERVICE',
+    'COMPLIANCE_SERVICE',
+    'PATIENT_PORTAL',
+    'S3',
+    'VAULT',
+    'KUBERNETES'
+  ].forEach(name => assert.ok(names.has(name), `Expected ${name}`));
+  assert.ok(!names.has('PATIENT_PORTAL_SERVICE'));
+});
+
+test('generateDiagramFromPrompt completes complex multiplayer gaming requirements', async () => {
+  const result = await generateDiagramFromPrompt({
+    description: 'Design a global multiplayer gaming backend with matchmaking, lobbies, real-time state sync, anti-cheat, leaderboards, chat, in-game purchases, player telemetry, regional failover, DDoS protection, and operational monitoring.',
+    callModel: async () => ({
+      content: JSON.stringify(compactComplexResponse),
+      model: 'mock-model'
+    })
+  });
+  const names = new Set(result.nodes.map(node => node.name));
+
+  assert.equal(result.quality.score.score, 100);
+  assert.deepEqual(activeFindings(result.quality), []);
+  [
+    'MATCHMAKING_SERVICE',
+    'LOBBIES_SERVICE',
+    'REALTIME_GATEWAY',
+    'ANTI_CHEAT_SERVICE',
+    'LEADERBOARDS_SERVICE',
+    'MESSAGING_SERVICE',
+    'PAYMENT_SERVICE',
+    'ANALYTICS_PIPELINE',
+    'CLOUDFLARE',
+    'KUBERNETES',
+    'PROMETHEUS',
+    'GRAFANA'
+  ].forEach(name => assert.ok(names.has(name), `Expected ${name}`));
+  assert.ok(!names.has('IN_GAME_PURCHASES_SERVICE'));
+  assert.ok(!names.has('DDOS_PROTECTION_SERVICE'));
+});
+
+test('generateDiagramFromPrompt completes unfamiliar satellite operations requirements', async () => {
+  const result = await generateDiagramFromPrompt({
+    description: 'Design a satellite operations platform with mission planning, satellite scheduling, orbital collision avoidance, ground station handoff, telemetry ingestion, command authorization, anomaly detection, alerting, audit logs, regional failover, and graceful degradation during provider failures.',
+    callModel: async () => ({
+      content: JSON.stringify(compactComplexResponse),
+      model: 'mock-model'
+    })
+  });
+  const names = new Set(result.nodes.map(node => node.name));
+
+  assert.equal(result.quality.score.score, 100);
+  assert.deepEqual(activeFindings(result.quality), []);
+  [
+    'MISSION_PLANNING_SERVICE',
+    'SATELLITE_SCHEDULING_SERVICE',
+    'ORBITAL_COLLISION_AVOIDANCE_SERVICE',
+    'GROUND_STATION_HANDOFF_SERVICE',
+    'TELEMETRY_INGESTION_SERVICE',
+    'COMMAND_AUTHORIZATION_SERVICE',
+    'ANOMALY_DETECTION_SERVICE',
+    'AUDIT_LOG_SERVICE',
+    'RESILIENCE_CONTROL',
+    'KUBERNETES'
+  ].forEach(name => assert.ok(names.has(name), `Expected ${name}`));
 });
 
 test('buildDiagramUserMessage expands showcase architecture examples', () => {

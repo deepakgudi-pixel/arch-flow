@@ -113,3 +113,29 @@ test('digital banking detection does not hijack ordinary payment-processing prom
     'digital_banking',
   );
 });
+
+test('prompt-aware review flags missing capabilities for unfamiliar complex domains', () => {
+  const result = hardenNormalizedDiagramForReview(
+    {
+      nodes: [
+        { name: 'REACT', category: 'frontend', role: 'Operations UI', reason: 'Operator access', icon: 'react' },
+        { name: 'GO', category: 'backend', role: 'Core Service', reason: 'Control logic', icon: 'server' },
+        { name: 'POSTGRESQL', category: 'database', role: 'State', reason: 'Operational data', icon: 'database' },
+      ],
+      edges: [
+        { source: 'REACT', target: 'GO', label: 'HTTPS' },
+        { source: 'GO', target: 'POSTGRESQL', label: 'SQL' },
+      ],
+    },
+    {
+      description: 'Design a satellite platform with mission planning, orbital collision avoidance, ground station handoff, and anomaly detection.',
+    },
+  );
+  const findingTitles = new Set(result.quality.findings.map(finding => finding.title));
+
+  assert.ok(result.quality.score.score < 100);
+  assert.ok(findingTitles.has('MISSING_REQUIRED_EXPLICIT_MISSION_PLANNING'));
+  assert.ok(findingTitles.has('MISSING_REQUIRED_EXPLICIT_ORBITAL_COLLISION_AVOIDANCE'));
+  assert.ok(findingTitles.has('MISSING_REQUIRED_EXPLICIT_GROUND_STATION_HANDOFF'));
+  assert.ok(findingTitles.has('MISSING_REQUIRED_EXPLICIT_ANOMALY_DETECTION'));
+});
