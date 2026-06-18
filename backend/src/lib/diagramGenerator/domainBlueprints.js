@@ -6,6 +6,8 @@ import {
   fixNodeIcon
 } from './hardenerCatalog.js';
 import { normalizeIdentifier } from './hardenerIdentifiers.js';
+import { applyDigitalBankingBlueprint } from './digitalBankingBlueprint.js';
+import { detectRequirementProfile } from './requirementCoverage.js';
 
 const FOOD_DELIVERY_MATCHER = /\b(food delivery|doordash|uber eats|courier|restaurant|restaurants|delivery platform|dispatch|couriers)\b/i;
 const STOCK_TRADING_MATCHER = /\b(stock trading|trading platform|robinhood|brokerage|market data|order placement|order routing|portfolio|reconciliation|compliance reporting|market open|strict consistency)\b/i;
@@ -137,6 +139,10 @@ const TRAVEL_MARKETPLACE_EDGES = [
 
 function detectDomain(description, template) {
   const context = `${description || ''} ${template || ''}`;
+
+  if (detectRequirementProfile({ description, template }) === 'digital_banking') {
+    return 'digital_banking';
+  }
 
   if (FOOD_DELIVERY_MATCHER.test(context)) {
     return 'food_delivery';
@@ -286,6 +292,10 @@ function applyTravelMarketplaceBlueprint(diagram) {
 
 export function applyDomainBlueprint(diagram, { description, template } = {}) {
   const domain = detectDomain(description, template);
+
+  if (domain === 'digital_banking') {
+    return applyDigitalBankingBlueprint(diagram);
+  }
 
   if (domain === 'food_delivery') {
     return applyFoodDeliveryBlueprint(diagram);

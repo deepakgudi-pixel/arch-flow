@@ -629,7 +629,7 @@ function dedupeNormalizedEdges(edges) {
   });
 }
 
-export function hardenNormalizedDiagramForReview(diagram) {
+export function hardenNormalizedDiagramForReview(diagram, context = {}) {
   const hardened = {
     nodes: [...(diagram.nodes || [])],
     edges: [...(diagram.edges || [])],
@@ -652,7 +652,7 @@ export function hardenNormalizedDiagramForReview(diagram) {
     }
   }
 
-  const quality = reviewNormalizedDiagramForGeneration(hardened);
+  const quality = reviewNormalizedDiagramForGeneration(hardened, context);
   const activeFindings = quality.findings.filter(finding => finding.severity === 'critical' || finding.severity === 'warning');
 
   if (activeFindings.length > 0) {
@@ -665,6 +665,6 @@ export function hardenNormalizedDiagramForReview(diagram) {
   return {
     diagram: hardened,
     changes: [...new Set(changes)],
-    quality: reviewNormalizedDiagramForGeneration(hardened),
+    quality: reviewNormalizedDiagramForGeneration(hardened, context),
   };
 }

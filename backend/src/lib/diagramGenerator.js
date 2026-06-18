@@ -69,7 +69,7 @@ export async function generateDiagramFromPrompt({
       const parsed = robustParseJSON(rawResponse);
       const normalizedDiagram = normalizeDiagramStructure(parsed);
       const domainTuned = applyDomainBlueprint(normalizedDiagram, { description, template });
-      const hardened = hardenNormalizedDiagramForReview(domainTuned.diagram);
+      const hardened = hardenNormalizedDiagramForReview(domainTuned.diagram, { description, template });
 
       assertReviewSafeGeneration(hardened);
       validateNormalizedDiagram(hardened.diagram);

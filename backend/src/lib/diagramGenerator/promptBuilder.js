@@ -38,6 +38,7 @@ DOMAIN-SPECIFIC PATTERNS (choose the best match for the user's prompt):
 [food_delivery] KOTLIN, SWIFT, REACT, EXPRESS, GO, FASTAPI, POSTGRESQL, REDIS, KAFKA, S3, STRIPE, GOOGLE_MAPS, TWILIO, PROMETHEUS, GRAFANA, NGINX. Include customer ordering app, courier driver app, restaurant ops dashboard, order API, dispatch matching, pricing/promos/fraud, maps/routing, payments, notifications, and operations monitoring.
 [stock_trading] KOTLIN, SWIFT, REACT, JAVA, SPRING_BOOT, GO, PYTHON, POSTGRESQL, TIMESCALEDB, REDIS, KAFKA, S3, PLAID, TWILIO, VAULT, CLERK, PROMETHEUS, GRAFANA, NGINX. Include mobile trading apps, web trading dashboard, market data gateway, order API, order routing, portfolio ledger, risk/fraud checks, bank funding, trade alerts, audit archive, compliance reporting, and strict consistency.
 [travel_marketplace] KOTLIN, SWIFT, REACT, FASTAPI, GO, PYTHON, NESTJS, POSTGRESQL, REDIS, ELASTICSEARCH, KAFKA, S3, STRIPE, GOOGLE_MAPS, TWILIO, ALGOLIA, CLERK, PROMETHEUS, GRAFANA, NGINX. Include guest app, host app, property search, availability calendar, booking API, dynamic pricing, payments, host payouts, messaging, reviews, maps, fraud/trust safety, identity verification, notifications, image storage, analytics, and operations monitoring.
+[digital_banking] KOTLIN, SWIFT, REACT, KEYCLOAK, POSTGRESQL, COCKROACHDB, REDIS, CLICKHOUSE, KAFKA, S3, PLAID, STRIPE, TWILIO, CLOUDFLARE, KUBERNETES, VAULT, ARGOCD, PROMETHEUS, GRAFANA. Use separate semantic services for API gateway, customer profiles, wallets, double-entry ledger, card authorization, transfers, payment orchestration, fraud, compliance, disputes, reconciliation, scheduled payments, notifications, immutable audit logs, regulatory reporting, and customer support. Include idempotency, dead-letter recovery, active-active regions, data residency, encryption, PCI/GDPR controls, and zero-downtime delivery.
 
 PROTOCOL MAP FOR EDGES:
 frontend>backend: HTTPS, GRAPHQL, WEBSOCKET
@@ -51,16 +52,17 @@ backend>backend: gRPC, HTTP, TCP, THRIFT
 
 RULES:
 1. Identify what the user is building (ecommerce, social, video, fintech, etc.) and apply the matching DOMAIN-SPECIFIC PATTERN. Add/remove tech as needed.
-2. Use exact tech names from catalog. Never prefix with app name. Never generic names.
+2. Use exact tech names from catalog for technology and infrastructure nodes. For distinct domain services, use unique semantic uppercase identifiers such as LEDGER_SERVICE, FRAUD_ENGINE, or PAYMENT_ORCHESTRATOR. Never prefix nodes with the app name.
 3. Categories only: mobile frontend backend database queue auth storage external devops.
 4. Frontend/mobile NEVER connect to database. Always backend in between.
 5. ALWAYS include ALL of these for any multi-component system: REDIS (cache), KAFKA or RABBITMQ (async processing), S3 (storage), PROMETHEUS+GRAFANA (observability), CLERK (auth), NGINX or CLOUDFLARE (traffic management).
-6. Target 12-16 nodes for complex systems. Roles max 4 words. Reasons max 6 words.
+6. Target 14-20 nodes for complex systems. Prefer explicit domain responsibilities over collapsing unrelated capabilities into one runtime node. Roles max 5 words. Reasons max 8 words.
 7. Edge labels from protocol map only. Never use generic labels like CONNECTION or API.
 8. No protocols or generic terms as nodes.
 9. Famous companies use their known stack above.
 10. The architecture MUST be production-complete. Every generated diagram will be scored - missing layers cause score deductions and erode user trust.
-11. Roles must name domain responsibilities, not generic implementation labels. For example: Dispatch matching, Order API, Pricing fraud promos, Restaurant ops, Courier driver app, Payment processing, Maps routing, Notifications, Market data gateway, Order routing, Portfolio ledger, Risk fraud engine, Audit archive, Property search, Availability calendar, Booking API, Trust safety engine.
+11. Roles must name domain responsibilities, not generic implementation labels. Never use Core Service, Worker Service, API Service, or Realtime Service when a more precise responsibility is known.
+12. Treat every explicit capability in the user prompt as a coverage requirement. A rule-safe diagram is not complete unless those responsibilities are visibly represented.
 
 OUTPUT ONLY THIS JSON (no other text):
 {"nodes":[{"name":"TECH","category":"","role":"","reason":"","icon":""}],"edges":[{"source":"TECH","target":"TECH","label":"PROTOCOL"}]}`;

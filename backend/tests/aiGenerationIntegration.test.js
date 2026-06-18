@@ -364,6 +364,71 @@ test('generateDiagramFromPrompt domain-tunes travel marketplace diagrams beyond 
   assert.ok(names.has('ALGOLIA'));
 });
 
+test('generateDiagramFromPrompt expands complex digital banking prompts into explicit service boundaries', async () => {
+  const compactBankingResponse = {
+    nodes: [
+      { name: 'Kotlin', category: 'mobile', role: 'Mobile client', reason: 'Customer access', icon: 'smartphone' },
+      { name: 'React', category: 'frontend', role: 'Web client', reason: 'Customer access', icon: 'react' },
+      { name: 'Java', category: 'backend', role: 'Core Service', reason: 'Business logic', icon: 'server' },
+      { name: 'PostgreSQL', category: 'database', role: 'Relational Store', reason: 'Account data', icon: 'database' },
+      { name: 'Redis', category: 'database', role: 'Cache', reason: 'Fast state', icon: 'database' },
+      { name: 'Kafka', category: 'queue', role: 'Event Bus', reason: 'Async work', icon: 'message-square' },
+      { name: 'S3', category: 'storage', role: 'Storage', reason: 'Documents', icon: 'hard-drive' },
+      { name: 'Plaid', category: 'external', role: 'Banking', reason: 'Bank accounts', icon: 'credit-card' },
+      { name: 'Prometheus', category: 'devops', role: 'Metrics', reason: 'Monitoring', icon: 'activity' }
+    ],
+    edges: [
+      { source: 'Kotlin', target: 'Java', label: 'HTTPS' },
+      { source: 'React', target: 'Java', label: 'HTTPS' },
+      { source: 'Java', target: 'PostgreSQL', label: 'SQL' },
+      { source: 'Java', target: 'Redis', label: 'TCP' },
+      { source: 'Java', target: 'Kafka', label: 'KAFKA' },
+      { source: 'Java', target: 'S3', label: 'S3' },
+      { source: 'Java', target: 'Plaid', label: 'HTTPS' },
+      { source: 'Java', target: 'Prometheus', label: 'HTTP' }
+    ]
+  };
+
+  const result = await generateDiagramFromPrompt({
+    description: 'Design a globally distributed digital banking platform serving 100 million users with multi-currency wallets, double-entry ledger, card authorization, bank transfers, payment processing, realtime fraud detection, compliance screening, disputes, reconciliation, scheduled payments, notifications, immutable audit logs, customer support, regulatory reporting, active-active regions, idempotent writes, data residency, PCI-DSS, GDPR, dead-letter queues, disaster recovery, and zero-downtime deployments.',
+    callModel: async () => ({
+      content: JSON.stringify(compactBankingResponse),
+      model: 'mock-model'
+    })
+  });
+
+  const names = new Set(result.nodes.map(node => node.name));
+  const expectedComponents = [
+    'API_GATEWAY',
+    'CUSTOMER_PROFILE_SERVICE',
+    'WALLET_SERVICE',
+    'LEDGER_SERVICE',
+    'CARD_AUTHORIZATION_SERVICE',
+    'TRANSFER_SERVICE',
+    'PAYMENT_ORCHESTRATOR',
+    'FRAUD_ENGINE',
+    'COMPLIANCE_SERVICE',
+    'DISPUTE_SERVICE',
+    'RECONCILIATION_SERVICE',
+    'SCHEDULED_PAYMENTS_SERVICE',
+    'AUDIT_LOG_SERVICE',
+    'REPORTING_SERVICE',
+    'SUPPORT_CASE_SERVICE',
+    'DEAD_LETTER_QUEUE',
+    'COCKROACHDB',
+    'AUDIT_ARCHIVE',
+    'KUBERNETES',
+    'VAULT',
+    'ARGOCD'
+  ];
+
+  assert.equal(result.quality.score.score, 100);
+  assert.deepEqual(activeFindings(result.quality), []);
+  assert.ok(result.nodes.length >= 36);
+  expectedComponents.forEach(name => assert.ok(names.has(name), `Expected ${name}`));
+  assert.ok(result.autoFixes.some(change => /digital banking service boundaries/i.test(change)));
+});
+
 test('buildDiagramUserMessage expands showcase architecture examples', () => {
   const netflixPrompt = buildDiagramUserMessage('make it resilient', 'example:netflix');
   const stripePrompt = buildDiagramUserMessage('include compliance', 'example:stripe');

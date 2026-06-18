@@ -11,7 +11,7 @@ export const DIAGRAM_RESPONSE_SCHEMA = {
       nodes: {
         type: 'array',
         minItems: 1,
-        maxItems: 14,
+        maxItems: 20,
         items: {
           type: 'object',
           additionalProperties: false,
@@ -21,7 +21,7 @@ export const DIAGRAM_RESPONSE_SCHEMA = {
               type: 'string',
               minLength: 1,
               maxLength: 48,
-              description: 'Exact technology name in uppercase, for example REACT, JAVA, POSTGRESQL, KAFKA.'
+              description: 'Unique uppercase component identifier. Use exact technology names for infrastructure and semantic names such as LEDGER_SERVICE for domain services.'
             },
             category: {
               type: 'string',
@@ -48,7 +48,7 @@ export const DIAGRAM_RESPONSE_SCHEMA = {
       edges: {
         type: 'array',
         minItems: 1,
-        maxItems: 24,
+        maxItems: 40,
         items: {
           type: 'object',
           additionalProperties: false,

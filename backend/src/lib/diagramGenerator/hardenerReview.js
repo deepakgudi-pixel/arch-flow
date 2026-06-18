@@ -12,8 +12,9 @@ import {
   hasObservability,
   hasTrafficManager
 } from './hardenerMetrics.js';
+import { reviewRequirementCoverage } from './requirementCoverage.js';
 
-export function reviewNormalizedDiagramForGeneration(diagram) {
+export function reviewNormalizedDiagramForGeneration(diagram, context = {}) {
   const nodes = diagram.nodes || [];
   const edges = diagram.edges || [];
   const findings = [];
@@ -155,6 +156,8 @@ export function reviewNormalizedDiagramForGeneration(diagram) {
   if (!categoryCounts.queue && backendNodes.length >= 2 && complexityScore >= 10) {
     addFinding('info', 'MISSING_ASYNC_PROCESSING', 'Multiple backend services should have queue-backed async processing.');
   }
+
+  findings.push(...reviewRequirementCoverage(diagram, context));
 
   const criticalCount = findings.filter(finding => finding.severity === 'critical').length;
   const warningCount = findings.filter(finding => finding.severity === 'warning').length;
