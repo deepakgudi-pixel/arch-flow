@@ -18,6 +18,16 @@ export const AUTO_LAYOUT = {
 export const GENERIC_PROTOCOL_LABELS = new Set(['CONNECTION', 'INFERRING...', '']);
 export const REVIEW_NEW_NODE_TOKEN = '__NEW__';
 
+const WORKFLOW_LAYOUT_ORDER = [
+  'edge',
+  'fulfillment',
+  'telemetry',
+  'finance',
+  'assurance',
+  'domain',
+  'platform'
+];
+
 export function getBalancedColumnCount(nodeCount) {
   if (nodeCount >= 24) return 5;
   if (nodeCount >= 16) return 4;
@@ -569,6 +579,28 @@ export function optimizeLaneNodeOrder(nodesByCategory, orderedCategories, neighb
     });
   }
 
+  Object.entries(laneNodesByCategory).forEach(([category, nodesInLane]) => {
+    if (category !== 'backend') {
+      return;
+    }
+
+    const existingIndex = new Map(nodesInLane.map((node, index) => [node.id, index]));
+    laneNodesByCategory[category] = [...nodesInLane].sort((left, right) => {
+      const leftWorkflow = left.data?.workflow || 'domain';
+      const rightWorkflow = right.data?.workflow || 'domain';
+      const leftRank = WORKFLOW_LAYOUT_ORDER.indexOf(leftWorkflow);
+      const rightRank = WORKFLOW_LAYOUT_ORDER.indexOf(rightWorkflow);
+      const normalizedLeftRank = leftRank === -1 ? WORKFLOW_LAYOUT_ORDER.length : leftRank;
+      const normalizedRightRank = rightRank === -1 ? WORKFLOW_LAYOUT_ORDER.length : rightRank;
+
+      if (normalizedLeftRank !== normalizedRightRank) {
+        return normalizedLeftRank - normalizedRightRank;
+      }
+
+      return (existingIndex.get(left.id) || 0) - (existingIndex.get(right.id) || 0);
+    });
+  });
+
   return laneNodesByCategory;
 }
 
@@ -717,6 +749,7 @@ export function buildPersistedNodesPayload(nodes) {
       role: node.data.role,
       reason: node.data.reason,
       icon: node.data.icon,
+      workflow: node.data.workflow,
       products: node.data.products,
       position: node.position
     }));

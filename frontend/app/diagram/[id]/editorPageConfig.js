@@ -63,6 +63,27 @@ export const GlobalStyle = createGlobalStyle`
   .react-flow__attribution {
     display: none !important;
   }
+
+  .react-flow__viewport.archflow-exporting .archflow-protocol-chip {
+    visibility: visible !important;
+    opacity: 1 !important;
+    min-width: 44px !important;
+    max-width: 84px !important;
+    padding: 3px 6px !important;
+    border-width: 1px !important;
+    gap: 0 !important;
+  }
+
+  .react-flow__viewport.archflow-exporting .archflow-protocol-route {
+    display: none !important;
+  }
+
+  .react-flow__viewport.archflow-exporting .archflow-protocol-chip > div:last-child {
+    font-size: 8px !important;
+    line-height: 1 !important;
+    letter-spacing: 0 !important;
+    white-space: nowrap !important;
+  }
 `;
 
 export const nodeTypes = {

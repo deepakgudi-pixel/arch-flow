@@ -59,7 +59,8 @@ export const ProtocolChip = styled.div`
   max-width: 220px;
   box-shadow: none;
   z-index: 30;
-  opacity: 1;
+  opacity: ${props => props.$visible ? 1 : 0};
+  visibility: ${props => props.$visible ? 'visible' : 'hidden'};
   transition: transform 0.18s ease, opacity 0.18s ease, background 0.18s ease;
   animation: ${props => props.$selected ? chipPulse : 'none'} 1.9s ease-in-out infinite;
 `;

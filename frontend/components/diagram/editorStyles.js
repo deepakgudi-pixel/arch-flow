@@ -22,6 +22,15 @@ export const Header = styled.header`
     padding: 12px 18px;
     gap: 14px 20px;
   }
+
+  @media (max-width: 760px) {
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 8px;
+    width: 100%;
+    min-width: 0;
+    padding: 10px 12px;
+  }
 `;
 
 export const HeaderLeft = styled.div`
@@ -31,6 +40,12 @@ export const HeaderLeft = styled.div`
   gap: 18px;
   min-width: 280px;
   flex: 1 1 320px;
+
+  @media (max-width: 760px) {
+    flex: 1 1 100%;
+    min-width: 0;
+    gap: 10px;
+  }
 `;
 
 export const Logo = styled.div`
@@ -95,6 +110,10 @@ export const DiagramName = styled.input`
   &::placeholder {
     color: #999;
   }
+
+  @media (max-width: 760px) {
+    width: min(220px, 58vw);
+  }
 `;
 
 export const HeaderCenter = styled.div`
@@ -102,6 +121,10 @@ export const HeaderCenter = styled.div`
   gap: 12px;
   flex: 1 1 340px;
   min-width: 260px;
+
+  @media (max-width: 760px) {
+    min-width: 0;
+  }
 `;
 
 export const ActionButton = styled.button`

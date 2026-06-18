@@ -527,6 +527,54 @@ test('generateDiagramFromPrompt completes unfamiliar satellite operations requir
   ].forEach(name => assert.ok(names.has(name), `Expected ${name}`));
 });
 
+test('generateDiagramFromPrompt synthesizes coherent autonomous warehouse workflows', async () => {
+  const result = await generateDiagramFromPrompt({
+    description: 'Design a globally distributed autonomous warehouse and supply-chain platform for 5,000 fulfillment centers. Include operator dashboards, warehouse robots, handheld worker devices, inventory tracking, order allocation, robotic task scheduling, route optimization, barcode scanning, package sorting, cold-chain monitoring, predictive maintenance, supplier integrations, shipment tracking, returns, billing, fraud detection, notifications, analytics, audit logs, and operational monitoring. Support real-time telemetry ingestion from millions of devices, intermittent connectivity, offline command buffering, idempotent task execution, event-driven processing, dead-letter recovery, regional data residency, active-active deployment, disaster recovery, graceful degradation, encryption, role-based command authorization, zero-downtime deployments, and clear protocols between every component.',
+    callModel: async () => ({
+      content: JSON.stringify(compactComplexResponse),
+      model: 'mock-model'
+    })
+  });
+  const nodesByName = new Map(result.nodes.map(node => [node.name, node]));
+  const namesById = new Map(result.nodes.map(node => [node.id, node.name]));
+  const edgeKeys = new Set(result.edges.map(edge => (
+    `${namesById.get(edge.source)}->${namesById.get(edge.target)}::${edge.label}`
+  )));
+
+  assert.equal(result.quality.score.score, 100);
+  assert.deepEqual(activeFindings(result.quality), []);
+  assert.equal(nodesByName.get('WAREHOUSE_ROBOT_FLEET')?.category, 'mobile');
+  assert.equal(nodesByName.get('HANDHELD_SCANNERS')?.category, 'mobile');
+  assert.equal(nodesByName.get('SUPPLIER_NETWORK')?.category, 'external');
+  assert.equal(nodesByName.get('EDGE_COMMAND_BUFFER')?.workflow, 'edge');
+  assert.equal(nodesByName.get('ORDER_ALLOCATION_SERVICE')?.workflow, 'fulfillment');
+  assert.equal(nodesByName.get('TELEMETRY_INGESTION_SERVICE')?.workflow, 'telemetry');
+  assert.ok(nodesByName.has('TIMESCALEDB'));
+  assert.ok(!nodesByName.has('GO'));
+  assert.ok(!nodesByName.has('NGINX'));
+
+  [
+    'OPERATOR_DASHBOARD->API_GATEWAY::HTTPS',
+    'WAREHOUSE_ROBOT_FLEET->EDGE_COMMAND_BUFFER::MQTT',
+    'HANDHELD_SCANNERS->EDGE_COMMAND_BUFFER::HTTPS',
+    'EDGE_COMMAND_BUFFER->TELEMETRY_INGESTION_SERVICE::MQTT',
+    'ORDER_SERVICE->ORDER_ALLOCATION_SERVICE::GRPC',
+    'ORDER_ALLOCATION_SERVICE->INVENTORY_SERVICE::GRPC',
+    'INVENTORY_SERVICE->ROBOTIC_TASK_SCHEDULING_SERVICE::GRPC',
+    'ROBOTIC_TASK_SCHEDULING_SERVICE->COMMAND_AUTHORIZATION_SERVICE::GRPC',
+    'TELEMETRY_INGESTION_SERVICE->TIMESCALEDB::SQL',
+    'SUPPLIER_NETWORK->INVENTORY_SERVICE::WEBHOOK',
+    'ARGOCD->KUBERNETES::HTTPS',
+    'CLOUDFLARE->API_GATEWAY::HTTPS',
+    'PROMETHEUS->GRAFANA::HTTP'
+  ].forEach(edgeKey => assert.ok(edgeKeys.has(edgeKey), `Expected ${edgeKey}`));
+
+  assert.ok(!edgeKeys.has('WAREHOUSE_ROBOT_FLEET->API_GATEWAY::HTTPS'));
+  assert.ok(!edgeKeys.has('HANDHELD_SCANNERS->API_GATEWAY::HTTPS'));
+  assert.ok(![...edgeKeys].some(edgeKey => edgeKey.startsWith('DEAD_LETTER_QUEUE->API_GATEWAY::')));
+  assert.ok(![...edgeKeys].some(edgeKey => edgeKey.startsWith('API_GATEWAY->SUPPLIER_NETWORK::')));
+});
+
 test('buildDiagramUserMessage expands showcase architecture examples', () => {
   const netflixPrompt = buildDiagramUserMessage('make it resilient', 'example:netflix');
   const stripePrompt = buildDiagramUserMessage('include compliance', 'example:stripe');

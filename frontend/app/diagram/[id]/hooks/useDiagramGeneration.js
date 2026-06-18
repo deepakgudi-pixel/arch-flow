@@ -116,6 +116,7 @@ export function useDiagramGeneration({
               category: node.category,
               reason: node.reason,
               icon: node.icon,
+              workflow: node.workflow,
               products: node.products || []
             }
           }));

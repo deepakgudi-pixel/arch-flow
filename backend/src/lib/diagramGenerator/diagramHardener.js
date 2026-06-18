@@ -22,7 +22,7 @@ import {
 import { reviewNormalizedDiagramForGeneration } from './hardenerReview.js';
 
 function findPrimaryBackend(nodes) {
-  const order = ['DJANGO', 'SPRING_BOOT', 'EXPRESS', 'FASTAPI', 'NESTJS', 'GO', 'GRAPHQL', 'NODE_JS', 'PYTHON', 'JAVA', 'SCALA', 'ERLANG', 'PHP', 'FLASK', 'GIN', 'RUST'];
+  const order = ['API_GATEWAY', 'DJANGO', 'SPRING_BOOT', 'EXPRESS', 'FASTAPI', 'NESTJS', 'GO', 'GRAPHQL', 'NODE_JS', 'PYTHON', 'JAVA', 'SCALA', 'ERLANG', 'PHP', 'FLASK', 'GIN', 'RUST'];
   for (const name of order) {
     const found = nodes.find(n => n.name === name && n.category === 'backend');
     if (found) return found;
@@ -307,7 +307,12 @@ function ensureProductionCompleteness(nodes, edges, changes) {
 
   const clientNodes = nodes.filter(node => CLIENT_CATEGORIES.has(node.category));
   clientNodes.forEach(clientNode => {
-    if (!edges.some(edge => edge.source === clientNode.name && edge.target === primaryBackend.name)) {
+    const hasApplicationPath = edges.some(edge => {
+      if (edge.source !== clientNode.name) return false;
+      return nodes.find(node => node.name === edge.target)?.category === 'backend';
+    });
+
+    if (!hasApplicationPath) {
       if (addNormalizedEdge(
         edges,
         nodes,
@@ -323,7 +328,12 @@ function ensureProductionCompleteness(nodes, edges, changes) {
   });
 
   getNodesByCategory(nodes, 'database').forEach(databaseNode => {
-    if (!edges.some(edge => edge.source === primaryBackend.name && edge.target === databaseNode.name)) {
+    const hasOwningBackend = edges.some(edge => {
+      if (edge.target !== databaseNode.name) return false;
+      return nodes.find(node => node.name === edge.source)?.category === 'backend';
+    });
+
+    if (!hasOwningBackend) {
       if (addNormalizedEdge(
         edges,
         nodes,

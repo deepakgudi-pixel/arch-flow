@@ -4,6 +4,7 @@ export const VALID_CATEGORIES = new Set(categoryOrder);
 export const CLIENT_CATEGORIES = new Set(['frontend', 'mobile']);
 export const DATABASE_CATEGORIES = new Set(['database']);
 export const BACKEND_TECH_NAMES = new Set([
+  'API_GATEWAY',
   'EXPRESS',
   'FASTAPI',
   'NESTJS',

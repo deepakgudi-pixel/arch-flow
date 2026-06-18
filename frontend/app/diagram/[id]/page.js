@@ -610,7 +610,6 @@ export default function DiagramPage() {
   const labelLayoutsByEdgeId = new Map(
     resolveEdgeLabelCollisions(
       edgeDisplaySeeds
-        .filter(seed => seed.showProtocol)
         .sort((left, right) => Number(right.isSelected) - Number(left.isSelected))
         .map(seed => {
           const dimensions = estimateEdgeLabelDimensions({

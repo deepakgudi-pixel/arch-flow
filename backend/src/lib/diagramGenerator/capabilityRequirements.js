@@ -35,6 +35,20 @@ export const CAPABILITY_REQUIREMENTS = [
     nodes: [['KOTLIN', 'mobile', 'Mobile application', 'Requested mobile client surface', 'smartphone']]
   },
   {
+    id: 'WAREHOUSE_ROBOTS',
+    label: 'warehouse robot devices',
+    prompt: /\b(warehouse robots?|autonomous robots?|robot fleet)\b/i,
+    coverage: /\b(warehouse robots?|autonomous warehouse robots?|autonomous robots?|robot fleet)\b/i,
+    nodes: [['WAREHOUSE_ROBOT_FLEET', 'mobile', 'Autonomous warehouse robots', 'Executes physical movement commands', 'bot']]
+  },
+  {
+    id: 'HANDHELD_WORKER_DEVICES',
+    label: 'handheld worker devices',
+    prompt: /\b(handheld worker devices?|handheld scanners?|warehouse handhelds?)\b/i,
+    coverage: /\b(handheld worker devices?|handheld scanners?|warehouse handhelds?)\b/i,
+    nodes: [['HANDHELD_SCANNERS', 'mobile', 'Handheld worker devices', 'Barcode scans and floor workflows', 'scan-line']]
+  },
+  {
     id: 'AUTH_AND_MFA',
     label: 'authentication and MFA',
     prompt: /\b(authentication|authorization|oauth|oidc|mfa|multi-factor|single sign-on|sso)\b/i,
@@ -82,7 +96,7 @@ export const CAPABILITY_REQUIREMENTS = [
   {
     id: 'REALTIME_DELIVERY',
     label: 'realtime delivery',
-    prompt: /\b(real[- ]?time|websocket|live updates?|state sync|streaming updates?)\b/i,
+    prompt: /\b(realtime delivery|real-time delivery|websocket|live updates?|state sync|streaming updates?)\b/i,
     coverage: /\b(real[- ]?time|websocket|live update|state sync|streaming)\b/i,
     nodes: [['REALTIME_GATEWAY', 'backend', 'Realtime delivery gateway', 'WebSocket and live state fanout', 'radio-tower']]
   },
@@ -192,6 +206,13 @@ export const CAPABILITY_REQUIREMENTS = [
     nodes: [['TELEMETRY_INGESTION_SERVICE', 'backend', 'Telemetry ingestion service', 'High-volume validated event intake', 'radio-tower']]
   },
   {
+    id: 'OFFLINE_COMMAND_BUFFERING',
+    label: 'offline command buffering for intermittent connectivity',
+    prompt: /\b(intermittent connectivity|offline command buffering|store-and-forward commands?)\b/i,
+    coverage: /\b(intermittent connectivity|offline edge command buffer|store-and-forward)\b/i,
+    nodes: [['EDGE_COMMAND_BUFFER', 'backend', 'Offline edge command buffer', 'Store-and-forward during connectivity loss', 'database-backup']]
+  },
+  {
     id: 'REPORTING',
     label: 'reporting and exports',
     prompt: /\b(reporting|reports?|scheduled reports?|regulatory reports?|exports?)\b/i,
@@ -257,11 +278,25 @@ export const CAPABILITY_REQUIREMENTS = [
     ]
   },
   {
+    id: 'SUPPLIER_INTEGRATIONS',
+    label: 'supplier integrations',
+    prompt: /\b(supplier integrations?|supplier network|vendor integrations?)\b/i,
+    coverage: /\b(supplier integration|supplier network|vendor integration)\b/i,
+    nodes: [['SUPPLIER_NETWORK', 'external', 'Supplier integration network', 'Inbound inventory and shipment updates', 'plug-zap']]
+  },
+  {
     id: 'ORDERS',
     label: 'order lifecycle management',
     prompt: /\b(orders?|order lifecycle|order management|order placement)\b/i,
     coverage: /\b(order service|order lifecycle|order management|order placement)\b/i,
     nodes: [['ORDER_SERVICE', 'backend', 'Order lifecycle service', 'Creation state transitions and fulfillment', 'package']]
+  },
+  {
+    id: 'ORDER_ALLOCATION',
+    label: 'order allocation',
+    prompt: /\b(order allocation|fulfillment allocation|warehouse allocation)\b/i,
+    coverage: /\b(order allocation|fulfillment allocation|warehouse allocation)\b/i,
+    nodes: [['ORDER_ALLOCATION_SERVICE', 'backend', 'Order allocation service', 'Assigns orders to fulfillment capacity', 'git-fork']]
   },
   {
     id: 'BOOKINGS',
@@ -396,7 +431,7 @@ export const CAPABILITY_REQUIREMENTS = [
     id: 'OBSERVABILITY',
     label: 'observability and operational monitoring',
     prompt: /\b(observability|operations monitoring|operational monitoring|metrics|tracing|logging|alerting)\b/i,
-    coverage: /\b(observability|operations monitoring|metrics|tracing|logging|alerting|dashboard)\b/i,
+    coverage: /\b(observability|operations monitoring|operational monitoring|operations dashboards?|metrics collection|metrics and alerting|distributed tracing|centralized logging|service alerting)\b/i,
     nodes: [
       ['PROMETHEUS', 'devops', 'Metrics and alerting', 'Service health and SLO signals', 'activity'],
       ['GRAFANA', 'devops', 'Operations dashboards', 'System-wide operational visibility', 'bar-chart']

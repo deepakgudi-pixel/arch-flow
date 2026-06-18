@@ -6,7 +6,9 @@ export function connectIsolatedNodes(normalizedNodes, normalizedEdges) {
   const backendNames = normalizedNodes.filter(n => n.category === 'backend').map(n => n.name);
   const frontendNames = normalizedNodes.filter(n => n.category === 'frontend' || n.category === 'mobile').map(n => n.name);
   const databaseNames = normalizedNodes.filter(n => n.category === 'database').map(n => n.name);
-  const primaryBackend = backendNames[0] || null;
+  const primaryBackend = backendNames.includes('API_GATEWAY')
+    ? 'API_GATEWAY'
+    : backendNames[0] || null;
   const primaryFrontend = frontendNames[0] || null;
   const primaryDatabase = databaseNames[0] || null;
 
@@ -23,7 +25,10 @@ export function connectIsolatedNodes(normalizedNodes, normalizedEdges) {
         connectedNames.add(primaryBackend);
       }
     } else if (cat === 'backend') {
-      if (primaryFrontend) {
+      if (primaryBackend && node.name !== primaryBackend) {
+        normalizedEdges.push({ source: primaryBackend, target: node.name, label: 'HTTP' });
+        changes.push(`Connected ${primaryBackend} -> ${node.name}`);
+      } else if (primaryFrontend) {
         normalizedEdges.push({ source: primaryFrontend, target: node.name, label: 'HTTPS' });
         changes.push(`Connected ${primaryFrontend} -> ${node.name}`);
       } else if (primaryDatabase) {

@@ -139,3 +139,25 @@ test('prompt-aware review flags missing capabilities for unfamiliar complex doma
   assert.ok(findingTitles.has('MISSING_REQUIRED_EXPLICIT_GROUND_STATION_HANDOFF'));
   assert.ok(findingTitles.has('MISSING_REQUIRED_EXPLICIT_ANOMALY_DETECTION'));
 });
+
+test('review-safe hardening prefers API_GATEWAY as the application control plane', () => {
+  const result = hardenNormalizedDiagramForReview({
+    nodes: [
+      { name: 'AUDIT_LOG_SERVICE', category: 'backend', role: 'Audit log', reason: 'Evidence', icon: 'server' },
+      { name: 'API_GATEWAY', category: 'backend', role: 'API gateway', reason: 'Request routing', icon: 'server' },
+      { name: 'REACT', category: 'frontend', role: 'Operator UI', reason: 'Operations', icon: 'react' },
+      { name: 'POSTGRESQL', category: 'database', role: 'Primary data', reason: 'State', icon: 'database' },
+    ],
+    edges: [],
+  });
+
+  assert.ok(result.diagram.edges.some(edge => (
+    edge.source === 'REACT' && edge.target === 'API_GATEWAY'
+  )));
+  assert.ok(result.diagram.edges.some(edge => (
+    edge.source === 'API_GATEWAY' && edge.target === 'POSTGRESQL'
+  )));
+  assert.ok(!result.diagram.edges.some(edge => (
+    edge.source === 'REACT' && edge.target === 'AUDIT_LOG_SERVICE'
+  )));
+});

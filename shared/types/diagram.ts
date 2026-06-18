@@ -23,6 +23,7 @@ export interface DiagramNode {
   role?: string;
   reason?: string;
   icon?: string;
+  workflow?: string;
   products?: string[];
   position?: DiagramPosition;
 }

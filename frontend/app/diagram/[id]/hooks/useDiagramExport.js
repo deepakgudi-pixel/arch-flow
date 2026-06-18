@@ -35,13 +35,18 @@ export function useDiagramExport({
 
     setToast({ message: 'RENDER_4K_BLUEPRINT...', warning: true });
 
+    const viewport = document.querySelector('.react-flow__viewport');
+
     try {
       const nodesBounds = getRectOfNodes(nodes);
       const padding = 150;
       const exportWidth = nodesBounds.width + (padding * 2);
       const exportHeight = nodesBounds.height + (padding * 2);
 
-      const dataUrl = await toPng(document.querySelector('.react-flow__viewport'), {
+      viewport?.classList.add('archflow-exporting');
+      await new Promise(resolve => window.requestAnimationFrame(() => window.requestAnimationFrame(resolve)));
+
+      const dataUrl = await toPng(viewport, {
         backgroundColor: '#ffffff',
         width: exportWidth,
         height: exportHeight,
@@ -66,6 +71,8 @@ export function useDiagramExport({
       console.error('PNG Export failed:', err);
       setToast({ message: 'EXPORT_FAILED: RENDER_BUFFER_OVERFLOW', error: true });
       setTimeout(() => setToast(null), 3000);
+    } finally {
+      viewport?.classList.remove('archflow-exporting');
     }
   }, [diagramName, nodes, rfInstance, setShowExportMenu, setToast]);
 

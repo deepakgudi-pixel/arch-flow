@@ -8,6 +8,18 @@ export const CenterStack = styled(HeaderCenter)`
   justify-content: center;
   gap: 12px;
   flex: 2;
+
+  @media (max-width: 760px) {
+    order: 3;
+    flex: 1 1 100%;
+    justify-content: flex-start;
+    overflow-x: auto;
+    scrollbar-width: none;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
+  }
 `;
 
 export const FocusChip = styled(motion.div)`
@@ -64,6 +76,15 @@ export const ActionRail = styled(HeaderRight)`
   gap: 12px;
   flex: 1;
   justify-content: flex-end;
+
+  @media (max-width: 760px) {
+    order: 2;
+    width: 100%;
+    min-width: 0;
+    margin-left: 0;
+    gap: 8px;
+    justify-content: space-between;
+  }
 `;
 
 export const PrimaryGroup = styled.div`
@@ -73,6 +94,17 @@ export const PrimaryGroup = styled.div`
   padding: 4px;
   background: rgba(0, 0, 0, 0.03);
   border-radius: 12px;
+
+  @media (max-width: 760px) {
+    min-width: 0;
+    max-width: calc(100% - 92px);
+    overflow-x: auto;
+    scrollbar-width: none;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
+  }
 `;
 
 export const PrimaryAction = styled(ActionButton)`
@@ -93,6 +125,21 @@ export const PrimaryAction = styled(ActionButton)`
 
   &:disabled {
     cursor: not-allowed;
+  }
+
+  @media (max-width: 760px) {
+    width: 38px;
+    height: 34px;
+    padding: 0;
+    justify-content: center;
+    gap: 0;
+    font-size: 0;
+    flex: 0 0 38px;
+
+    svg {
+      width: 16px;
+      height: 16px;
+    }
   }
 `;
 
@@ -125,6 +172,10 @@ export const UtilityTrigger = styled(ActionButton)`
   svg {
     transform: ${props => props.$open ? 'rotate(180deg)' : 'none'};
     transition: transform 0.2s;
+  }
+
+  @media (max-width: 760px) {
+    padding: 8px 10px;
   }
 `;
 

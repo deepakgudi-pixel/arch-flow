@@ -35,6 +35,7 @@ export function generateNodesFromDiagram(nodes) {
         role: node.role || `Handles ${node.name.toLowerCase()} operations`,
         reason: node.reason || `Selected for its strength in handling ${category} requirements`,
         icon: node.icon || 'tech',
+        workflow: node.workflow,
         position: {
           x,
           y: startY + (index * nodeHeight)
@@ -61,4 +62,3 @@ export function generateEdgesFromDiagram(nodes, edges, positionedNodes) {
     type: 'step'
   }));
 }
-

@@ -90,6 +90,7 @@ export function useDiagramPersistence({
             category: node.category || node.data?.category,
             reason: node.reason || node.data?.reason,
             icon: node.icon || node.data?.icon,
+            workflow: node.workflow || node.data?.workflow,
             products: node.products || node.data?.products || []
           }
         }));
@@ -296,6 +297,7 @@ export function useDiagramPersistence({
           category: node.category,
           reason: node.reason,
           icon: node.icon,
+          workflow: node.workflow,
           products: node.products || []
         }
       }));

@@ -7,6 +7,7 @@ import { normalizeDiagramStructure } from './diagramGenerator/diagramNormalizer.
 import { hardenNormalizedDiagramForReview } from './diagramGenerator/diagramHardener.js';
 import { applyDomainBlueprint } from './diagramGenerator/domainBlueprints.js';
 import { applyPromptCapabilityRequirements } from './diagramGenerator/capabilityCompletion.js';
+import { applyWorkflowRelationships } from './diagramGenerator/workflowRelationships.js';
 import {
   generateEdgesFromDiagram,
   generateNodesFromDiagram
@@ -74,7 +75,11 @@ export async function generateDiagramFromPrompt({
         domainTuned.diagram,
         { description, template }
       );
-      const hardened = hardenNormalizedDiagramForReview(capabilityTuned.diagram, { description, template });
+      const workflowTuned = applyWorkflowRelationships(
+        capabilityTuned.diagram,
+        { description, template }
+      );
+      const hardened = hardenNormalizedDiagramForReview(workflowTuned.diagram, { description, template });
 
       assertReviewSafeGeneration(hardened);
       validateNormalizedDiagram(hardened.diagram);
@@ -89,8 +94,8 @@ export async function generateDiagramFromPrompt({
         nodes,
         edges,
         quality: hardened.quality,
-        autoFixes: [...domainTuned.changes, ...capabilityTuned.changes, ...hardened.changes].length > 0
-          ? [...domainTuned.changes, ...capabilityTuned.changes, ...hardened.changes]
+        autoFixes: [...domainTuned.changes, ...capabilityTuned.changes, ...workflowTuned.changes, ...hardened.changes].length > 0
+          ? [...domainTuned.changes, ...capabilityTuned.changes, ...workflowTuned.changes, ...hardened.changes]
           : undefined
       };
     } catch (error) {

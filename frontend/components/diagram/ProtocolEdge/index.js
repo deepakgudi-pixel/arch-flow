@@ -55,14 +55,16 @@ export function ProtocolEdge({
         }}
       />
 
-      {showProtocol && (
+      {label && (
         <EdgeLabelRenderer>
           <ProtocolChip
+            className="archflow-protocol-chip"
             $selected={selected}
+            $visible={showProtocol}
             $left={basePosition.x + (data?.labelShiftX || 0)}
             $top={basePosition.y + (data?.labelShiftY || 0)}
           >
-            {routeText && <RouteCaption>{routeText}</RouteCaption>}
+            {routeText && <RouteCaption className="archflow-protocol-route">{routeText}</RouteCaption>}
             <FlowLabel>{label}</FlowLabel>
           </ProtocolChip>
         </EdgeLabelRenderer>
