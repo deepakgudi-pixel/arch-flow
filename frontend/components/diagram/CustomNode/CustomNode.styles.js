@@ -45,7 +45,7 @@ export const NodeCategoryLabel = styled.span`
 `;
 
 export const NodeBody = styled.div`
-  padding: 16px;
+  padding: 12px 14px;
   display: flex;
   flex: 1;
 `;
@@ -65,12 +65,23 @@ export const NodeText = styled.div`
 export const NodeName = styled.div`
   font-weight: 900;
   color: #000000;
-  font-size: 15px;
+  font-size: 14px;
   text-transform: uppercase;
   line-height: 1.2;
   word-break: keep-all;
   overflow-wrap: break-word;
   letter-spacing: -0.02em;
+`;
+
+export const NodeMeta = styled.div`
+  margin-top: 6px;
+  font-family: var(--font-sans);
+  font-size: 10px;
+  font-weight: 700;
+  color: #6b6b6b;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  line-height: 1.35;
 `;
 
 export const IconContainer = styled.div`

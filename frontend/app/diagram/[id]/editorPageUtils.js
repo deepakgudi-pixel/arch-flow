@@ -750,6 +750,8 @@ export function buildPersistedNodesPayload(nodes) {
       reason: node.data.reason,
       icon: node.data.icon,
       workflow: node.data.workflow,
+      implementation: node.data.implementation,
+      implementationDescription: node.data.implementationDescription,
       products: node.data.products,
       position: node.position
     }));

@@ -19,7 +19,7 @@ export function getReplacementCandidates(inventory, category, currentLabel) {
 
     deduped.set(normalizedName, {
       ...item,
-      source: builtInItems.includes(item) ? 'BUILT_IN' : 'COMMUNITY'
+      source: builtInItems.includes(item) ? 'BUILT-IN' : 'COMMUNITY'
     });
   });
 

@@ -112,6 +112,39 @@ test('digital banking detection does not hijack ordinary payment-processing prom
     }),
     'digital_banking',
   );
+  assert.equal(
+    detectRequirementProfile({
+      description: 'Design a global healthcare operations platform with hospital networks, lab order workflows, prescriptions, claims processing, prior authorization, HIPAA boundaries, and offline clinic workflows.',
+    }),
+    'healthcare_operations',
+  );
+});
+
+test('healthcare prompts lose perfect review scores when clinical workflows are missing', () => {
+  const result = hardenNormalizedDiagramForReview(
+    {
+      nodes: [
+        { name: 'REACT', category: 'frontend', role: 'Care portal', reason: 'Staff access', icon: 'react' },
+        { name: 'FASTAPI', category: 'backend', role: 'Core service', reason: 'Healthcare logic', icon: 'server' },
+        { name: 'POSTGRESQL', category: 'database', role: 'Clinical data', reason: 'Primary records', icon: 'database' },
+      ],
+      edges: [
+        { source: 'REACT', target: 'FASTAPI', label: 'HTTPS' },
+        { source: 'FASTAPI', target: 'POSTGRESQL', label: 'SQL' },
+      ],
+    },
+    {
+      description: 'Design CareNexus, a global B2B healthcare operations platform for hospital networks, labs, insurers, and pharmacies. Include doctor and patient apps, appointment scheduling, EHR access, lab order workflows, prescription routing, claims processing, prior authorization, billing, fraud detection, notifications, audit logs, analytics, image/document storage, and operations monitoring. Support strict HIPAA-style access boundaries, regional data residency, asynchronous claim/lab workflows, retries, dead-letter recovery, encrypted PHI handling, offline clinic workflows, and clear protocols between every major component.',
+    },
+  );
+  const findingTitles = new Set(result.quality.findings.map(finding => finding.title));
+
+  assert.ok(result.quality.score.score < 100);
+  assert.ok(findingTitles.has('MISSING_REQUIRED_EHR_ACCESS'));
+  assert.ok(findingTitles.has('MISSING_REQUIRED_LAB_WORKFLOWS'));
+  assert.ok(findingTitles.has('MISSING_REQUIRED_PRESCRIPTION_ROUTING'));
+  assert.ok(findingTitles.has('MISSING_REQUIRED_CLAIMS_PROCESSING'));
+  assert.ok(findingTitles.has('MISSING_REQUIRED_OFFLINE_CLINIC_SYNC'));
 });
 
 test('prompt-aware review flags missing capabilities for unfamiliar complex domains', () => {

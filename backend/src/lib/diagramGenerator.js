@@ -8,6 +8,7 @@ import { hardenNormalizedDiagramForReview } from './diagramGenerator/diagramHard
 import { applyDomainBlueprint } from './diagramGenerator/domainBlueprints.js';
 import { applyPromptCapabilityRequirements } from './diagramGenerator/capabilityCompletion.js';
 import { applyWorkflowRelationships } from './diagramGenerator/workflowRelationships.js';
+import { applyNodeImplementations } from './diagramGenerator/nodeImplementations.js';
 import {
   generateEdgesFromDiagram,
   generateNodesFromDiagram
@@ -80,12 +81,17 @@ export async function generateDiagramFromPrompt({
         { description, template }
       );
       const hardened = hardenNormalizedDiagramForReview(workflowTuned.diagram, { description, template });
+      const implementationTunedDiagram = applyNodeImplementations(hardened.diagram);
 
       assertReviewSafeGeneration(hardened);
-      validateNormalizedDiagram(hardened.diagram);
+      validateNormalizedDiagram(implementationTunedDiagram);
 
-      const nodes = generateNodesFromDiagram(hardened.diagram.nodes);
-      const edges = generateEdgesFromDiagram(hardened.diagram.nodes, hardened.diagram.edges, nodes);
+      const nodes = generateNodesFromDiagram(implementationTunedDiagram.nodes);
+      const edges = generateEdgesFromDiagram(
+        implementationTunedDiagram.nodes,
+        implementationTunedDiagram.edges,
+        nodes
+      );
 
       return {
         model: resolvedModel,

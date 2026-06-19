@@ -114,12 +114,12 @@ const WAREHOUSE_GATEWAY_TARGETS = new Set([
 ]);
 
 const WORKFLOW_HINTS = [
-  ['edge', /(OPERATOR_DASHBOARD|HANDHELD_SCANNERS|WAREHOUSE_ROBOT_FLEET|EDGE_COMMAND_BUFFER|COMMAND_AUTHORIZATION)/],
-  ['fulfillment', /(ORDER|ALLOCATION|INVENTORY|BARCODE|PACKAGE_SORTING|ROBOTIC_TASK|ROUTE_OPTIMIZATION|SHIPMENT|RETURNS|SUPPLIER)/],
-  ['telemetry', /(TELEMETRY|COLD_CHAIN|PREDICTIVE_MAINTENANCE|ANALYTICS)/],
-  ['finance', /(BILLING|PAYMENT|FRAUD|STRIPE)/],
-  ['assurance', /(AUDIT|NOTIFICATION|RESILIENCE|DEAD_LETTER)/],
-  ['platform', /(API_GATEWAY|AUTH|CLERK|KEYCLOAK|REDIS|POSTGRESQL|TIMESCALEDB|CLICKHOUSE|KAFKA|S3|VAULT|KUBERNETES|CLOUDFLARE|ARGOCD|PROMETHEUS|GRAFANA|NGINX)/]
+  ['edge', /(OPERATOR_DASHBOARD|HANDHELD_SCANNERS|WAREHOUSE_ROBOT_FLEET|EDGE_COMMAND_BUFFER|COMMAND_AUTHORIZATION|PATIENT|CLINICIAN|OFFLINE_CLINIC_SYNC)/],
+  ['fulfillment', /(ORDER|ALLOCATION|INVENTORY|BARCODE|PACKAGE_SORTING|ROBOTIC_TASK|ROUTE_OPTIMIZATION|SHIPMENT|RETURNS|SUPPLIER|APPOINTMENT|EHR_ACCESS|LAB_ORDER|PRESCRIPTION)/],
+  ['telemetry', /(TELEMETRY|COLD_CHAIN|PREDICTIVE_MAINTENANCE|ANALYTICS|CLICKHOUSE)/],
+  ['finance', /(BILLING|PAYMENT|FRAUD|STRIPE|CLAIMS|PRIOR_AUTHORIZATION|INSURANCE_EXCHANGE)/],
+  ['assurance', /(AUDIT|NOTIFICATION|RESILIENCE|DEAD_LETTER|CONSENT|VAULT)/],
+  ['platform', /(API_GATEWAY|AUTH|CLERK|KEYCLOAK|REDIS|POSTGRESQL|TIMESCALEDB|CLICKHOUSE|KAFKA|S3|VAULT|KUBERNETES|CLOUDFLARE|ARGOCD|PROMETHEUS|GRAFANA|NGINX|HOSPITAL_EHR_NETWORK|LAB_NETWORK|PHARMACY_NETWORK|TWILIO)/]
 ];
 
 function replaceNode(nodes, edges, fromName, replacement, changes) {
@@ -158,6 +158,8 @@ function replaceNode(nodes, edges, fromName, replacement, changes) {
   existing.role = replacement.role;
   existing.reason = replacement.reason;
   existing.icon = fixNodeIcon(normalizedTo) || replacement.icon || existing.icon;
+  existing.implementation = replacement.implementation || existing.implementation || normalizedFrom;
+  existing.implementationDescription = replacement.implementationDescription || existing.implementationDescription;
   changes.push(`Workflow tuned: modeled ${normalizedTo} as ${replacement.category}`);
   return existing;
 }
@@ -242,35 +244,45 @@ function applyWarehouseModel(nodes, edges, changes) {
     category: 'frontend',
     role: 'Warehouse operator dashboard',
     reason: 'Human oversight and exception handling',
-    icon: 'layout-dashboard'
+    icon: 'layout-dashboard',
+    implementation: 'React',
+    implementationDescription: 'Dashboard implementation for operator workflows'
   }, changes);
   replaceNode(nodes, edges, 'KOTLIN', {
     name: 'HANDHELD_SCANNERS',
     category: 'mobile',
     role: 'Handheld worker devices',
     reason: 'Barcode scans and floor workflows',
-    icon: 'scan-line'
+    icon: 'scan-line',
+    implementation: 'Kotlin',
+    implementationDescription: 'Native Android handheld workflow client'
   }, changes);
   replaceNode(nodes, edges, 'HANDHELD_WORKER_DEVICES_SERVICE', {
     name: 'HANDHELD_SCANNERS',
     category: 'mobile',
     role: 'Handheld worker devices',
     reason: 'Barcode scans and floor workflows',
-    icon: 'scan-line'
+    icon: 'scan-line',
+    implementation: 'Kotlin',
+    implementationDescription: 'Native Android handheld workflow client'
   }, changes);
   replaceNode(nodes, edges, 'WAREHOUSE_ROBOTS_SERVICE', {
     name: 'WAREHOUSE_ROBOT_FLEET',
     category: 'mobile',
     role: 'Autonomous warehouse robots',
     reason: 'Executes physical movement commands',
-    icon: 'bot'
+    icon: 'bot',
+    implementation: 'MQTT edge runtime',
+    implementationDescription: 'Device control runtime for robot fleets'
   }, changes);
   replaceNode(nodes, edges, 'SUPPLIER_INTEGRATIONS_SERVICE', {
     name: 'SUPPLIER_NETWORK',
     category: 'external',
     role: 'Supplier integration network',
     reason: 'Inbound inventory and shipment updates',
-    icon: 'plug-zap'
+    icon: 'plug-zap',
+    implementation: 'Webhook connectors',
+    implementationDescription: 'Partner-facing integration endpoints'
   }, changes);
 
   addNormalizedNode(
@@ -282,6 +294,11 @@ function applyWarehouseModel(nodes, edges, changes) {
     'database-backup',
     changes
   );
+  const edgeBufferNode = nodes.find(node => node.name === 'EDGE_COMMAND_BUFFER');
+  if (edgeBufferNode) {
+    edgeBufferNode.implementation = edgeBufferNode.implementation || 'Go';
+    edgeBufferNode.implementationDescription = edgeBufferNode.implementationDescription || 'Reliable edge buffering runtime';
+  }
   addNormalizedNode(
     nodes,
     'TIMESCALEDB',

@@ -36,6 +36,8 @@ export function generateNodesFromDiagram(nodes) {
         reason: node.reason || `Selected for its strength in handling ${category} requirements`,
         icon: node.icon || 'tech',
         workflow: node.workflow,
+        implementation: node.implementation,
+        implementationDescription: node.implementationDescription,
         position: {
           x,
           y: startY + (index * nodeHeight)

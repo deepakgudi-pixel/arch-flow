@@ -117,6 +117,8 @@ export function useDiagramGeneration({
               reason: node.reason,
               icon: node.icon,
               workflow: node.workflow,
+              implementation: node.implementation,
+              implementationDescription: node.implementationDescription,
               products: node.products || []
             }
           }));

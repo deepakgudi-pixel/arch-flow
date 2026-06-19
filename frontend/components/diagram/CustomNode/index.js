@@ -1,17 +1,27 @@
 'use client';
 
 import { Handle, Position } from 'reactflow';
-import { formatTechDisplayLabel } from '@/lib/displayNames';
+import {
+  getNodeDisplayName,
+  getNodeImplementationDisplayName,
+  getNodeUnitTypeLabel,
+  hasDistinctImplementation
+} from '@/lib/nodePresentation';
 import {
   NodeWrapper, NodeTopBar, NodeCategoryLabel, NodeBody, NodeContent, NodeText, NodeName,
-  IconContainer
+  IconContainer, NodeMeta
 } from './CustomNode.styles';
 
 import * as LucideIcons from 'lucide-react';
 
 export function CustomNode({ data, selected }) {
   const IconComponent = LucideIcons[data.icon] || LucideIcons.Layers;
-  const displayLabel = formatTechDisplayLabel(data.label, data.category);
+  const displayLabel = getNodeDisplayName(data);
+  const implementationLabel = getNodeImplementationDisplayName(data);
+  const unitTypeLabel = getNodeUnitTypeLabel(data.category);
+  const metaLabel = hasDistinctImplementation(data)
+    ? implementationLabel
+    : '';
 
   return (
     <>
@@ -23,7 +33,7 @@ export function CustomNode({ data, selected }) {
         $highlighted={data.highlighted}
       >
         <NodeTopBar $category={data.category}>
-          <NodeCategoryLabel>{data.category}</NodeCategoryLabel>
+          <NodeCategoryLabel>{unitTypeLabel}</NodeCategoryLabel>
         </NodeTopBar>
         <NodeBody>
           <NodeContent>
@@ -32,6 +42,7 @@ export function CustomNode({ data, selected }) {
             </IconContainer>
             <NodeText>
               <NodeName>{displayLabel}</NodeName>
+              {metaLabel && <NodeMeta>{metaLabel}</NodeMeta>}
             </NodeText>
           </NodeContent>
         </NodeBody>

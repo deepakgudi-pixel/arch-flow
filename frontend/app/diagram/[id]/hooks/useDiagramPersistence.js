@@ -91,6 +91,8 @@ export function useDiagramPersistence({
             reason: node.reason || node.data?.reason,
             icon: node.icon || node.data?.icon,
             workflow: node.workflow || node.data?.workflow,
+            implementation: node.implementation || node.data?.implementation,
+            implementationDescription: node.implementationDescription || node.data?.implementationDescription,
             products: node.products || node.data?.products || []
           }
         }));
@@ -298,6 +300,8 @@ export function useDiagramPersistence({
           reason: node.reason,
           icon: node.icon,
           workflow: node.workflow,
+          implementation: node.implementation,
+          implementationDescription: node.implementationDescription,
           products: node.products || []
         }
       }));

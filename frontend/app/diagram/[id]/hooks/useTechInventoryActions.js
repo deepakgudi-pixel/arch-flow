@@ -1,9 +1,37 @@
 import { useState } from 'react';
 import api from '@/lib/api';
 
+const CATEGORY_ORDER = [
+  'mobile',
+  'frontend',
+  'auth',
+  'backend',
+  'database',
+  'queue',
+  'storage',
+  'external',
+  'devops'
+];
+
+function buildManualUnitPosition(nodes, category) {
+  const categoryIndex = Math.max(CATEGORY_ORDER.indexOf(category), 0);
+  const categoryNodeCount = nodes.filter(node => (
+    node.type === 'customNode' && node.data?.category === category
+  )).length;
+
+  return {
+    x: 140 + (categoryIndex * 300),
+    y: 140 + (categoryNodeCount * 100)
+  };
+}
+
 export function useTechInventoryActions({
   loadInventory,
+  nodes,
   setNodes,
+  setSelectedNode,
+  setLeftSidebarOpen,
+  setRightPanelOpen,
   setToast
 }) {
   const [customTechPrompt, setCustomTechPrompt] = useState('');
@@ -75,6 +103,8 @@ export function useTechInventoryActions({
         role: tech.description || tech.role || tech.name,
         category: tech.category,
         icon: tech.icon,
+        implementation: tech.name,
+        implementationDescription: tech.description || tech.role || '',
         products: tech.products || []
       }
     };
@@ -87,6 +117,40 @@ export function useTechInventoryActions({
     e.dataTransfer.dropEffect = 'move';
   };
 
+  const handleCreateArchitectureUnit = ({ responsibility, technology }) => {
+    const normalizedResponsibility = responsibility.trim();
+
+    if (!normalizedResponsibility || !technology?.name || !technology?.category) {
+      return;
+    }
+
+    const newNode = {
+      id: `node_${Date.now()}`,
+      type: 'customNode',
+      position: buildManualUnitPosition(nodes, technology.category),
+      data: {
+        label: normalizedResponsibility,
+        role: `Runs ${normalizedResponsibility.toLowerCase()} workflows`,
+        reason: `${technology.name} selected to implement ${normalizedResponsibility}`,
+        category: technology.category,
+        icon: technology.icon || 'server',
+        implementation: technology.name,
+        implementationDescription: technology.description || technology.role || '',
+        products: technology.products || []
+      }
+    };
+
+    setNodes(currentNodes => [...currentNodes, newNode]);
+    setSelectedNode?.(newNode);
+    setRightPanelOpen?.(false);
+    setLeftSidebarOpen?.(true);
+    setToast({
+      message: `UNIT_CREATED: ${normalizedResponsibility} · ${technology.name}`,
+      error: false
+    });
+    setTimeout(() => setToast(null), 2400);
+  };
+
   return {
     customTechPrompt,
     setCustomTechPrompt,
@@ -95,6 +159,7 @@ export function useTechInventoryActions({
     deleteFromInventory,
     handleDragStart,
     handleDrop,
-    handleDragOver
+    handleDragOver,
+    handleCreateArchitectureUnit
   };
 }

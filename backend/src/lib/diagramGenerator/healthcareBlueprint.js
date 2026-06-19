@@ -1,0 +1,143 @@
+const HEALTHCARE_NODES = [
+  ['KOTLIN', 'mobile', 'Patient mobile app', 'Appointments records and reminders', 'smartphone'],
+  ['SWIFT', 'mobile', 'Clinician mobile app', 'Chart review and approvals', 'smartphone'],
+  ['REACT', 'frontend', 'Care operations portal', 'Staff workflows and oversight', 'react'],
+  ['KEYCLOAK', 'auth', 'Clinical identity and MFA', 'SSO MFA and role boundaries', 'shield'],
+  ['API_GATEWAY', 'backend', 'Clinical API gateway', 'PHI-aware routing and policy', 'server', 'Go', 'Low-latency edge routing'],
+  ['APPOINTMENT_SERVICE', 'backend', 'Appointment scheduling service', 'Calendar booking and availability', 'calendar-check', 'FastAPI', 'Structured appointment workflows'],
+  ['EHR_ACCESS_SERVICE', 'backend', 'EHR access service', 'FHIR reads and clinical sync', 'file-heart', 'Go', 'Efficient integration fan-out'],
+  ['LAB_ORDER_SERVICE', 'backend', 'Lab order workflow service', 'Orders results and retries', 'flask-round', 'FastAPI', 'Reliable clinical API contracts'],
+  ['PRESCRIPTION_ROUTING_SERVICE', 'backend', 'Prescription routing service', 'Pharmacy delivery and refills', 'pill', 'FastAPI', 'External pharmacy orchestration'],
+  ['CLAIMS_PROCESSING_SERVICE', 'backend', 'Claims processing service', 'Claim creation adjudication retries', 'file-text', 'Java', 'High-throughput payer workflows'],
+  ['PRIOR_AUTHORIZATION_SERVICE', 'backend', 'Prior authorization service', 'Payer approvals and exceptions', 'stamp', 'Java', 'Durable approval orchestration'],
+  ['CONSENT_MANAGEMENT_SERVICE', 'backend', 'Consent management service', 'PHI access grants and revocation', 'shield-check', 'FastAPI', 'Clear policy and approval paths'],
+  ['BILLING_SERVICE', 'backend', 'Billing settlement service', 'Invoices copays and reconciliation', 'receipt-text', 'Java', 'Transactional settlement logic'],
+  ['FRAUD_ENGINE', 'backend', 'Fraud anomaly engine', 'Abuse scoring and suspicious claims', 'shield-alert', 'Python', 'Flexible risk model execution'],
+  ['OFFLINE_CLINIC_SYNC_SERVICE', 'backend', 'Offline clinic sync service', 'Store and forward chart updates', 'database-backup', 'Go', 'Resilient offline sync handling'],
+  ['NOTIFICATION_SERVICE', 'backend', 'Patient notification service', 'Reminders alerts and followups', 'bell-ring', 'Go', 'Reliable delivery fan-out'],
+  ['AUDIT_LOG_SERVICE', 'backend', 'Immutable audit log service', 'Tamper-evident PHI access history', 'scroll-text', 'Java', 'Append-only compliance pipelines'],
+  ['ANALYTICS_PIPELINE', 'backend', 'Care analytics pipeline', 'Operational reporting and service insights', 'chart-no-axes-combined', 'Python', 'Aggregation and reporting jobs'],
+  ['RESILIENCE_CONTROL', 'backend', 'Retry and recovery control', 'Replay failures and graceful degradation', 'shield-half', 'Go', 'Deterministic replay orchestration'],
+  ['POSTGRESQL', 'database', 'Clinical operations database', 'Appointments claims consent and billing', 'database'],
+  ['REDIS', 'database', 'Session and sync cache', 'Hot state buffers and locks', 'database'],
+  ['CLICKHOUSE', 'database', 'Healthcare analytics warehouse', 'Large-scale metrics and claims analytics', 'database'],
+  ['KAFKA', 'queue', 'Clinical workflow stream', 'Async orders claims and notifications', 'message-square'],
+  ['DEAD_LETTER_QUEUE', 'queue', 'Clinical dead-letter queue', 'Failed event replay and diagnosis', 'message-square-warning'],
+  ['S3', 'storage', 'Encrypted PHI storage', 'Documents images and retained records', 'hard-drive'],
+  ['AUDIT_ARCHIVE', 'storage', 'Immutable audit archive', 'Long-term compliance retention', 'archive'],
+  ['HOSPITAL_EHR_NETWORK', 'external', 'Hospital EHR network', 'Regional EHR and FHIR access', 'network'],
+  ['LAB_NETWORK', 'external', 'Lab network integrations', 'Orders results and status callbacks', 'flask-conical'],
+  ['INSURANCE_EXCHANGE', 'external', 'Payer claims network', 'Claims prior auth and eligibility', 'network'],
+  ['PHARMACY_NETWORK', 'external', 'Pharmacy fulfillment network', 'Prescription routing and dispensing', 'pill-bottle'],
+  ['TWILIO', 'external', 'Reminder delivery provider', 'SMS and voice notifications', 'phone'],
+  ['CLOUDFLARE', 'devops', 'Clinical edge and WAF', 'Regional routing and edge security', 'cloud'],
+  ['KUBERNETES', 'devops', 'Regional clinical runtime', 'Residency failover and workload isolation', 'cloud-cog'],
+  ['VAULT', 'devops', 'PHI encryption controls', 'Keys tokens and secret rotation', 'shield'],
+  ['ARGOCD', 'devops', 'Zero-downtime delivery', 'Progressive releases and rollback safety', 'git-branch'],
+  ['PROMETHEUS', 'devops', 'Metrics and alerting', 'SLOs saturation and incident signals', 'activity'],
+  ['GRAFANA', 'devops', 'Clinical ops dashboards', 'Cross-service monitoring and drilldowns', 'bar-chart']
+];
+
+const HEALTHCARE_EDGES = [
+  ['KOTLIN', 'API_GATEWAY', 'HTTPS'],
+  ['SWIFT', 'API_GATEWAY', 'HTTPS'],
+  ['REACT', 'API_GATEWAY', 'HTTPS'],
+  ['KOTLIN', 'KEYCLOAK', 'OIDC'],
+  ['SWIFT', 'KEYCLOAK', 'OIDC'],
+  ['REACT', 'KEYCLOAK', 'OIDC'],
+  ['CLOUDFLARE', 'API_GATEWAY', 'HTTPS'],
+  ['ARGOCD', 'KUBERNETES', 'HTTPS'],
+  ['KUBERNETES', 'PROMETHEUS', 'HTTP'],
+  ['PROMETHEUS', 'GRAFANA', 'HTTP'],
+  ['API_GATEWAY', 'KEYCLOAK', 'OIDC'],
+  ['API_GATEWAY', 'VAULT', 'HTTPS'],
+  ['API_GATEWAY', 'APPOINTMENT_SERVICE', 'gRPC'],
+  ['API_GATEWAY', 'EHR_ACCESS_SERVICE', 'gRPC'],
+  ['API_GATEWAY', 'LAB_ORDER_SERVICE', 'gRPC'],
+  ['API_GATEWAY', 'PRESCRIPTION_ROUTING_SERVICE', 'gRPC'],
+  ['API_GATEWAY', 'CLAIMS_PROCESSING_SERVICE', 'gRPC'],
+  ['API_GATEWAY', 'PRIOR_AUTHORIZATION_SERVICE', 'gRPC'],
+  ['API_GATEWAY', 'CONSENT_MANAGEMENT_SERVICE', 'gRPC'],
+  ['API_GATEWAY', 'BILLING_SERVICE', 'gRPC'],
+  ['API_GATEWAY', 'OFFLINE_CLINIC_SYNC_SERVICE', 'gRPC'],
+  ['SWIFT', 'OFFLINE_CLINIC_SYNC_SERVICE', 'HTTPS'],
+  ['APPOINTMENT_SERVICE', 'POSTGRESQL', 'SQL'],
+  ['APPOINTMENT_SERVICE', 'REDIS', 'TCP'],
+  ['APPOINTMENT_SERVICE', 'KAFKA', 'KAFKA'],
+  ['EHR_ACCESS_SERVICE', 'HOSPITAL_EHR_NETWORK', 'HTTPS'],
+  ['EHR_ACCESS_SERVICE', 'POSTGRESQL', 'SQL'],
+  ['EHR_ACCESS_SERVICE', 'S3', 'S3'],
+  ['LAB_ORDER_SERVICE', 'LAB_NETWORK', 'HTTPS'],
+  ['LAB_ORDER_SERVICE', 'POSTGRESQL', 'SQL'],
+  ['LAB_ORDER_SERVICE', 'KAFKA', 'KAFKA'],
+  ['PRESCRIPTION_ROUTING_SERVICE', 'PHARMACY_NETWORK', 'HTTPS'],
+  ['PRESCRIPTION_ROUTING_SERVICE', 'POSTGRESQL', 'SQL'],
+  ['PRESCRIPTION_ROUTING_SERVICE', 'KAFKA', 'KAFKA'],
+  ['CLAIMS_PROCESSING_SERVICE', 'PRIOR_AUTHORIZATION_SERVICE', 'gRPC'],
+  ['CLAIMS_PROCESSING_SERVICE', 'BILLING_SERVICE', 'gRPC'],
+  ['CLAIMS_PROCESSING_SERVICE', 'FRAUD_ENGINE', 'gRPC'],
+  ['CLAIMS_PROCESSING_SERVICE', 'INSURANCE_EXCHANGE', 'HTTPS'],
+  ['CLAIMS_PROCESSING_SERVICE', 'POSTGRESQL', 'SQL'],
+  ['CLAIMS_PROCESSING_SERVICE', 'KAFKA', 'KAFKA'],
+  ['PRIOR_AUTHORIZATION_SERVICE', 'INSURANCE_EXCHANGE', 'HTTPS'],
+  ['PRIOR_AUTHORIZATION_SERVICE', 'POSTGRESQL', 'SQL'],
+  ['PRIOR_AUTHORIZATION_SERVICE', 'KAFKA', 'KAFKA'],
+  ['CONSENT_MANAGEMENT_SERVICE', 'POSTGRESQL', 'SQL'],
+  ['CONSENT_MANAGEMENT_SERVICE', 'S3', 'S3'],
+  ['CONSENT_MANAGEMENT_SERVICE', 'KAFKA', 'KAFKA'],
+  ['BILLING_SERVICE', 'INSURANCE_EXCHANGE', 'HTTPS'],
+  ['BILLING_SERVICE', 'POSTGRESQL', 'SQL'],
+  ['BILLING_SERVICE', 'KAFKA', 'KAFKA'],
+  ['FRAUD_ENGINE', 'REDIS', 'TCP'],
+  ['FRAUD_ENGINE', 'CLICKHOUSE', 'SQL'],
+  ['FRAUD_ENGINE', 'KAFKA', 'KAFKA'],
+  ['OFFLINE_CLINIC_SYNC_SERVICE', 'REDIS', 'TCP'],
+  ['OFFLINE_CLINIC_SYNC_SERVICE', 'POSTGRESQL', 'SQL'],
+  ['OFFLINE_CLINIC_SYNC_SERVICE', 'KAFKA', 'KAFKA'],
+  ['KAFKA', 'LAB_ORDER_SERVICE', 'KAFKA'],
+  ['KAFKA', 'PRIOR_AUTHORIZATION_SERVICE', 'KAFKA'],
+  ['KAFKA', 'NOTIFICATION_SERVICE', 'KAFKA'],
+  ['KAFKA', 'AUDIT_LOG_SERVICE', 'KAFKA'],
+  ['KAFKA', 'ANALYTICS_PIPELINE', 'KAFKA'],
+  ['KAFKA', 'DEAD_LETTER_QUEUE', 'KAFKA'],
+  ['DEAD_LETTER_QUEUE', 'RESILIENCE_CONTROL', 'KAFKA'],
+  ['RESILIENCE_CONTROL', 'CLAIMS_PROCESSING_SERVICE', 'gRPC'],
+  ['RESILIENCE_CONTROL', 'LAB_ORDER_SERVICE', 'gRPC'],
+  ['NOTIFICATION_SERVICE', 'TWILIO', 'HTTPS'],
+  ['NOTIFICATION_SERVICE', 'POSTGRESQL', 'SQL'],
+  ['AUDIT_LOG_SERVICE', 'AUDIT_ARCHIVE', 'S3'],
+  ['ANALYTICS_PIPELINE', 'CLICKHOUSE', 'SQL'],
+  ['API_GATEWAY', 'PROMETHEUS', 'HTTP'],
+  ['CLAIMS_PROCESSING_SERVICE', 'PROMETHEUS', 'HTTP'],
+  ['KAFKA', 'PROMETHEUS', 'HTTP']
+];
+
+function createNode([name, category, role, reason, icon, implementation, implementationDescription]) {
+  return {
+    name,
+    category,
+    role,
+    reason,
+    icon,
+    implementation,
+    implementationDescription
+  };
+}
+
+function createEdge([source, target, label]) {
+  return { source, target, label };
+}
+
+export function applyHealthcareBlueprint() {
+  return {
+    diagram: {
+      nodes: HEALTHCARE_NODES.map(createNode),
+      edges: HEALTHCARE_EDGES.map(createEdge)
+    },
+    changes: [
+      'Domain tuned: expanded healthcare workflows into clinical, payer, and pharmacy lanes',
+      'Domain tuned: added PHI-safe storage, audit, retry, and offline clinic recovery paths',
+      'Domain tuned: added explicit hospital, lab, insurer, and pharmacy integrations'
+    ]
+  };
+}

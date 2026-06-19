@@ -5,11 +5,17 @@ import { Button } from '@/components/ui/Button';
 import { formatTechDisplayLabel } from '@/lib/displayNames';
 import { getLayerLearningProfile } from '@/lib/learningInsights';
 import {
+  getNodeImplementationDisplayName,
+  getNodeUnitTypeLabel,
+  hasDistinctImplementation,
+  isSemanticNodeData
+} from '@/lib/nodePresentation';
+import {
   LeftSidebar, SidebarContent, SidebarTitle, CloseBtn,
   TechBadge, SectionTitle, Description, ProductCard, ProductName, ProductDesc
 } from '../editorStyles';
 import {
-  DetailHeader, NodeLabel, NodeRoleLabel, InsightList, InsightItem, ReplaceStack,
+  DetailHeader, NodeLabel, NodeRoleLabel, NodeTechKey, NodeTechLabel, NodeTechValue, InsightList, InsightItem, ReplaceHint, ReplaceStack,
   ReplaceCard, ReplaceTitle, ReplaceName, ReplaceMeta, ReplaceDescription, ConnectionStack,
   ConnectionCard, ConnectionRoute, ConnectionLabel, ConnectionMeta, EmptyHint
 } from './NodeDetailsSidebar.styles';
@@ -20,6 +26,18 @@ export default function NodeDetailsSidebar({
   const displayLabel = selectedNode
     ? formatTechDisplayLabel(selectedNode.data.label, selectedNode.data.category)
     : '';
+  const implementationLabel = selectedNode
+    ? getNodeImplementationDisplayName(selectedNode.data)
+    : '';
+  const unitTypeLabel = selectedNode
+    ? getNodeUnitTypeLabel(selectedNode.data.category)
+    : '';
+  const hasDistinctTech = selectedNode
+    ? hasDistinctImplementation(selectedNode.data)
+    : false;
+  const isSemanticUnit = selectedNode
+    ? isSemanticNodeData(selectedNode.data)
+    : false;
   const learningProfile = selectedNode
     ? getLayerLearningProfile(selectedNode.data.category, displayLabel)
     : null;
@@ -37,7 +55,7 @@ export default function NodeDetailsSidebar({
             <>
               <DetailHeader>
                 <TechBadge $category={selectedNode.data.category}>
-                  {selectedNode.data.category}
+                  {unitTypeLabel}
                 </TechBadge>
                 <Badge $tone={
                   trustProfile?.confidence === 'HIGH' ? 'success' :
@@ -52,6 +70,19 @@ export default function NodeDetailsSidebar({
                 {displayLabel}
               </NodeLabel>
               <NodeRoleLabel>ROLE: {selectedNode.data.role}</NodeRoleLabel>
+              {(hasDistinctTech || isSemanticUnit) && (
+                <NodeTechLabel>
+                  <NodeTechKey>{isSemanticUnit ? 'Implementation' : 'Technology'}</NodeTechKey>
+                  <NodeTechValue>{implementationLabel || 'Choose technology'}</NodeTechValue>
+                </NodeTechLabel>
+              )}
+
+              {selectedNode.data.implementationDescription && (
+                <>
+                  <SectionTitle>Why This Technology Fits</SectionTitle>
+                  <Description>{selectedNode.data.implementationDescription}</Description>
+                </>
+              )}
 
               {learningProfile && (
                 <>
@@ -156,8 +187,13 @@ export default function NodeDetailsSidebar({
                 </>
               )}
 
-              <SectionTitle>Replace Unit</SectionTitle>
+              <SectionTitle>{isSemanticUnit ? 'Swap Technology' : 'Replace Unit'}</SectionTitle>
               <ReplaceStack>
+                {isSemanticUnit && (
+                  <ReplaceHint>
+                    This keeps <strong>{displayLabel}</strong> as the responsibility and swaps only the technology behind it.
+                  </ReplaceHint>
+                )}
                 {replacementOptions && replacementOptions.length > 0 ? (
                   replacementOptions.map(option => (
                     <ReplaceCard key={`${selectedNode.id}_${option.name}`}>
@@ -169,7 +205,7 @@ export default function NodeDetailsSidebar({
                         {option.description || `${option.name} can replace this ${selectedNode.data.category} unit without changing the rest of the architecture.`}
                       </ReplaceDescription>
                       <Button $variant="secondary" $size="sm" onClick={() => onReplaceNode?.(option)}>
-                        Replace With {option.name}
+                        {isSemanticUnit ? `Use ${option.name}` : `Replace With ${option.name}`}
                       </Button>
                     </ReplaceCard>
                   ))

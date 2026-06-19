@@ -24,6 +24,8 @@ export interface DiagramNode {
   reason?: string;
   icon?: string;
   workflow?: string;
+  implementation?: string;
+  implementationDescription?: string;
   products?: string[];
   position?: DiagramPosition;
 }

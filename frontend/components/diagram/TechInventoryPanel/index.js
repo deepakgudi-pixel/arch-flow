@@ -1,40 +1,253 @@
 'use client';
 
-import { Trash2 } from 'lucide-react';
+import { useState } from 'react';
+import { Check, Trash2, X } from 'lucide-react';
+import {
+  getNodeDisplayName,
+  getNodeImplementationDisplayName,
+  getNodeUnitTypeLabel,
+  isSemanticNodeData
+} from '@/lib/nodePresentation';
 import {
   RightPanel, PanelContent, SidebarTitle, SearchInput, CloseBtn,
-  SectionTitle, TechChip, TechCategory, CategoryLabel
+  SectionTitle, TechCategory, CategoryLabel
 } from '../editorStyles';
 import {
-  GenerateSection, CustomTechInput, AiBadge, DeleteBtn, EmptyState, EmptyStateLabel, WideButton
+  GenerateSection,
+  CustomTechInput,
+  AiBadge,
+  DeleteBtn,
+  EmptyState,
+  EmptyStateLabel,
+  InventoryCard,
+  InventoryCardDescription,
+  InventoryCardFooter,
+  InventoryCardHeader,
+  InventoryCardHint,
+  InventoryCardMeta,
+  InventoryCardTitle,
+  PanelHint,
+  PanelHintBody,
+  PanelHintTitle,
+  ResponsibilityBuilder,
+  ResponsibilityBuilderActions,
+  ResponsibilityField,
+  ResponsibilityInput,
+  ResponsibilityLabel,
+  SelectedTechnology,
+  SelectedTechnologyClear,
+  SelectedTechnologyLabel,
+  SelectedTechnologyName,
+  SelectTechnologyButton,
+  UseTechnologyButton,
+  WideButton
 } from './TechInventoryPanel.styles';
 
 export default function TechInventoryPanel({
   open, searchTerm, onSearchTermChange,
   inventory, customTechPrompt, onCustomTechPromptChange,
   generatingTech, onGenerateTech, onDragStart, onDeleteFromInventory,
-  onClose
+  onClose,
+  selectedNode,
+  onReplaceNode,
+  onCreateUnit
 }) {
+  const [responsibility, setResponsibility] = useState('');
+  const [builderTechnology, setBuilderTechnology] = useState(null);
+  const normalizedSearch = searchTerm.trim().toLowerCase();
+  const selectedNodeLabel = selectedNode ? getNodeDisplayName(selectedNode.data) : '';
+  const selectedNodeIsSemantic = selectedNode ? isSemanticNodeData(selectedNode.data) : false;
+  const selectedTechnology = selectedNode ? getNodeImplementationDisplayName(selectedNode.data) : '';
+  const builderReady = Boolean(responsibility.trim() && builderTechnology);
+
+  const handleCreateUnit = (technology = builderTechnology) => {
+    if (!responsibility.trim() || !technology) {
+      return;
+    }
+
+    onCreateUnit?.({
+      responsibility,
+      technology
+    });
+    setResponsibility('');
+    setBuilderTechnology(null);
+  };
+
+  const matchesSearch = (tech) => {
+    if (!normalizedSearch) {
+      return true;
+    }
+
+    const haystack = [tech.name, tech.description, tech.role, tech.category]
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase();
+
+    return haystack.includes(normalizedSearch);
+  };
+
+  const renderInventoryCard = (tech, category, metaLabel, options = {}) => {
+    const technology = { ...tech, category };
+    const isBuilderSelection = builderTechnology?.name === tech.name
+      && builderTechnology?.category === category;
+    const directCreateLabel = responsibility.trim()
+      ? `Use ${tech.name} for ${responsibility.trim()}`
+      : `Choose ${tech.name} for architecture unit`;
+
+    return (
+    <InventoryCard
+      key={options.keyId || tech.id || `${category}_${tech.name}`}
+      draggable
+      $selected={isBuilderSelection}
+      onDragStart={event => onDragStart(event, technology)}
+    >
+      <InventoryCardHeader>
+        <InventoryCardTitle>{tech.name}</InventoryCardTitle>
+        <InventoryCardMeta>{metaLabel}</InventoryCardMeta>
+      </InventoryCardHeader>
+      <InventoryCardDescription>
+        {tech.description || tech.role || `Use ${tech.name} inside the ${category} layer.`}
+      </InventoryCardDescription>
+      <InventoryCardFooter>
+        <InventoryCardHint>
+          {selectedNodeIsSemantic && selectedNode?.data?.category === category
+            ? `Compatible with ${selectedNodeLabel}`
+            : `Drag to ${category}`}
+        </InventoryCardHint>
+        <div>
+          {selectedNodeIsSemantic && selectedNode?.data?.category === category && (
+            <UseTechnologyButton
+              type="button"
+              onClick={() => onReplaceNode?.(technology)}
+            >
+              Use technology
+            </UseTechnologyButton>
+          )}
+          {!selectedNodeIsSemantic && (
+            <SelectTechnologyButton
+              type="button"
+              $selected={isBuilderSelection}
+              onClick={() => {
+                if (responsibility.trim()) {
+                  handleCreateUnit(technology);
+                  return;
+                }
+
+                setBuilderTechnology(technology);
+              }}
+              aria-label={directCreateLabel}
+            >
+              {responsibility.trim()
+                ? 'Use for unit'
+                : isBuilderSelection
+                ? <Check size={12} aria-hidden="true" />
+                : 'Choose'}
+            </SelectTechnologyButton>
+          )}
+          {options.showAiBadge && <AiBadge>AI</AiBadge>}
+          {tech.isOwner && (
+            <DeleteBtn onClick={(event) => { event.stopPropagation(); onDeleteFromInventory(tech.id); }}>
+              <Trash2 size={12} />
+            </DeleteBtn>
+          )}
+        </div>
+      </InventoryCardFooter>
+    </InventoryCard>
+    );
+  };
+
   return (
     <RightPanel $open={open}>
       {open && (
         <PanelContent>
           <SidebarTitle>
-            Modules
+            Technology Library
             <CloseBtn type="button" onClick={onClose} aria-label="Close tech library">
               ×
             </CloseBtn>
           </SidebarTitle>
+          <PanelHint>
+            <PanelHintTitle>
+              {selectedNodeIsSemantic
+                ? `Selected Unit: ${selectedNodeLabel}`
+                : 'Technology vs Responsibility'}
+            </PanelHintTitle>
+            <PanelHintBody>
+              {selectedNodeIsSemantic
+                ? `This unit keeps its architectural role. Use a compatible technology below to swap its implementation${selectedTechnology ? `, currently ${selectedTechnology}` : ''}. Dragging still adds a separate node.`
+                : 'Generated diagrams can show semantic units like claims processing or audit logging. This library is where you choose the technology that implements those responsibilities.'}
+            </PanelHintBody>
+          </PanelHint>
+
+          {!selectedNodeIsSemantic && (
+            <>
+              <SectionTitle>Create Architecture Unit</SectionTitle>
+              <ResponsibilityBuilder>
+                <ResponsibilityField>
+                  <ResponsibilityLabel htmlFor="architecture-unit-responsibility">
+                    1. Name the responsibility
+                  </ResponsibilityLabel>
+                  <ResponsibilityInput
+                    id="architecture-unit-responsibility"
+                    value={responsibility}
+                    onChange={event => setResponsibility(event.target.value)}
+                    placeholder="Data Layer, Lab Service, Audit Log..."
+                    onKeyDown={event => {
+                      if (event.key === 'Enter' && builderReady) {
+                        handleCreateUnit(builderTechnology);
+                      }
+                    }}
+                  />
+                </ResponsibilityField>
+
+                <ResponsibilityField>
+                  <ResponsibilityLabel>2. Choose its technology below</ResponsibilityLabel>
+                  <SelectedTechnology $empty={!builderTechnology}>
+                    <div>
+                      <SelectedTechnologyLabel>
+                        {builderTechnology
+                          ? `${getNodeUnitTypeLabel(builderTechnology.category)} · Implementation`
+                          : 'Implementation'}
+                      </SelectedTechnologyLabel>
+                      <SelectedTechnologyName>
+                        {builderTechnology?.name || 'No technology selected'}
+                      </SelectedTechnologyName>
+                    </div>
+                    {builderTechnology && (
+                      <SelectedTechnologyClear
+                        type="button"
+                        onClick={() => setBuilderTechnology(null)}
+                        aria-label={`Clear ${builderTechnology.name} selection`}
+                      >
+                        <X size={13} aria-hidden="true" />
+                      </SelectedTechnologyClear>
+                    )}
+                  </SelectedTechnology>
+                </ResponsibilityField>
+
+                <ResponsibilityBuilderActions>
+                  <WideButton
+                    type="button"
+                    onClick={() => handleCreateUnit(builderTechnology)}
+                    disabled={!builderReady}
+                  >
+                    Add Unit to Canvas
+                  </WideButton>
+                </ResponsibilityBuilderActions>
+              </ResponsibilityBuilder>
+            </>
+          )}
+
           <SearchInput
-            placeholder="Filter modules..."
+            placeholder="Filter by technology or use case..."
             value={searchTerm}
             onChange={e => onSearchTermChange(e.target.value)}
           />
 
-          <SectionTitle>Custom Generation</SectionTitle>
+          <SectionTitle>Generate Technology</SectionTitle>
           <GenerateSection>
             <CustomTechInput
-              placeholder="Describe custom tech..."
+              placeholder="Describe a technology or connector..."
               value={customTechPrompt}
               onChange={e => onCustomTechPromptChange(e.target.value)}
               onKeyPress={e => e.key === 'Enter' && onGenerateTech()}
@@ -51,22 +264,8 @@ export default function TechInventoryPanel({
             <TechCategory>
               <CategoryLabel>Community Modules</CategoryLabel>
               {inventory.community
-                .filter(tech => !searchTerm || tech.name.toLowerCase().includes(searchTerm.toLowerCase()))
-                .map(tech => (
-                <TechChip
-                  key={tech.id}
-                  draggable
-                  onDragStart={(e) => onDragStart(e, tech)}
-                  $category={tech.category}
-                >
-                  {tech.name}
-                  {tech.isOwner && (
-                    <DeleteBtn onClick={(e) => { e.stopPropagation(); onDeleteFromInventory(tech.id); }}>
-                      <Trash2 size={12} />
-                    </DeleteBtn>
-                  )}
-                </TechChip>
-              ))}
+                .filter(matchesSearch)
+                .map(tech => renderInventoryCard(tech, tech.category, 'Community', { keyId: tech.id }))}
             </TechCategory>
           )}
 
@@ -74,32 +273,31 @@ export default function TechInventoryPanel({
             const builtInForCat = inventory.builtIn[category] || [];
             const customForCat = (inventory.custom || []).filter(item => item.category === category);
             const allItems = [...builtInForCat, ...customForCat]
-              .filter(tech => tech.name.toLowerCase().includes(searchTerm.toLowerCase()));
+              .filter(matchesSearch);
 
             if (allItems.length === 0) return null;
 
             return (
               <TechCategory key={category}>
-                <CategoryLabel>{category.replace('_', ' ')}</CategoryLabel>
-                {allItems.map((tech, idx) => (
-                  <TechChip
-                    key={idx}
-                    $category={category}
-                    draggable
-                    onDragStart={e => onDragStart(e, { ...tech, category })}
-                  >
-                    {tech.name}
-                    {tech.id && <AiBadge>AI</AiBadge>}
-                  </TechChip>
+                <CategoryLabel>{category.replace('_', ' ')} technologies</CategoryLabel>
+                {allItems.map((tech, idx) => renderInventoryCard(
+                  tech,
+                  category,
+                  tech.id ? 'AI' : 'Built in',
+                  {
+                    keyId: tech.id || `${category}_${idx}_${tech.name}`,
+                    showAiBadge: Boolean(tech.id)
+                  }
                 ))}
               </TechCategory>
             );
           })}
 
-          {searchTerm && !Object.values(inventory.builtIn || {}).some(cat => cat.some(t => t.name.toLowerCase().includes(searchTerm.toLowerCase()))) &&
-           !inventory.custom?.some(t => t.name.toLowerCase().includes(searchTerm.toLowerCase())) && (
+          {searchTerm && !Object.values(inventory.builtIn || {}).some(cat => cat.some(matchesSearch)) &&
+           !inventory.custom?.some(matchesSearch) &&
+           !inventory.community?.some(matchesSearch) && (
             <EmptyState>
-              <EmptyStateLabel>No local modules found</EmptyStateLabel>
+              <EmptyStateLabel>No matching technologies found</EmptyStateLabel>
               <WideButton
                 onClick={() => {
                   onSearchTermChange(searchTerm);

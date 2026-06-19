@@ -85,6 +85,7 @@ export default function EditorSmokeProbePage() {
   ]);
   const [searchTerm, setSearchTerm] = useState('');
   const [customTechPrompt, setCustomTechPrompt] = useState('');
+  const [createdUnit, setCreatedUnit] = useState('');
 
   const nodes = useMemo(
     () => [
@@ -264,10 +265,14 @@ export default function EditorSmokeProbePage() {
           generatingTech={false}
           onGenerateTech={() => {}}
           onDragStart={() => {}}
+          onCreateUnit={({ responsibility, technology }) => {
+            setCreatedUnit(`${responsibility} · ${technology.name}`);
+          }}
           onDeleteFromInventory={() => {}}
           onClose={() => setLibraryPanelOpen(false)}
         />
       </MainArea>
+      {createdUnit ? <div aria-live="polite">CREATED_UNIT: {createdUnit}</div> : null}
       <PromptBar
         prompt={assistantPrompt}
         onPromptChange={setAssistantPrompt}

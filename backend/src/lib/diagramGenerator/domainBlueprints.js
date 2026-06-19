@@ -7,11 +7,13 @@ import {
 } from './hardenerCatalog.js';
 import { normalizeIdentifier } from './hardenerIdentifiers.js';
 import { applyDigitalBankingBlueprint } from './digitalBankingBlueprint.js';
+import { applyHealthcareBlueprint } from './healthcareBlueprint.js';
 import { detectRequirementProfile } from './requirementCoverage.js';
 
 const FOOD_DELIVERY_MATCHER = /\b(food delivery|doordash|uber eats|courier|restaurant|restaurants|delivery platform|dispatch|couriers)\b/i;
 const STOCK_TRADING_MATCHER = /\b(stock trading|trading platform|robinhood|brokerage|market data|order placement|order routing|portfolio|reconciliation|compliance reporting|market open|strict consistency)\b/i;
 const TRAVEL_MARKETPLACE_MATCHER = /\b(airbnb|travel marketplace|property search|availability calendar|availability calendars|booking checkout|host payouts|guest and host|in-app messaging|reviews|trust and safety|identity verification|dynamic pricing)\b/i;
+const HEALTHCARE_MATCHER = /\b(healthcare operations|hospital networks?|ehr|electronic health records?|lab orders?|claims processing|prior authorization|prescription routing|hipaa|clinic workflows?)\b/i;
 
 const FOOD_DELIVERY_NODES = [
   ['KOTLIN', 'mobile', 'Customer ordering app', 'Browse menus and checkout', 'smartphone'],
@@ -144,6 +146,10 @@ function detectDomain(description, template) {
     return 'digital_banking';
   }
 
+  if (detectRequirementProfile({ description, template }) === 'healthcare_operations') {
+    return 'healthcare_operations';
+  }
+
   if (FOOD_DELIVERY_MATCHER.test(context)) {
     return 'food_delivery';
   }
@@ -154,6 +160,10 @@ function detectDomain(description, template) {
 
   if (TRAVEL_MARKETPLACE_MATCHER.test(context)) {
     return 'travel_marketplace';
+  }
+
+  if (HEALTHCARE_MATCHER.test(context)) {
+    return 'healthcare_operations';
   }
 
   return null;
@@ -295,6 +305,10 @@ export function applyDomainBlueprint(diagram, { description, template } = {}) {
 
   if (domain === 'digital_banking') {
     return applyDigitalBankingBlueprint(diagram);
+  }
+
+  if (domain === 'healthcare_operations') {
+    return applyHealthcareBlueprint(diagram);
   }
 
   if (domain === 'food_delivery') {

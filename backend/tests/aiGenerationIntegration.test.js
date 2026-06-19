@@ -47,6 +47,40 @@ test('generateDiagramFromPrompt hardens mocked AI output before returning it', a
   assert.ok(result.autoFixes.length > 0);
 });
 
+test('generateDiagramFromPrompt assigns implementations to semantic AI services', async () => {
+  const result = await generateDiagramFromPrompt({
+    description: 'Design a realtime logistics control platform with dispatch and fraud scoring.',
+    callModel: async () => ({
+      content: JSON.stringify({
+        nodes: [
+          { name: 'React', category: 'frontend', role: 'Operations UI', reason: 'Fleet control', icon: 'react' },
+          { name: 'Dispatch Service', category: 'backend', role: 'Realtime dispatch', reason: 'Courier matching', icon: 'server' },
+          { name: 'Fraud Engine', category: 'backend', role: 'Fraud scoring', reason: 'Risk detection', icon: 'shield' },
+          { name: 'Java', category: 'backend', role: 'Settlement runtime', reason: 'Transactional processing', icon: 'server' },
+          { name: 'PostgreSQL', category: 'database', role: 'Operations data', reason: 'System state', icon: 'database' }
+        ],
+        edges: [
+          { source: 'React', target: 'Dispatch Service', label: 'HTTPS' },
+          { source: 'Dispatch Service', target: 'Fraud Engine', label: 'gRPC' },
+          { source: 'Dispatch Service', target: 'Java', label: 'gRPC' },
+          { source: 'Dispatch Service', target: 'PostgreSQL', label: 'SQL' }
+        ]
+      }),
+      model: 'mock-model'
+    })
+  });
+
+  const dispatch = result.nodes.find(node => node.name === 'DISPATCH_SERVICE');
+  const fraud = result.nodes.find(node => node.name === 'FRAUD_ENGINE');
+  const generatedJava = result.nodes.find(node => node.name === 'JAVA');
+
+  assert.equal(dispatch.implementation, 'GO');
+  assert.equal(fraud.implementation, 'PYTHON');
+  assert.match(dispatch.implementationDescription, /low-latency/i);
+  assert.ok(generatedJava);
+  assert.equal(generatedJava.implementation, undefined);
+});
+
 test('generateDiagramFromPrompt retries with repair instructions when mocked AI returns bad JSON', async () => {
   let calls = 0;
   const seenMessages = [];
@@ -441,34 +475,68 @@ test('generateDiagramFromPrompt expands complex digital banking prompts into exp
   assert.ok(result.autoFixes.some(change => /digital banking service boundaries/i.test(change)));
 });
 
-test('generateDiagramFromPrompt completes complex healthcare requirements without a dedicated blueprint', async () => {
+test('generateDiagramFromPrompt applies the healthcare operations blueprint for complex care workflows', async () => {
   const result = await generateDiagramFromPrompt({
-    description: 'Design a healthcare platform with patient portal, clinician workflows, appointments, electronic health records, e-prescriptions, lab results, telemedicine, consent management, audit trail, HIPAA compliance, notifications, encrypted document storage, analytics, regional data residency, and disaster recovery.',
+    description: 'Design CareNexus, a global B2B healthcare operations platform for hospital networks, labs, insurers, and pharmacies. Include doctor and patient apps, appointment scheduling, EHR access, lab order workflows, prescription routing, claims processing, prior authorization, billing, fraud detection, notifications, audit logs, analytics, image/document storage, and operations monitoring. Support strict HIPAA-style access boundaries, regional data residency, asynchronous claim/lab workflows, retries, dead-letter recovery, encrypted PHI handling, offline clinic workflows, and clear protocols between every major component.',
     callModel: async () => ({
       content: JSON.stringify(compactComplexResponse),
       model: 'mock-model'
     })
   });
   const names = new Set(result.nodes.map(node => node.name));
+  const edgePairs = new Set(
+    result.edges.map(edge => {
+      const source = result.nodes.find(node => node.id === edge.source)?.name;
+      const target = result.nodes.find(node => node.id === edge.target)?.name;
+      return `${source}->${target}`;
+    })
+  );
 
   assert.equal(result.quality.score.score, 100);
   assert.deepEqual(activeFindings(result.quality), []);
   [
-    'CLINICIAN_WORKFLOWS_SERVICE',
-    'APPOINTMENTS_SERVICE',
-    'ELECTRONIC_HEALTH_RECORDS_SERVICE',
-    'E_PRESCRIPTIONS_SERVICE',
-    'LAB_RESULTS_SERVICE',
-    'TELEMEDICINE_SERVICE',
+    'KOTLIN',
+    'SWIFT',
+    'REACT',
+    'KEYCLOAK',
+    'API_GATEWAY',
+    'APPOINTMENT_SERVICE',
+    'EHR_ACCESS_SERVICE',
+    'LAB_ORDER_SERVICE',
+    'PRESCRIPTION_ROUTING_SERVICE',
+    'CLAIMS_PROCESSING_SERVICE',
+    'PRIOR_AUTHORIZATION_SERVICE',
     'CONSENT_MANAGEMENT_SERVICE',
     'AUDIT_LOG_SERVICE',
-    'COMPLIANCE_SERVICE',
-    'PATIENT_PORTAL',
+    'BILLING_SERVICE',
+    'FRAUD_ENGINE',
+    'OFFLINE_CLINIC_SYNC_SERVICE',
+    'DEAD_LETTER_QUEUE',
+    'HOSPITAL_EHR_NETWORK',
+    'LAB_NETWORK',
+    'INSURANCE_EXCHANGE',
+    'PHARMACY_NETWORK',
     'S3',
     'VAULT',
     'KUBERNETES'
   ].forEach(name => assert.ok(names.has(name), `Expected ${name}`));
-  assert.ok(!names.has('PATIENT_PORTAL_SERVICE'));
+  [
+    'API_GATEWAY->CLAIMS_PROCESSING_SERVICE',
+    'CLAIMS_PROCESSING_SERVICE->INSURANCE_EXCHANGE',
+    'LAB_ORDER_SERVICE->LAB_NETWORK',
+    'PRESCRIPTION_ROUTING_SERVICE->PHARMACY_NETWORK',
+    'KAFKA->DEAD_LETTER_QUEUE',
+    'DEAD_LETTER_QUEUE->RESILIENCE_CONTROL'
+  ].forEach(signature => assert.ok(edgePairs.has(signature), `Expected ${signature}`));
+  assert.equal(
+    result.nodes.find(node => node.name === 'CLAIMS_PROCESSING_SERVICE')?.implementation,
+    'Java',
+  );
+  assert.equal(
+    result.nodes.find(node => node.name === 'FRAUD_ENGINE')?.implementation,
+    'Python',
+  );
+  assert.ok(result.autoFixes.some(change => /healthcare workflows/i.test(change)));
 });
 
 test('generateDiagramFromPrompt completes complex multiplayer gaming requirements', async () => {

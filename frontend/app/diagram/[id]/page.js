@@ -20,6 +20,7 @@ import 'reactflow/dist/style.css';
 import { architectureExamples } from '@/lib/architectureExamples';
 import api from '@/lib/api';
 import { formatTechDisplayLabel } from '@/lib/displayNames';
+import { getNodeImplementationName } from '@/lib/nodePresentation';
 import {
   estimateEdgeLabelDimensions,
   getEdgeLabelBasePosition,
@@ -318,10 +319,15 @@ export default function DiagramPage() {
     deleteFromInventory,
     handleDragStart,
     handleDrop,
-    handleDragOver
+    handleDragOver,
+    handleCreateArchitectureUnit
   } = useTechInventoryActions({
     loadInventory,
+    nodes,
     setNodes,
+    setSelectedNode,
+    setLeftSidebarOpen,
+    setRightPanelOpen,
     setToast
   });
 
@@ -456,7 +462,7 @@ export default function DiagramPage() {
   const replacementCandidates = getReplacementCandidates(
     inventory,
     selectedNode?.data.category,
-    selectedNode?.data.label
+    selectedNode ? getNodeImplementationName(selectedNode.data) || selectedNode.data.label : ''
   );
   const nodeById = new Map(nodes.filter(node => node.type === 'customNode').map(node => [node.id, node]));
   const techNodes = nodes.filter(node => node.type === 'customNode');
@@ -914,11 +920,14 @@ export default function DiagramPage() {
             searchTerm={searchTerm}
             onSearchTermChange={setSearchTerm}
             inventory={inventory}
+            selectedNode={selectedNode}
             customTechPrompt={customTechPrompt}
             onCustomTechPromptChange={setCustomTechPrompt}
             generatingTech={generatingTech}
             onGenerateTech={handleGenerateTech}
             onDragStart={handleDragStart}
+            onReplaceNode={handleReplaceNode}
+            onCreateUnit={handleCreateArchitectureUnit}
             onDeleteFromInventory={deleteFromInventory}
             onClose={() => setRightPanelOpen(false)}
           />

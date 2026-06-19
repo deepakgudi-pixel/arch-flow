@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import api from '@/lib/api';
+import { isSemanticNodeData } from '@/lib/nodePresentation';
 
 export function useDiagramSelection({
   nodes,
@@ -97,13 +98,18 @@ export function useDiagramSelection({
     }
 
     const targetNodeId = selectedNode.id;
-    const replacementReason = `Replaced manually with ${replacement.name} to preserve the ${selectedNode.data.category} layer while changing only this unit.`;
+    const preservesRole = isSemanticNodeData(selectedNode.data);
+    const replacementReason = preservesRole
+      ? `Kept ${selectedNode.data.role || selectedNode.data.label} and swapped the implementation to ${replacement.name}.`
+      : `Replaced manually with ${replacement.name} to preserve the ${selectedNode.data.category} layer while changing only this unit.`;
     const nextNodes = nodes.map(node => node.id === selectedNode.id ? ({
       ...node,
       data: {
         ...node.data,
-        label: replacement.name,
-        icon: replacement.icon || node.data.icon,
+        label: preservesRole ? node.data.label : replacement.name,
+        icon: preservesRole ? (node.data.icon || replacement.icon) : (replacement.icon || node.data.icon),
+        implementation: replacement.name,
+        implementationDescription: replacement.description || replacement.role || '',
         products: replacement.products || node.data.products || [],
         reason: replacementReason
       }
@@ -118,7 +124,12 @@ export function useDiagramSelection({
     setSelectedNode(nextSelectedNode);
     setSelectedEdge(null);
     setLeftSidebarOpen(true);
-    setToast({ message: `UNIT_REPLACED: ${replacement.name}`, error: false });
+    setToast({
+      message: preservesRole
+        ? `IMPLEMENTATION_UPDATED: ${replacement.name}`
+        : `UNIT_REPLACED: ${replacement.name}`,
+      error: false
+    });
     setTimeout(() => setToast(null), 2000);
 
     refreshEdgeLabelsForNode(targetNodeId, nextNodes, baselineEdges)

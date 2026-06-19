@@ -2,24 +2,24 @@ const DIGITAL_BANKING_NODES = [
   ['KOTLIN', 'mobile', 'Customer Android app', 'Secure mobile banking access', 'smartphone'],
   ['SWIFT', 'mobile', 'Customer iOS app', 'Secure mobile banking access', 'smartphone'],
   ['REACT', 'frontend', 'Customer web banking', 'Responsive account management', 'react'],
-  ['OPERATIONS_CONSOLE', 'frontend', 'Support operations console', 'Disputes compliance and support', 'layout-dashboard'],
+  ['OPERATIONS_CONSOLE', 'frontend', 'Support operations console', 'Disputes compliance and support', 'layout-dashboard', 'React', 'Internal operations workspace'],
   ['KEYCLOAK', 'auth', 'Identity MFA and SSO', 'OAuth MFA and regional identity', 'shield'],
-  ['API_GATEWAY', 'backend', 'Secure API gateway', 'Rate limits and request routing', 'server'],
-  ['CUSTOMER_PROFILE_SERVICE', 'backend', 'Customer profile service', 'Profiles KYC and residency', 'server'],
-  ['WALLET_SERVICE', 'backend', 'Multi-currency wallet service', 'Balances holds and limits', 'wallet-cards'],
-  ['LEDGER_SERVICE', 'backend', 'Double-entry ledger service', 'Strictly consistent money movement', 'book-open-check'],
-  ['CARD_AUTHORIZATION_SERVICE', 'backend', 'Card authorization service', 'Realtime card decisions', 'credit-card'],
-  ['TRANSFER_SERVICE', 'backend', 'Bank transfer service', 'ACH SEPA and local rails', 'landmark'],
-  ['PAYMENT_ORCHESTRATOR', 'backend', 'Payment orchestration service', 'Provider routing and retries', 'workflow'],
-  ['FRAUD_ENGINE', 'backend', 'Realtime fraud engine', 'Risk scoring and controls', 'shield-alert'],
-  ['COMPLIANCE_SERVICE', 'backend', 'Compliance screening service', 'AML sanctions PCI GDPR', 'badge-check'],
-  ['DISPUTE_SERVICE', 'backend', 'Dispute handling service', 'Chargebacks evidence and resolution', 'scale'],
-  ['RECONCILIATION_SERVICE', 'backend', 'Settlement reconciliation service', 'Ledger provider consistency checks', 'refresh-cw'],
-  ['SCHEDULED_PAYMENTS_SERVICE', 'backend', 'Scheduled payments service', 'Durable recurring payment execution', 'calendar-clock'],
-  ['NOTIFICATION_SERVICE', 'backend', 'Customer notification service', 'Transactional delivery and preferences', 'bell-ring'],
-  ['AUDIT_LOG_SERVICE', 'backend', 'Immutable audit log service', 'Tamper-evident compliance events', 'scroll-text'],
-  ['REPORTING_SERVICE', 'backend', 'Regulatory reporting service', 'Jurisdiction reports and exports', 'file-chart-column'],
-  ['SUPPORT_CASE_SERVICE', 'backend', 'Customer support case service', 'Operational investigations and recovery', 'life-buoy'],
+  ['API_GATEWAY', 'backend', 'Secure API gateway', 'Rate limits and request routing', 'server', 'Go', 'Low-latency edge routing'],
+  ['CUSTOMER_PROFILE_SERVICE', 'backend', 'Customer profile service', 'Profiles KYC and residency', 'server', 'Java', 'Transactional customer workflows'],
+  ['WALLET_SERVICE', 'backend', 'Multi-currency wallet service', 'Balances holds and limits', 'wallet-cards', 'Java', 'Balance and limit orchestration'],
+  ['LEDGER_SERVICE', 'backend', 'Double-entry ledger service', 'Strictly consistent money movement', 'book-open-check', 'Java', 'Strongly consistent money state'],
+  ['CARD_AUTHORIZATION_SERVICE', 'backend', 'Card authorization service', 'Realtime card decisions', 'credit-card', 'Go', 'Low-latency decision engine'],
+  ['TRANSFER_SERVICE', 'backend', 'Bank transfer service', 'ACH SEPA and local rails', 'landmark', 'Java', 'Rail-specific workflow execution'],
+  ['PAYMENT_ORCHESTRATOR', 'backend', 'Payment orchestration service', 'Provider routing and retries', 'workflow', 'Go', 'Provider failover coordination'],
+  ['FRAUD_ENGINE', 'backend', 'Realtime fraud engine', 'Risk scoring and controls', 'shield-alert', 'Python', 'Model-driven scoring paths'],
+  ['COMPLIANCE_SERVICE', 'backend', 'Compliance screening service', 'AML sanctions PCI GDPR', 'badge-check', 'Java', 'Policy screening and evidence'],
+  ['DISPUTE_SERVICE', 'backend', 'Dispute handling service', 'Chargebacks evidence and resolution', 'scale', 'Java', 'Case and evidence workflows'],
+  ['RECONCILIATION_SERVICE', 'backend', 'Settlement reconciliation service', 'Ledger provider consistency checks', 'refresh-cw', 'Python', 'Batch consistency analysis'],
+  ['SCHEDULED_PAYMENTS_SERVICE', 'backend', 'Scheduled payments service', 'Durable recurring payment execution', 'calendar-clock', 'Go', 'Durable delayed execution'],
+  ['NOTIFICATION_SERVICE', 'backend', 'Customer notification service', 'Transactional delivery and preferences', 'bell-ring', 'Go', 'High-volume fan-out delivery'],
+  ['AUDIT_LOG_SERVICE', 'backend', 'Immutable audit log service', 'Tamper-evident compliance events', 'scroll-text', 'Java', 'Append-only audit ingestion'],
+  ['REPORTING_SERVICE', 'backend', 'Regulatory reporting service', 'Jurisdiction reports and exports', 'file-chart-column', 'Python', 'Report generation and export'],
+  ['SUPPORT_CASE_SERVICE', 'backend', 'Customer support case service', 'Operational investigations and recovery', 'life-buoy', 'Java', 'Operational case management'],
   ['POSTGRESQL', 'database', 'Customer operations database', 'Profiles cases disputes schedules', 'database'],
   ['COCKROACHDB', 'database', 'Multi-region ledger database', 'Serializable regional money state', 'database'],
   ['REDIS', 'database', 'Idempotency and rate-limit cache', 'Duplicate protection and hot limits', 'database'],
@@ -125,8 +125,16 @@ const DIGITAL_BANKING_EDGES = [
   ['PROMETHEUS', 'GRAFANA', 'HTTP']
 ];
 
-function createNode([name, category, role, reason, icon]) {
-  return { name, category, role, reason, icon };
+function createNode([name, category, role, reason, icon, implementation, implementationDescription]) {
+  return {
+    name,
+    category,
+    role,
+    reason,
+    icon,
+    implementation,
+    implementationDescription
+  };
 }
 
 function createEdge([source, target, label]) {
