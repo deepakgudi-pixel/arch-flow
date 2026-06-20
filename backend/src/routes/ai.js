@@ -2,7 +2,7 @@ import express from 'express';
 import crypto from 'crypto';
 import rateLimit from 'express-rate-limit';
 import pool from '../db/pool.js';
-import { clerkAuth } from '../middleware/clerkAuth.js';
+import { clerkAuth, optionalAuth } from '../middleware/clerkAuth.js';
 import { validate } from '../middleware/validate.js';
 import { logger } from '../lib/logger.js';
 import { redis } from '../lib/redis.js';
