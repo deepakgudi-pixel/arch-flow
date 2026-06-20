@@ -2,13 +2,11 @@ import express from 'express';
 import crypto from 'crypto';
 import rateLimit from 'express-rate-limit';
 import pool from '../db/pool.js';
-import { clerkAuth, optionalAuth } from '../middleware/clerkAuth.js';
+import { clerkAuth } from '../middleware/clerkAuth.js';
 import { validate } from '../middleware/validate.js';
-import { ensureUserExists } from '../services/userSync.js';
 import { logger } from '../lib/logger.js';
 import { redis } from '../lib/redis.js';
 import { 
-  builtInTech, 
   getTechDescription, 
   getCategoryProducts,
   categorizeTech
@@ -120,59 +118,7 @@ async function addToCache(key, value) {
   await redis.set(`ai_diag:${key}`, JSON.stringify(value), 3600);
 }
 
-async function autoRegisterTech(user, nodes) {
-  const userId = user.id;
-  await ensureUserExists(user);
-
-  const allBuiltInNames = new Set(
-    Object.values(builtInTech)
-      .flat()
-      .map(t => t.name.toLowerCase())
-  );
-
-  // Filter to only nodes that aren't built-ins and have a name
-  const newNodes = nodes.filter(node => {
-    const nodeName = String(node.name || '').trim();
-    return nodeName && !allBuiltInNames.has(nodeName.toLowerCase());
-  });
-
-  if (newNodes.length === 0) return;
-
-  // Build a single bulk upsert
-  const values = [];
-  const params = [];
-  let paramIndex = 1;
-
-  for (const node of newNodes) {
-    const nodeName = String(node.name || '').trim();
-    const id = crypto.randomUUID();
-    params.push(
-      id,
-      userId,
-      nodeName,
-      node.category || 'backend',
-      node.role || `Automated technical module for ${nodeName}`,
-      JSON.stringify(node.products || []),
-      node.icon || 'tech'
-    );
-    values.push(
-      `($${paramIndex++}, $${paramIndex++}, $${paramIndex++}, $${paramIndex++}, $${paramIndex++}, $${paramIndex++}, $${paramIndex++})`
-    );
-  }
-
-  try {
-    await pool.query(
-      `INSERT INTO user_inventory (id, user_id, name, category, description, products, icon)
-       VALUES ${values.join(', ')}
-       ON CONFLICT (user_id, name) DO NOTHING`,
-      params
-    );
-  } catch (err) {
-    logger.error('TECH_AUTO_REGISTER_FAILED', { error: err.message, nodeCount: newNodes.length });
-  }
-}
-
-router.post('/generate-diagram', aiLimiter, optionalAuth, validate({
+router.post('/generate-diagram', aiLimiter, validate({
   description: { required: true, type: 'string', maxLength: 2000 },
   template: { type: 'string', maxLength: 50 },
   diagramId: { type: 'string', maxLength: 50 }
@@ -272,15 +218,6 @@ router.post('/generate-diagram', aiLimiter, optionalAuth, validate({
       ...(generatedDiagram.quality && { quality: generatedDiagram.quality }),
       ...(generatedDiagram.autoFixes && { autoFixes: generatedDiagram.autoFixes })
     };
-
-    // Auto-register new tech to community inventory if user is logged in
-    if (req.user) {
-      try {
-        await autoRegisterTech(req.user, result.nodes);
-      } catch (regErr) {
-        logger.error('Tech auto-registration failed', { error: regErr.message });
-      }
-    }
 
     // Persistent storage (Versioning + Caching)
     try {

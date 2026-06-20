@@ -315,14 +315,14 @@ export default function DiagramPage() {
     customTechPrompt,
     setCustomTechPrompt,
     generatingTech,
+    generatedTechnologies,
     handleGenerateTech,
-    deleteFromInventory,
+    deleteGeneratedTechnology,
     handleDragStart,
     handleDrop,
     handleDragOver,
     handleCreateArchitectureUnit
   } = useTechInventoryActions({
-    loadInventory,
     nodes,
     setNodes,
     setSelectedNode,
@@ -459,8 +459,12 @@ export default function DiagramPage() {
   const architectureScore = buildArchitectureScore(reviewFindings, nodes, edges);
   const selectedNodeTrustProfile = buildNodeTrustProfile(selectedNode, reviewFindings);
   const selectedConnectionProfile = buildConnectionTrustProfile(selectedEdge, nodes, reviewFindings);
+  const libraryInventory = {
+    ...inventory,
+    custom: generatedTechnologies
+  };
   const replacementCandidates = getReplacementCandidates(
-    inventory,
+    libraryInventory,
     selectedNode?.data.category,
     selectedNode ? getNodeImplementationName(selectedNode.data) || selectedNode.data.label : ''
   );
@@ -919,7 +923,7 @@ export default function DiagramPage() {
             open={rightPanelOpen}
             searchTerm={searchTerm}
             onSearchTermChange={setSearchTerm}
-            inventory={inventory}
+            inventory={libraryInventory}
             selectedNode={selectedNode}
             customTechPrompt={customTechPrompt}
             onCustomTechPromptChange={setCustomTechPrompt}
@@ -928,7 +932,7 @@ export default function DiagramPage() {
             onDragStart={handleDragStart}
             onReplaceNode={handleReplaceNode}
             onCreateUnit={handleCreateArchitectureUnit}
-            onDeleteFromInventory={deleteFromInventory}
+            onDeleteGeneratedTechnology={deleteGeneratedTechnology}
             onClose={() => setRightPanelOpen(false)}
           />
 

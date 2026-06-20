@@ -128,8 +128,7 @@ export default function EditorSmokeProbePage() {
         database: [{ name: 'PostgreSQL' }],
         auth: [{ name: 'Clerk' }],
       },
-      community: [{ id: 'c1', name: 'Redis', category: 'queue', isOwner: true }],
-      custom: [],
+      custom: [{ id: 'generated_1', name: 'FastAPI', category: 'backend' }],
     }),
     [],
   );
@@ -268,7 +267,7 @@ export default function EditorSmokeProbePage() {
           onCreateUnit={({ responsibility, technology }) => {
             setCreatedUnit(`${responsibility} · ${technology.name}`);
           }}
-          onDeleteFromInventory={() => {}}
+          onDeleteGeneratedTechnology={() => {}}
           onClose={() => setLibraryPanelOpen(false)}
         />
       </MainArea>

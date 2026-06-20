@@ -7,10 +7,10 @@ export function getReplacementCandidates(inventory, category, currentLabel) {
 
   const currentName = normalizeTechLabel(currentLabel);
   const builtInItems = inventory?.builtIn?.[category] || [];
-  const communityItems = (inventory?.community || []).filter(item => item.category === category);
+  const generatedItems = (inventory?.custom || []).filter(item => item.category === category);
   const deduped = new Map();
 
-  [...builtInItems, ...communityItems].forEach(item => {
+  [...builtInItems, ...generatedItems].forEach(item => {
     const normalizedName = normalizeTechLabel(item.name);
 
     if (!normalizedName || normalizedName === currentName || deduped.has(normalizedName)) {
@@ -19,7 +19,7 @@ export function getReplacementCandidates(inventory, category, currentLabel) {
 
     deduped.set(normalizedName, {
       ...item,
-      source: builtInItems.includes(item) ? 'BUILT-IN' : 'COMMUNITY'
+      source: builtInItems.includes(item) ? 'BUILT-IN' : 'AI-GENERATED'
     });
   });
 

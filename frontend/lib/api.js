@@ -138,8 +138,6 @@ export const api = {
   deleteDiagram: (id) => fetchAPI(`/diagrams/${id}`, { method: 'DELETE' }),
 
   getInventory: () => fetchAPI('/inventory'),
-  addToInventory: (data) => fetchAPI('/inventory', { method: 'POST', body: JSON.stringify(data) }),
-  deleteFromInventory: (id) => fetchAPI(`/inventory/${id}`, { method: 'DELETE' }),
 
   getSettings: () => fetchAPI('/settings'),
   updateSettings: (data) => fetchAPI('/settings', { method: 'PUT', body: JSON.stringify(data) }),

@@ -21,7 +21,7 @@ export function useDiagramPersistence({
   setToast
 }) {
   const [diagramName, setDiagramName] = useState('Untitled diagram');
-  const [inventory, setInventory] = useState({ builtIn: {}, community: [] });
+  const [inventory, setInventory] = useState({ builtIn: {} });
   const [versions, setVersions] = useState([]);
   const [versionsLoading, setVersionsLoading] = useState(false);
   const [connectionMode, setConnectionMode] = useState('guided');
@@ -124,8 +124,7 @@ export function useDiagramPersistence({
     try {
       const data = await api.getInventory();
       setInventory({
-        builtIn: data.builtIn,
-        community: data.community
+        builtIn: data.builtIn || {}
       });
     } catch (error) {
       console.error('Failed to load inventory:', error);
@@ -352,7 +351,6 @@ export function useDiagramPersistence({
     diagramName,
     setDiagramName,
     inventory,
-    setInventory,
     versions,
     versionsLoading,
     connectionMode,

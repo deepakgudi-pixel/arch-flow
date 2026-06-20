@@ -26,7 +26,6 @@ function buildManualUnitPosition(nodes, category) {
 }
 
 export function useTechInventoryActions({
-  loadInventory,
   nodes,
   setNodes,
   setSelectedNode,
@@ -36,6 +35,7 @@ export function useTechInventoryActions({
 }) {
   const [customTechPrompt, setCustomTechPrompt] = useState('');
   const [generatingTech, setGeneratingTech] = useState(false);
+  const [generatedTechnologies, setGeneratedTechnologies] = useState([]);
 
   const handleGenerateTech = async () => {
     if (!customTechPrompt.trim()) return;
@@ -43,10 +43,19 @@ export function useTechInventoryActions({
     setGeneratingTech(true);
     try {
       const tech = await api.generateTech({ description: customTechPrompt });
-      await api.addToInventory(tech);
-      await loadInventory();
+      const generatedTechnology = {
+        ...tech,
+        id: `generated_${Date.now()}`
+      };
+
+      setGeneratedTechnologies(current => [
+        generatedTechnology,
+        ...current.filter(item => (
+          item.name !== generatedTechnology.name || item.category !== generatedTechnology.category
+        ))
+      ]);
       setCustomTechPrompt('');
-      setToast({ message: 'TECH_SYNTHESIS: SUCCESS', error: false });
+      setToast({ message: 'TECH_READY_FOR_THIS_SESSION', error: false });
       setTimeout(() => setToast(null), 2000);
     } catch (err) {
       console.error('Tech generation failed:', err);
@@ -57,17 +66,10 @@ export function useTechInventoryActions({
     }
   };
 
-  const deleteFromInventory = async (techId) => {
-    try {
-      await api.deleteFromInventory(techId);
-      await loadInventory();
-      setToast({ message: 'TECH_REMOVED', error: false });
-      setTimeout(() => setToast(null), 2000);
-    } catch (err) {
-      console.error('Failed to delete tech:', err);
-      setToast({ message: 'TECH_REMOVAL_FAILED', error: true });
-      setTimeout(() => setToast(null), 3000);
-    }
+  const deleteGeneratedTechnology = (techId) => {
+    setGeneratedTechnologies(current => current.filter(item => item.id !== techId));
+    setToast({ message: 'SESSION_TECH_REMOVED', error: false });
+    setTimeout(() => setToast(null), 2000);
   };
 
   const handleDragStart = (e, tech) => {
@@ -155,8 +157,9 @@ export function useTechInventoryActions({
     customTechPrompt,
     setCustomTechPrompt,
     generatingTech,
+    generatedTechnologies,
     handleGenerateTech,
-    deleteFromInventory,
+    deleteGeneratedTechnology,
     handleDragStart,
     handleDrop,
     handleDragOver,

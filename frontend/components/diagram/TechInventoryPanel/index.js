@@ -46,7 +46,7 @@ import {
 export default function TechInventoryPanel({
   open, searchTerm, onSearchTermChange,
   inventory, customTechPrompt, onCustomTechPromptChange,
-  generatingTech, onGenerateTech, onDragStart, onDeleteFromInventory,
+  generatingTech, onGenerateTech, onDragStart, onDeleteGeneratedTechnology,
   onClose,
   selectedNode,
   onReplaceNode,
@@ -145,8 +145,15 @@ export default function TechInventoryPanel({
             </SelectTechnologyButton>
           )}
           {options.showAiBadge && <AiBadge>AI</AiBadge>}
-          {tech.isOwner && (
-            <DeleteBtn onClick={(event) => { event.stopPropagation(); onDeleteFromInventory(tech.id); }}>
+          {options.showDelete && (
+            <DeleteBtn
+              type="button"
+              aria-label={`Remove ${tech.name} from this session`}
+              onClick={(event) => {
+                event.stopPropagation();
+                onDeleteGeneratedTechnology?.(tech.id);
+              }}
+            >
               <Trash2 size={12} />
             </DeleteBtn>
           )}
@@ -260,15 +267,6 @@ export default function TechInventoryPanel({
             </WideButton>
           </GenerateSection>
 
-          {inventory.community && inventory.community.length > 0 && (
-            <TechCategory>
-              <CategoryLabel>Community Modules</CategoryLabel>
-              {inventory.community
-                .filter(matchesSearch)
-                .map(tech => renderInventoryCard(tech, tech.category, 'Community', { keyId: tech.id }))}
-            </TechCategory>
-          )}
-
           {Object.keys(inventory.builtIn || {}).map(category => {
             const builtInForCat = inventory.builtIn[category] || [];
             const customForCat = (inventory.custom || []).filter(item => item.category === category);
@@ -283,10 +281,11 @@ export default function TechInventoryPanel({
                 {allItems.map((tech, idx) => renderInventoryCard(
                   tech,
                   category,
-                  tech.id ? 'AI' : 'Built in',
+                  tech.id ? 'AI generated' : 'Built in',
                   {
                     keyId: tech.id || `${category}_${idx}_${tech.name}`,
-                    showAiBadge: Boolean(tech.id)
+                    showAiBadge: Boolean(tech.id),
+                    showDelete: Boolean(tech.id)
                   }
                 ))}
               </TechCategory>
@@ -294,8 +293,7 @@ export default function TechInventoryPanel({
           })}
 
           {searchTerm && !Object.values(inventory.builtIn || {}).some(cat => cat.some(matchesSearch)) &&
-           !inventory.custom?.some(matchesSearch) &&
-           !inventory.community?.some(matchesSearch) && (
+           !inventory.custom?.some(matchesSearch) && (
             <EmptyState>
               <EmptyStateLabel>No matching technologies found</EmptyStateLabel>
               <WideButton
