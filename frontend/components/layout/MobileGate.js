@@ -2,6 +2,7 @@
 
 import styled, { createGlobalStyle } from 'styled-components';
 import { usePathname } from 'next/navigation';
+import { MonitorUp } from 'lucide-react';
 
 const MobileLockStyle = createGlobalStyle`
   @media (max-width: 1024px) {
@@ -17,72 +18,57 @@ const MobileLockStyle = createGlobalStyle`
 const BlockerContainer = styled.div`
   display: none;
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  inset: 0;
   width: 100%;
   height: 100%;
   background: #ffffff;
   z-index: 999999;
-  padding: 20px;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  text-align: center;
+  padding: 28px;
   box-sizing: border-box;
   overscroll-behavior: none;
   touch-action: none;
 
   @media (max-width: 1024px) {
-    display: flex;
+    display: grid;
+    place-items: center;
   }
+`;
+
+const BlockerContent = styled.div`
+  width: min(100%, 360px);
+  display: grid;
+  justify-items: center;
+  gap: 18px;
+  text-align: center;
 `;
 
 const BlockerIcon = styled.div`
-  font-size: clamp(40px, 15vw, 80px);
-  margin-bottom: 24px;
-  animation: pulse 2s infinite ease-in-out;
-
-  @keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.3; }
-  }
+  width: 52px;
+  height: 52px;
+  display: grid;
+  place-items: center;
+  border: 2px solid #000000;
+  background: #000000;
+  color: #ffffff;
 `;
 
 const BlockerTitle = styled.h1`
-  font-family: var(--font-mono);
-  font-size: clamp(1rem, 5vw, 1.5rem);
+  font-family: var(--font-sans);
+  font-size: clamp(1.65rem, 7vw, 2.25rem);
+  line-height: 1.05;
   font-weight: 900;
   color: #000000;
-  margin-bottom: 12px;
+  margin: 0;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
-  padding: 0 10px;
+  letter-spacing: 0;
 `;
 
 const BlockerText = styled.p`
-  font-family: var(--font-mono);
-  font-size: clamp(0.7rem, 3.5vw, 0.9rem);
-  line-height: 1.6;
-  color: #666;
-  max-width: 90%;
-  width: 320px;
-  text-transform: uppercase;
-  margin: 0 auto;
-`;
-
-const BlockerStatus = styled.div`
-  margin-top: clamp(24px, 8vh, 48px);
-  padding: 10px 20px;
-  border: 3px solid #000000;
-  background: #000000;
-  color: #ffffff;
-  font-family: var(--font-mono);
-  font-size: clamp(0.6rem, 3vw, 0.8rem);
-  font-weight: 900;
-  letter-spacing: 0.15em;
-  max-width: 90%;
+  font-family: var(--font-sans);
+  font-size: 0.95rem;
+  line-height: 1.55;
+  color: #5f5f5f;
+  margin: 0;
 `;
 
 export default function MobileGate() {
@@ -97,15 +83,15 @@ export default function MobileGate() {
     <>
       <MobileLockStyle />
       <BlockerContainer>
-        <BlockerIcon>📟</BlockerIcon>
-        <BlockerTitle>HARDWARE_RESTRICTION_ACTIVE</BlockerTitle>
-        <BlockerText>
-          System architecture synthesis requires high-precision input and a wide-field display. 
-          Your current terminal is insufficiently equipped for the Archflow Mainframe.
-          <br /><br />
-          <strong style={{ color: '#000' }}>PLEASE VIEW THIS APP ON A DESKTOP OR PC FOR THE FULL EXPERIENCE.</strong>
-        </BlockerText>
-        <BlockerStatus>[!] AWAITING_DESKTOP_SYNCHRONIZATION...</BlockerStatus>
+        <BlockerContent>
+          <BlockerIcon aria-hidden="true">
+            <MonitorUp size={24} strokeWidth={2.5} />
+          </BlockerIcon>
+          <BlockerTitle>Open Archflow on desktop.</BlockerTitle>
+          <BlockerText>
+            Architecture diagrams need a wider canvas. Continue on a laptop or desktop.
+          </BlockerText>
+        </BlockerContent>
       </BlockerContainer>
     </>
   );
