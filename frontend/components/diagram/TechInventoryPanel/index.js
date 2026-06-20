@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { Check, Trash2, X } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { Check, ChevronDown, GripVertical, Sparkles, Trash2, X } from 'lucide-react';
 import {
   getNodeDisplayName,
   getNodeImplementationDisplayName,
@@ -9,13 +9,21 @@ import {
   isSemanticNodeData
 } from '@/lib/nodePresentation';
 import {
-  RightPanel, PanelContent, SidebarTitle, SearchInput, CloseBtn,
-  SectionTitle, TechCategory, CategoryLabel
+  RightPanel, PanelContent, SidebarTitle, SearchInput, CloseBtn
 } from '../editorStyles';
 import {
+  CatalogCount,
+  CatalogHeader,
+  CategoryBody,
+  CategoryButton,
+  CategoryCount,
+  CategoryHeading,
+  CategoryStack,
+  CollapsibleSection,
+  CollapsibleSectionButton,
+  DragHandle,
   GenerateSection,
   CustomTechInput,
-  AiBadge,
   DeleteBtn,
   EmptyState,
   EmptyStateLabel,
@@ -31,9 +39,11 @@ import {
   PanelHintTitle,
   ResponsibilityBuilder,
   ResponsibilityBuilderActions,
+  ResponsibilityBuilderTitle,
   ResponsibilityField,
   ResponsibilityInput,
   ResponsibilityLabel,
+  SearchSection,
   SelectedTechnology,
   SelectedTechnologyClear,
   SelectedTechnologyLabel,
@@ -42,6 +52,18 @@ import {
   UseTechnologyButton,
   WideButton
 } from './TechInventoryPanel.styles';
+
+const CATEGORY_ORDER = [
+  'mobile',
+  'frontend',
+  'auth',
+  'backend',
+  'database',
+  'queue',
+  'storage',
+  'external',
+  'devops'
+];
 
 export default function TechInventoryPanel({
   open, searchTerm, onSearchTermChange,
@@ -54,11 +76,24 @@ export default function TechInventoryPanel({
 }) {
   const [responsibility, setResponsibility] = useState('');
   const [builderTechnology, setBuilderTechnology] = useState(null);
+  const [expandedCategories, setExpandedCategories] = useState({ backend: true });
+  const [generatorOpen, setGeneratorOpen] = useState(false);
   const normalizedSearch = searchTerm.trim().toLowerCase();
   const selectedNodeLabel = selectedNode ? getNodeDisplayName(selectedNode.data) : '';
   const selectedNodeIsSemantic = selectedNode ? isSemanticNodeData(selectedNode.data) : false;
   const selectedTechnology = selectedNode ? getNodeImplementationDisplayName(selectedNode.data) : '';
   const builderReady = Boolean(responsibility.trim() && builderTechnology);
+
+  useEffect(() => {
+    if (!selectedNodeIsSemantic || !selectedNode?.data?.category) {
+      return;
+    }
+
+    setExpandedCategories(current => ({
+      ...current,
+      [selectedNode.data.category]: true
+    }));
+  }, [selectedNode?.data?.category, selectedNodeIsSemantic]);
 
   const handleCreateUnit = (technology = builderTechnology) => {
     if (!responsibility.trim() || !technology) {
@@ -86,6 +121,54 @@ export default function TechInventoryPanel({
     return haystack.includes(normalizedSearch);
   };
 
+  const categorizedTechnologies = useMemo(() => {
+    const builtIn = inventory.builtIn || {};
+    const generated = inventory.custom || [];
+    const categories = new Set([
+      ...CATEGORY_ORDER,
+      ...Object.keys(builtIn),
+      ...generated.map(item => item.category).filter(Boolean)
+    ]);
+
+    return [...categories]
+      .map(category => {
+        const deduped = new Map();
+
+        [
+          ...(builtIn[category] || []),
+          ...generated.filter(item => item.category === category)
+        ].forEach(item => {
+          const key = String(item.name || '').trim().toLowerCase();
+          if (key && !deduped.has(key)) {
+            deduped.set(key, item);
+          }
+        });
+
+        const items = [...deduped.values()].filter(matchesSearch);
+
+        return { category, items };
+      })
+      .filter(group => group.items.length > 0)
+      .filter(group => (
+        !selectedNodeIsSemantic || group.category === selectedNode?.data?.category
+      ))
+      .sort((a, b) => (
+        CATEGORY_ORDER.indexOf(a.category) - CATEGORY_ORDER.indexOf(b.category)
+      ));
+  }, [inventory.builtIn, inventory.custom, normalizedSearch, selectedNode?.data?.category, selectedNodeIsSemantic]);
+
+  const technologyCount = categorizedTechnologies.reduce(
+    (total, group) => total + group.items.length,
+    0
+  );
+
+  const toggleCategory = (category) => {
+    setExpandedCategories(current => ({
+      ...current,
+      [category]: !current[category]
+    }));
+  };
+
   const renderInventoryCard = (tech, category, metaLabel, options = {}) => {
     const technology = { ...tech, category };
     const isBuilderSelection = builderTechnology?.name === tech.name
@@ -95,32 +178,36 @@ export default function TechInventoryPanel({
       : `Choose ${tech.name} for architecture unit`;
 
     return (
-    <InventoryCard
-      key={options.keyId || tech.id || `${category}_${tech.name}`}
-      draggable
-      $selected={isBuilderSelection}
-      onDragStart={event => onDragStart(event, technology)}
-    >
-      <InventoryCardHeader>
-        <InventoryCardTitle>{tech.name}</InventoryCardTitle>
-        <InventoryCardMeta>{metaLabel}</InventoryCardMeta>
-      </InventoryCardHeader>
-      <InventoryCardDescription>
-        {tech.description || tech.role || `Use ${tech.name} inside the ${category} layer.`}
-      </InventoryCardDescription>
-      <InventoryCardFooter>
-        <InventoryCardHint>
-          {selectedNodeIsSemantic && selectedNode?.data?.category === category
-            ? `Compatible with ${selectedNodeLabel}`
-            : `Drag to ${category}`}
-        </InventoryCardHint>
+      <InventoryCard
+        key={options.keyId || tech.id || `${category}_${tech.name}`}
+        draggable
+        $selected={isBuilderSelection}
+        onDragStart={event => onDragStart(event, technology)}
+      >
+        <DragHandle aria-hidden="true">
+          <GripVertical size={14} />
+        </DragHandle>
         <div>
+          <InventoryCardHeader>
+            <InventoryCardTitle>{tech.name}</InventoryCardTitle>
+            <InventoryCardMeta>{metaLabel}</InventoryCardMeta>
+          </InventoryCardHeader>
+          <InventoryCardDescription>
+            {tech.description || tech.role || `Use ${tech.name} inside the ${category} layer.`}
+          </InventoryCardDescription>
+          <InventoryCardHint>
+            {selectedNodeIsSemantic && selectedNode?.data?.category === category
+              ? `Compatible with ${selectedNodeLabel}`
+              : `Drag to add as ${getNodeUnitTypeLabel(category).toLowerCase()}`}
+          </InventoryCardHint>
+        </div>
+        <InventoryCardFooter>
           {selectedNodeIsSemantic && selectedNode?.data?.category === category && (
             <UseTechnologyButton
               type="button"
               onClick={() => onReplaceNode?.(technology)}
             >
-              Use technology
+              Use
             </UseTechnologyButton>
           )}
           {!selectedNodeIsSemantic && (
@@ -138,13 +225,12 @@ export default function TechInventoryPanel({
               aria-label={directCreateLabel}
             >
               {responsibility.trim()
-                ? 'Use for unit'
+                ? 'Use'
                 : isBuilderSelection
                 ? <Check size={12} aria-hidden="true" />
                 : 'Choose'}
             </SelectTechnologyButton>
           )}
-          {options.showAiBadge && <AiBadge>AI</AiBadge>}
           {options.showDelete && (
             <DeleteBtn
               type="button"
@@ -157,9 +243,8 @@ export default function TechInventoryPanel({
               <Trash2 size={12} />
             </DeleteBtn>
           )}
-        </div>
-      </InventoryCardFooter>
-    </InventoryCard>
+        </InventoryCardFooter>
+      </InventoryCard>
     );
   };
 
@@ -181,18 +266,17 @@ export default function TechInventoryPanel({
             </PanelHintTitle>
             <PanelHintBody>
               {selectedNodeIsSemantic
-                ? `This unit keeps its architectural role. Use a compatible technology below to swap its implementation${selectedTechnology ? `, currently ${selectedTechnology}` : ''}. Dragging still adds a separate node.`
-                : 'Generated diagrams can show semantic units like claims processing or audit logging. This library is where you choose the technology that implements those responsibilities.'}
+                ? `Swap the implementation without changing ${selectedNodeLabel}${selectedTechnology ? `, currently ${selectedTechnology}` : ''}.`
+                : 'Name what the unit does, then choose the technology that runs it.'}
             </PanelHintBody>
           </PanelHint>
 
           {!selectedNodeIsSemantic && (
-            <>
-              <SectionTitle>Create Architecture Unit</SectionTitle>
-              <ResponsibilityBuilder>
+            <ResponsibilityBuilder>
+              <ResponsibilityBuilderTitle>Create Architecture Unit</ResponsibilityBuilderTitle>
                 <ResponsibilityField>
                   <ResponsibilityLabel htmlFor="architecture-unit-responsibility">
-                    1. Name the responsibility
+                    Responsibility
                   </ResponsibilityLabel>
                   <ResponsibilityInput
                     id="architecture-unit-responsibility"
@@ -207,30 +291,27 @@ export default function TechInventoryPanel({
                   />
                 </ResponsibilityField>
 
-                <ResponsibilityField>
-                  <ResponsibilityLabel>2. Choose its technology below</ResponsibilityLabel>
-                  <SelectedTechnology $empty={!builderTechnology}>
-                    <div>
-                      <SelectedTechnologyLabel>
-                        {builderTechnology
-                          ? `${getNodeUnitTypeLabel(builderTechnology.category)} · Implementation`
-                          : 'Implementation'}
-                      </SelectedTechnologyLabel>
-                      <SelectedTechnologyName>
-                        {builderTechnology?.name || 'No technology selected'}
-                      </SelectedTechnologyName>
-                    </div>
-                    {builderTechnology && (
-                      <SelectedTechnologyClear
-                        type="button"
-                        onClick={() => setBuilderTechnology(null)}
-                        aria-label={`Clear ${builderTechnology.name} selection`}
-                      >
-                        <X size={13} aria-hidden="true" />
-                      </SelectedTechnologyClear>
-                    )}
-                  </SelectedTechnology>
-                </ResponsibilityField>
+                <SelectedTechnology $empty={!builderTechnology}>
+                  <div>
+                    <SelectedTechnologyLabel>
+                      {builderTechnology
+                        ? `${getNodeUnitTypeLabel(builderTechnology.category)} · Implementation`
+                        : 'Choose a technology below'}
+                    </SelectedTechnologyLabel>
+                    <SelectedTechnologyName>
+                      {builderTechnology?.name || 'No technology selected'}
+                    </SelectedTechnologyName>
+                  </div>
+                  {builderTechnology && (
+                    <SelectedTechnologyClear
+                      type="button"
+                      onClick={() => setBuilderTechnology(null)}
+                      aria-label={`Clear ${builderTechnology.name} selection`}
+                    >
+                      <X size={13} aria-hidden="true" />
+                    </SelectedTechnologyClear>
+                  )}
+                </SelectedTechnology>
 
                 <ResponsibilityBuilderActions>
                   <WideButton
@@ -241,69 +322,100 @@ export default function TechInventoryPanel({
                     Add Unit to Canvas
                   </WideButton>
                 </ResponsibilityBuilderActions>
-              </ResponsibilityBuilder>
-            </>
+            </ResponsibilityBuilder>
           )}
 
-          <SearchInput
-            placeholder="Filter by technology or use case..."
-            value={searchTerm}
-            onChange={e => onSearchTermChange(e.target.value)}
-          />
-
-          <SectionTitle>Generate Technology</SectionTitle>
-          <GenerateSection>
-            <CustomTechInput
-              placeholder="Describe a technology or connector..."
-              value={customTechPrompt}
-              onChange={e => onCustomTechPromptChange(e.target.value)}
-              onKeyPress={e => e.key === 'Enter' && onGenerateTech()}
+          <SearchSection>
+            <SearchInput
+              placeholder="Search technologies or use cases..."
+              value={searchTerm}
+              onChange={e => onSearchTermChange(e.target.value)}
             />
-            <WideButton
-              onClick={onGenerateTech}
-              disabled={generatingTech || !customTechPrompt.trim()}
+          </SearchSection>
+
+          <CatalogHeader>
+            <CatalogCount>
+              {technologyCount} {technologyCount === 1 ? 'technology' : 'technologies'}
+            </CatalogCount>
+            {selectedNodeIsSemantic && (
+              <CatalogCount>{getNodeUnitTypeLabel(selectedNode.data.category)}</CatalogCount>
+            )}
+          </CatalogHeader>
+
+          <CategoryStack>
+            {categorizedTechnologies.map(({ category, items }) => {
+              const expanded = Boolean(normalizedSearch)
+                || Boolean(expandedCategories[category]);
+
+              return (
+                <CategoryHeading key={category}>
+                  <CategoryButton
+                    type="button"
+                    onClick={() => toggleCategory(category)}
+                    aria-expanded={expanded}
+                    $expanded={expanded}
+                  >
+                    <span>{getNodeUnitTypeLabel(category)}</span>
+                    <CategoryCount>{items.length}</CategoryCount>
+                    <ChevronDown size={15} aria-hidden="true" />
+                  </CategoryButton>
+                  <CategoryBody $expanded={expanded}>
+                    <div>
+                      {items.map((tech, idx) => renderInventoryCard(
+                        tech,
+                        category,
+                        tech.id ? 'AI generated' : 'Built in',
+                        {
+                          keyId: tech.id || `${category}_${idx}_${tech.name}`,
+                          showDelete: Boolean(tech.id)
+                        }
+                      ))}
+                    </div>
+                  </CategoryBody>
+                </CategoryHeading>
+              );
+            })}
+          </CategoryStack>
+
+          <CollapsibleSection>
+            <CollapsibleSectionButton
+              type="button"
+              onClick={() => setGeneratorOpen(current => !current)}
+              aria-expanded={generatorOpen}
+              $expanded={generatorOpen}
             >
-              {generatingTech ? 'Synthesizing...' : 'Generate Module'}
-            </WideButton>
-          </GenerateSection>
+              <Sparkles size={14} aria-hidden="true" />
+              <span>Can’t find a technology?</span>
+              <ChevronDown size={15} aria-hidden="true" />
+            </CollapsibleSectionButton>
+            {generatorOpen && (
+              <GenerateSection>
+                <CustomTechInput
+                  placeholder="Describe a technology or connector..."
+                  value={customTechPrompt}
+                  onChange={e => onCustomTechPromptChange(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && onGenerateTech()}
+                />
+                <WideButton
+                  onClick={onGenerateTech}
+                  disabled={generatingTech || !customTechPrompt.trim()}
+                >
+                  {generatingTech ? 'Synthesizing...' : 'Generate Technology'}
+                </WideButton>
+              </GenerateSection>
+            )}
+          </CollapsibleSection>
 
-          {Object.keys(inventory.builtIn || {}).map(category => {
-            const builtInForCat = inventory.builtIn[category] || [];
-            const customForCat = (inventory.custom || []).filter(item => item.category === category);
-            const allItems = [...builtInForCat, ...customForCat]
-              .filter(matchesSearch);
-
-            if (allItems.length === 0) return null;
-
-            return (
-              <TechCategory key={category}>
-                <CategoryLabel>{category.replace('_', ' ')} technologies</CategoryLabel>
-                {allItems.map((tech, idx) => renderInventoryCard(
-                  tech,
-                  category,
-                  tech.id ? 'AI generated' : 'Built in',
-                  {
-                    keyId: tech.id || `${category}_${idx}_${tech.name}`,
-                    showAiBadge: Boolean(tech.id),
-                    showDelete: Boolean(tech.id)
-                  }
-                ))}
-              </TechCategory>
-            );
-          })}
-
-          {searchTerm && !Object.values(inventory.builtIn || {}).some(cat => cat.some(matchesSearch)) &&
-           !inventory.custom?.some(matchesSearch) && (
+          {searchTerm && categorizedTechnologies.length === 0 && (
             <EmptyState>
               <EmptyStateLabel>No matching technologies found</EmptyStateLabel>
               <WideButton
                 onClick={() => {
-                  onSearchTermChange(searchTerm);
-                  onGenerateTech();
+                  onCustomTechPromptChange(searchTerm);
+                  setGeneratorOpen(true);
                 }}
-                disabled={generatingTech}
               >
-                {generatingTech ? 'Synthesizing...' : `Synthesize ${searchTerm}`}
+                Generate “{searchTerm}”
               </WideButton>
             </EmptyState>
           )}

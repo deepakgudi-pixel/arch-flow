@@ -6,8 +6,13 @@ export const PromptBarPositioner = styled.div`
   bottom: 32px;
   left: 50%;
   transform: translateX(-50%);
-  width: min(900px, 90vw);
+  width: min(900px, calc(100% - 48px));
   z-index: 100;
+
+  @media (max-width: 760px) {
+    width: calc(100% - 24px);
+    bottom: 16px;
+  }
 `;
 
 export const GenerateButton = styled(motion.button)`

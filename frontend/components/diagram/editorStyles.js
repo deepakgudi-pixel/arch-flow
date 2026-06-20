@@ -306,21 +306,25 @@ export const CanvasWrapper = styled.div`
 `;
 
 export const RightPanel = styled.div`
-  width: ${props => props.$open ? '320px' : '0'};
+  width: ${props => props.$open ? 'min(360px, 100vw)' : '0'};
   background: #ffffff;
   border-left: 1px solid rgba(0, 0, 0, 0.08);
   border-left-width: ${props => props.$open ? '1px' : '0'};
   transition: width 0.5s ease-in-out, border-left-width 0.5s ease-in-out;
   overflow: hidden;
   flex-shrink: 0;
-  z-index: 50;
+  z-index: 150;
 `;
 
 export const PanelContent = styled.div`
-  width: 320px;
+  width: min(360px, 100vw);
   height: 100%;
   overflow-y: auto;
   padding: 24px;
+
+  > h2 {
+    margin-bottom: 14px;
+  }
 `;
 
 export const SearchInput = styled.input`
@@ -345,52 +349,6 @@ export const SearchInput = styled.input`
   &::placeholder {
     color: #999;
   }
-`;
-
-export const TechChip = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px 12px;
-  background: #ffffff;
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  border-radius: 8px;
-  font-family: var(--font-sans);
-  font-size: 12px;
-  font-weight: 600;
-  color: #000000;
-  cursor: grab;
-  margin-bottom: 8px;
-  transition: all 0.2s;
-
-  &:hover {
-    background: #f9f9f9;
-    border-color: rgba(0, 0, 0, 0.15);
-    transform: translateX(4px);
-  }
-
-  &::before {
-    content: '';
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: ${props => categoryColors[props.$category] || '#000000'};
-    flex-shrink: 0;
-  }
-`;
-
-export const TechCategory = styled.div`
-  margin-bottom: 24px;
-`;
-
-export const CategoryLabel = styled.div`
-  font-family: var(--font-sans);
-  font-size: 10px;
-  font-weight: 700;
-  color: #bbb;
-  text-transform: uppercase;
-  margin-bottom: 10px;
-  letter-spacing: 0.05em;
 `;
 
 export const BottomBar = styled.div`

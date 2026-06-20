@@ -30,7 +30,10 @@ test('editor smoke probe supports critical panel flows', async ({ page }) => {
   await expect(page.getByText(/technology vs responsibility/i)).toBeVisible();
   await expect(page.getByText('Community Modules')).toBeHidden();
   await expect(page.getByText('FastAPI', { exact: true })).toBeVisible();
-  await page.getByLabel('1. Name the responsibility').fill('Data Layer');
+  await page.getByLabel('Responsibility').fill('Data Layer');
+  await expect(page.getByText('PostgreSQL', { exact: true })).toBeHidden();
+  await page.getByRole('button', { name: /DATABASE UNIT/ }).click();
+  await expect(page.getByText('PostgreSQL', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Use Node.js for Data Layer' }).click();
   await expect(page.getByText('CREATED_UNIT: Data Layer · Node.js')).toBeVisible();
   await page.getByLabel('Close tech library').click();

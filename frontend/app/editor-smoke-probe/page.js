@@ -253,6 +253,14 @@ export default function EditorSmokeProbePage() {
             </EmptyText>
           </EmptyCanvas>
           {activeUtilityPanel ? <PanelHost>{activeUtilityPanel}</PanelHost> : null}
+          <PromptBar
+            prompt={assistantPrompt}
+            onPromptChange={setAssistantPrompt}
+            template="blank"
+            onTemplateChange={() => {}}
+            loading={false}
+            onGenerate={() => {}}
+          />
         </CanvasWrapper>
         <TechInventoryPanel
           open={libraryPanelOpen}
@@ -272,14 +280,6 @@ export default function EditorSmokeProbePage() {
         />
       </MainArea>
       {createdUnit ? <div aria-live="polite">CREATED_UNIT: {createdUnit}</div> : null}
-      <PromptBar
-        prompt={assistantPrompt}
-        onPromptChange={setAssistantPrompt}
-        template="blank"
-        onTemplateChange={() => {}}
-        loading={false}
-        onGenerate={() => {}}
-      />
     </Container>
   );
 }

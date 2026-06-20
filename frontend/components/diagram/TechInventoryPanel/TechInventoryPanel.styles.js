@@ -3,9 +3,9 @@ import { ActionButton, SearchInput } from '../editorStyles';
 
 export const PanelHint = styled.div`
   display: grid;
-  gap: 6px;
-  padding: 14px 16px;
-  margin-bottom: 18px;
+  gap: 4px;
+  padding: 10px 12px;
+  margin-bottom: 10px;
   border: 1px solid rgba(0, 0, 0, 0.08);
   border-radius: 12px;
   background: rgba(0, 0, 0, 0.02);
@@ -29,10 +29,19 @@ export const PanelHintBody = styled.div`
 
 export const ResponsibilityBuilder = styled.div`
   display: grid;
-  gap: 14px;
-  padding: 14px 0 22px;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
-  margin-bottom: 22px;
+  gap: 10px;
+  padding: 12px;
+  margin-bottom: 10px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  background: #ffffff;
+`;
+
+export const ResponsibilityBuilderTitle = styled.div`
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 800;
+  color: #111111;
 `;
 
 export const ResponsibilityField = styled.div`
@@ -69,7 +78,7 @@ export const ResponsibilityInput = styled.input`
 `;
 
 export const SelectedTechnology = styled.div`
-  min-height: 54px;
+  min-height: 44px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -119,42 +128,37 @@ export const ResponsibilityBuilderActions = styled.div`
 `;
 
 export const GenerateSection = styled.div`
-  margin-bottom: 32px;
+  padding: 12px;
+  border-top: 1px solid rgba(0, 0, 0, 0.07);
 `;
 
 export const CustomTechInput = styled(SearchInput)`
   margin-bottom: 12px;
 `;
 
-export const AiBadge = styled.span`
-  font-family: var(--font-sans);
-  font-size: 9px;
-  font-weight: 800;
-  background: rgba(0, 0, 0, 0.05);
-  color: #666;
-  padding: 2px 6px;
-  border-radius: 4px;
-  margin-left: 8px;
-  text-transform: uppercase;
-  letter-spacing: 0.02em;
-`;
-
 export const InventoryCard = styled.div`
   display: grid;
+  grid-template-columns: 18px minmax(0, 1fr) auto;
+  align-items: center;
   gap: 10px;
-  padding: 12px 14px;
+  padding: 10px;
   background: #ffffff;
   border: 1px solid ${props => props.$selected ? '#111111' : 'rgba(0, 0, 0, 0.08)'};
-  border-radius: 10px;
+  border-radius: 7px;
   cursor: grab;
-  margin-bottom: 10px;
+  margin-bottom: 7px;
   transition: all 0.2s ease;
 
   &:hover {
     background: #fafafa;
-    border-color: rgba(0, 0, 0, 0.14);
-    transform: translateX(4px);
+    border-color: rgba(0, 0, 0, 0.2);
   }
+`;
+
+export const DragHandle = styled.div`
+  display: grid;
+  place-items: center;
+  color: #b1b1b1;
 `;
 
 export const InventoryCardHeader = styled.div`
@@ -173,8 +177,8 @@ export const InventoryCardTitle = styled.div`
 `;
 
 export const InventoryCardMeta = styled.div`
-  font-family: var(--font-sans);
-  font-size: 10px;
+  font-family: var(--font-mono);
+  font-size: 8px;
   font-weight: 700;
   color: #999999;
   text-transform: uppercase;
@@ -182,22 +186,27 @@ export const InventoryCardMeta = styled.div`
 `;
 
 export const InventoryCardDescription = styled.div`
+  margin-top: 3px;
   font-family: var(--font-sans);
-  font-size: 12px;
-  line-height: 1.45;
+  font-size: 11px;
+  line-height: 1.35;
   color: #555555;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 `;
 
 export const InventoryCardFooter = styled.div`
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+  justify-content: flex-end;
+  gap: 4px;
 `;
 
 export const InventoryCardHint = styled.div`
+  margin-top: 4px;
   font-family: var(--font-sans);
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 700;
   color: #888888;
   text-transform: uppercase;
@@ -207,7 +216,8 @@ export const InventoryCardHint = styled.div`
 export const UseTechnologyButton = styled.button`
   border: 1px solid #111111;
   border-radius: 6px;
-  padding: 5px 8px;
+  min-width: 48px;
+  padding: 6px 8px;
   background: #111111;
   color: #ffffff;
   font-family: var(--font-sans);
@@ -229,8 +239,8 @@ export const UseTechnologyButton = styled.button`
 `;
 
 export const SelectTechnologyButton = styled.button`
-  min-width: 54px;
-  min-height: 26px;
+  min-width: 48px;
+  min-height: 28px;
   display: inline-grid;
   place-items: center;
   border: 1px solid ${props => props.$selected ? '#111111' : 'rgba(0, 0, 0, 0.14)'};
@@ -254,7 +264,6 @@ export const SelectTechnologyButton = styled.button`
 `;
 
 export const DeleteBtn = styled.button`
-  margin-left: auto;
   background: none;
   border: none;
   cursor: pointer;
@@ -291,4 +300,134 @@ export const WideButton = styled(ActionButton)`
   justify-content: center;
   padding: 10px;
   font-size: 12px;
+`;
+
+export const SearchSection = styled.div`
+  position: sticky;
+  top: -24px;
+  z-index: 4;
+  padding: 8px 0 4px;
+  background: #ffffff;
+
+  input {
+    margin-bottom: 0;
+  }
+`;
+
+export const CatalogHeader = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 2px 8px;
+`;
+
+export const CatalogCount = styled.div`
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 800;
+  color: #8a8a8a;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+`;
+
+export const CategoryStack = styled.div`
+  display: grid;
+  gap: 8px;
+`;
+
+export const CategoryHeading = styled.section`
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 8px;
+  overflow: hidden;
+  background: #ffffff;
+`;
+
+export const CategoryButton = styled.button`
+  width: 100%;
+  min-height: 42px;
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  border: 0;
+  background: #ffffff;
+  color: #111111;
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 800;
+  text-align: left;
+  cursor: pointer;
+
+  &:hover {
+    background: #fafafa;
+  }
+
+  &:focus-visible {
+    outline: 2px solid #111111;
+    outline-offset: -2px;
+  }
+
+  svg:last-child {
+    transform: rotate(${props => props.$expanded ? '180deg' : '0deg'});
+    transition: transform 180ms ease;
+  }
+`;
+
+export const CategoryCount = styled.span`
+  min-width: 22px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.05);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  text-align: center;
+`;
+
+export const CategoryBody = styled.div`
+  max-height: ${props => props.$expanded ? '2400px' : '0'};
+  opacity: ${props => props.$expanded ? 1 : 0};
+  overflow: hidden;
+  visibility: ${props => props.$expanded ? 'visible' : 'hidden'};
+  transition: max-height 260ms ease, opacity 180ms ease, visibility 0s ${props => props.$expanded ? '0s' : '260ms'};
+
+  > div {
+    padding: ${props => props.$expanded ? '4px 8px 8px' : '0 8px'};
+    transition: padding 220ms ease;
+  }
+`;
+
+export const CollapsibleSection = styled.div`
+  margin-top: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 8px;
+  overflow: hidden;
+`;
+
+export const CollapsibleSectionButton = styled.button`
+  width: 100%;
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 12px;
+  border: 0;
+  background: #ffffff;
+  color: #444444;
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+
+  &:hover {
+    background: #fafafa;
+    color: #111111;
+  }
+
+  svg:last-child {
+    margin-left: auto;
+    transform: rotate(${props => props.$expanded ? '180deg' : '0deg'});
+    transition: transform 180ms ease;
+  }
 `;
