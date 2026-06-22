@@ -173,6 +173,7 @@ export const HeaderRight = styled.div`
 export const MainArea = styled.div`
   display: flex;
   flex: 1;
+  position: relative;
   overflow: hidden;
 `;
 
@@ -306,13 +307,23 @@ export const CanvasWrapper = styled.div`
 `;
 
 export const RightPanel = styled.div`
-  width: ${props => props.$open ? 'min(360px, 100vw)' : '0'};
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: min(360px, 100%);
   background: #ffffff;
   border-left: 1px solid rgba(0, 0, 0, 0.08);
-  border-left-width: ${props => props.$open ? '1px' : '0'};
-  transition: width 0.5s ease-in-out, border-left-width 0.5s ease-in-out;
+  box-shadow: -12px 0 28px rgba(0, 0, 0, 0.08);
+  transform: translateX(${props => props.$open ? '0' : '100%'});
+  opacity: ${props => props.$open ? 1 : 0};
+  visibility: ${props => props.$open ? 'visible' : 'hidden'};
+  pointer-events: ${props => props.$open ? 'auto' : 'none'};
+  transition:
+    transform 0.32s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.2s ease,
+    visibility 0s ${props => props.$open ? '0s' : '0.32s'};
   overflow: hidden;
-  flex-shrink: 0;
   z-index: 150;
 `;
 

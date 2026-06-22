@@ -25,8 +25,11 @@ test('editor smoke probe supports critical panel flows', async ({ page }) => {
   await expect(page.getByText('Redis Cache')).toBeHidden();
   await page.getByLabel('Close architecture review').click();
 
+  const canvas = page.getByText('INTERACTIVE_EDITOR_SHELL_HYDRATED').locator('..');
+  const canvasWidthBeforeLibrary = (await canvas.boundingBox())?.width;
   await page.getByRole('button', { name: 'Library' }).click();
   await expect(page.getByRole('heading', { name: /technology library/i })).toBeVisible();
+  await expect.poll(async () => (await canvas.boundingBox())?.width).toBe(canvasWidthBeforeLibrary);
   await expect(page.getByText(/technology vs responsibility/i)).toBeVisible();
   await expect(page.getByText('Community Modules')).toBeHidden();
   await expect(page.getByText('FastAPI', { exact: true })).toBeVisible();
