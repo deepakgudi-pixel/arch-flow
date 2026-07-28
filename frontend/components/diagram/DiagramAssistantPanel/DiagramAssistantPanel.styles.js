@@ -50,7 +50,7 @@ export const IntroTitle = styled.div`
   align-items: center;
   gap: 10px;
   font-family: var(--font-sans);
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 700;
   color: #0369a1;
   text-transform: uppercase;
@@ -69,7 +69,7 @@ export const PromptChip = styled.button`
   background: #ffffff;
   padding: 6px 10px;
   font-family: var(--font-sans);
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 600;
   color: #444;
   cursor: pointer;
